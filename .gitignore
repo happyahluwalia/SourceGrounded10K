@@ -27,6 +27,7 @@ dist/
 data/raw/*
 data/processed/*
 !data/.gitkeep
+data/filings/*
 
 # Notebooks
 .ipynb_checkpoints/

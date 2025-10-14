@@ -157,4 +157,54 @@ class SECClient:
         return f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc_no_dashes}/{primary_document}"
 
 
+    # TODO: this does not download any images in the filing like charts etc
+    def download_filing(self, filing: dict, output_dir: str="data/filings") -> str:
+        """
+        Download a filing document to disk.
+
+        Args: 
+            filing: Filing dict from get_company_filings()
+            output_dir: Base directory for downloads
+        Returns:
+            Path to downloaded file
         
+        File organization:
+            data/filings/{ticker}/{year}-{form}-{report_date}.html
+        
+        Example:
+            data/filings/AAPL/2024-10k-20240928.html
+        """
+
+        import os 
+        from pathlib import Path
+
+        # create directory structure
+        ticker = filing["ticker"]
+        ticker_dir = Path(output_dir) / ticker
+        ticker_dir.mkdir(parents=True, exist_ok=True)
+
+        # create filename: 2024-10k-20240928.html
+        year = filing["reportDate"][:4]
+        form = filing["form"]
+        report_date = filing["reportDate"]
+        filename = f"{year}-{form}-{report_date}.html"
+        filepath = ticker_dir / filename
+
+        # check if already downloaded
+        if filepath.exists():
+            print(f"  Already exists: {filepath}")
+            return str(filepath)
+        
+        # download
+        print(f"  Downloading: {filing['documentURL']}")
+        self.rate_limit()
+
+        response = self.session.get(filing["documentURL"])
+        response.raise_for_status()
+
+        # save to disk
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(response.text)
+
+        print(f" ✅ Saved: {filepath}") 
+        return str(filepath)

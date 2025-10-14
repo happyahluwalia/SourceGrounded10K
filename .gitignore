@@ -1,0 +1,51 @@
+# Open .gitignore and add:
+cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data
+data/raw/*
+data/processed/*
+!data/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/
+notebooks/*.ipynb
+
+# Docker
+.docker/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+qdrant_storage/
+postgres_data/
+redis_data/
+*.db
+EOF

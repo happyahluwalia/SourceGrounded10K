@@ -1,6 +1,5 @@
-"""
-Database models using SQLAlchemy ORM.
-"""
+# app/models/database.py
+
 from sqlalchemy import (
     create_engine,
     Column,
@@ -11,11 +10,16 @@ from sqlalchemy import (
     Float,
     Boolean,
     ForeignKey,
-    JSON
+    JSON,
+    Date,
+    UniqueConstraint,
+    Index
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
+import uuid
+from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.config import settings
 
@@ -39,8 +43,7 @@ class Company(Base):
     last_updated = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    filings = relationship("SECFiling", back_populates="company")
-    news = relationship("NewsArticle", back_populates="company")
+    filings = relationship("SECFiling", back_populates="company", cascade="all, delete-orphan")
 
 
 class SECFiling(Base):
@@ -48,15 +51,64 @@ class SECFiling(Base):
     __tablename__ = "sec_filings"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    ticker = Column(String(10), ForeignKey("companies.ticker"))
+    ticker = Column(String(10), ForeignKey("companies.ticker", ondelete="CASCADE"))
     filing_type = Column(String(10))  # 10-K, 10-Q, 8-K
-    filing_date = Column(DateTime)
+    filing_date = Column(Date)
+    report_date = Column(Date)
     document_url = Column(Text)
+    document_path = Column(Text)  # Local file path
     processed = Column(Boolean, default=False)
+    num_chunks = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
     company = relationship("Company", back_populates="filings")
+    chunks = relationship("Chunk", back_populates="filing", cascade="all, delete-orphan")
+    
+    # Prevent duplicate filings
+    __table_args__ = (
+        UniqueConstraint('ticker', 'filing_type', 'report_date', name='uix_ticker_type_date'),
+    )
+
+
+class Chunk(Base):
+    """
+    Text chunks from SEC filings.
+    
+    Stores metadata only - full text lives in Qdrant.
+    UUID primary key matches Qdrant document ID.
+    """
+    __tablename__ = "chunks"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    filing_id = Column(Integer, ForeignKey("sec_filings.id", ondelete="CASCADE"), nullable=False)
+    
+    # Content metadata
+    section = Column(Text, nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    total_chunks_in_section = Column(Integer)
+    chunk_type = Column(String(20), nullable=False)  # 'section' or 'table'
+    
+    # Size info
+    char_count = Column(Integer, nullable=False)
+    token_count_estimate = Column(Integer)
+    
+    # Table-specific (nullable for non-table chunks)
+    table_rows = Column(Integer)
+    table_cols = Column(Integer)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    filing = relationship("SECFiling", back_populates="chunks")
+    
+    # Indexes
+    __table_args__ = (
+        Index('idx_chunks_filing_id', 'filing_id'),
+        Index('idx_chunks_section', 'section'),
+        Index('idx_chunks_filing_section', 'filing_id', 'section'),
+    )
 
 
 class NewsArticle(Base):
@@ -73,7 +125,7 @@ class NewsArticle(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    company = relationship("Company", back_populates="news")
+    company = relationship("Company")
 
 
 class Query(Base):
@@ -103,6 +155,12 @@ def init_db():
     """Initialize database (create tables)."""
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables created!")
+
+
+def drop_all():
+    """Drop all tables (for testing)."""
+    Base.metadata.drop_all(bind=engine)
+    print("✅ All tables dropped!")
 
 
 if __name__ == "__main__":

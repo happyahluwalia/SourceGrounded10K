@@ -157,7 +157,7 @@ class SECClient:
         return f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc_no_dashes}/{primary_document}"
 
 
-    # TODO: this does not download any images in the filing like charts etc
+    
     def download_filing(self, filing: dict, output_dir: str="data/filings") -> str:
         """
         Download a filing document to disk.
@@ -173,6 +173,13 @@ class SECClient:
         
         Example:
             data/filings/AAPL/2024-10k-20240928.html
+
+        TODO: Download embedded images referenced in HTML
+              - Images are hosted at SEC with relative paths
+              - Would need to parse <img> tags and download each
+              - Store in: data/filings/{TICKER}/images/
+              - Update HTML paths to reference local images
+              - Useful for multimodal RAG (Week 5)    
         """
 
         import os 

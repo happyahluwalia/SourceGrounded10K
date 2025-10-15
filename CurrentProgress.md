@@ -258,16 +258,25 @@ This will return a list like:
 ```
 
 ---
+## 📝 **Day 2 Summary for Documentation**
 
-## ⏰ **Time Check**
+### **What We Built:**
+Completed Features:
+- SEC EDGAR API client with rate limiting
+- Document downloading with caching
+- HTML parsing (18 sections, proper normalization)
+- Structure-aware chunking (540 chunks per 10-K)
+- Database storage with UUID primary keys
+- End-to-end pipeline script
+- Query utility for database inspection
 
-If you have:
-- **Full day (6-8 hours):** We'll complete all blocks
-- **Half day (3-4 hours):** We'll finish through Block 6 (chunking), save storage for tomorrow
-- **Less time:** Let me know and we'll adjust
+Pipeline Performance:
+- Process 10-K: ~30 seconds
+- Chunk generation: 540 chunks @ 500 chars avg
+- Database insert: 540 chunks in <1 second (bulk)
 
-**How much time do you have today? And are you ready to continue with Block 3?** 🚀
+Command Usage:
+  python scripts/process_company.py AAPL --filing-type 10-K --limit 1
+  python scripts/query_filings.py --ticker AAPL
 
----
-
-**P.S.** - We'll take breaks between blocks. Don't burn out - learning happens best when you're fresh! ☕
+Ready for Day 3: Embeddings + Vector Search

@@ -30,5 +30,4 @@ requests==2.31.0
 
 # Day 2: SEC Edgar Downloader
 beautifulsoup4==4.14.2
-lxml==6.0.2
 sec-edgar-downloader==5.0.3

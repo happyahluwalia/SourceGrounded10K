@@ -39,3 +39,6 @@ langchain-text-splitters=0.3.11
 qdrant-client=1.7.1
 # Embeddings, Retrieval, and Reranking
 sentence-transformers=5.1.1
+
+# Day 4 Building the pipeline
+ollama=0.6.0

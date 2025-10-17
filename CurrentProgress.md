@@ -280,3 +280,36 @@ Command Usage:
   python scripts/query_filings.py --ticker AAPL
 
 Ready for Day 3: Embeddings + Vector Search
+
+## Day 3 Store in Qdrant Vector DB
+### Storage Design Clarification
+**Text storage:** Chunk text is stored in BOTH Postgres and Qdrant
+- **Postgres:** Full text in `chunks.text` column (for SQL queries, display, backup)
+- **Qdrant:** Full text in payload (for immediate access after vector search)
+- **Rationale:** Resilience, no cross-DB lookups, flexibility for SQL search later
+- **Cost:** ~2MB duplication per filing (acceptable)
+
+
+
+## Summary Note for Future
+```
+TODO: Filing-Level Smart Caching
+Location: scripts/process_company.py
+
+Current: Always fetch from SEC, deduplicate at chunk level
+Desired: Check Postgres+Qdrant first, skip if exists
+
+Implementation:
+1. Add embeddings_generated flag to SECFiling model
+2. Create FilingChecker service (check_filing_exists)
+3. Update process_company.py to check before fetching
+4. Mark filings as embedded after Qdrant upload
+
+Benefits:
+- No duplicate SEC API calls
+- No duplicate embedding generation
+- Instant responses for cached filings
+- 66%+ cost savings for repeated queries
+
+Priority: Medium (Week 2-3)
+Blockers: None (can implement anytime)

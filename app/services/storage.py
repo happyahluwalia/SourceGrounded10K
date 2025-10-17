@@ -210,6 +210,7 @@ class DatabaseStorage:
                 chunk = Chunk(
                     id=chunk_id,  # UUID primary key
                     filing_id=filing.id,  # Foreign key to filing
+                    text=chunk_data['text'],
                     section=chunk_data['section'],  # Section name for filtering
                     chunk_index=chunk_data['chunk_index'],  # Position within section
                     total_chunks_in_section=chunk_data.get('total_chunks_in_section'),

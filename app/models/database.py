@@ -83,6 +83,9 @@ class Chunk(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     filing_id = Column(Integer, ForeignKey("sec_filings.id", ondelete="CASCADE"), nullable=False)
     
+    # Store chunk text
+    text = Column(Text, nullable=False) 
+
     # Content metadata
     section = Column(Text, nullable=False)
     chunk_index = Column(Integer, nullable=False)

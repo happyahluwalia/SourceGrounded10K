@@ -34,3 +34,8 @@ sec-edgar-downloader==5.0.3
 # Day 2 : Text chunking
 langchain-text-splitters=0.3.11
 
+# Day 3 Qdrant Vector storage and retrieval
+#  Client library for the Qdrant vector search engine
+qdrant-client=1.7.1
+# Embeddings, Retrieval, and Reranking
+sentence-transformers=5.1.1

@@ -40,5 +40,9 @@ qdrant-client=1.7.1
 # Embeddings, Retrieval, and Reranking
 sentence-transformers=5.1.1
 
-# Day 4 Building the pipeline
+# Day 4 Building the pipeline, creating api endpoint, testing with cli client
 ollama=0.6.0
+fastapi=0.119.0
+uvicorn=0.27.0 
+click=8.3.0 
+rich=14.2.0

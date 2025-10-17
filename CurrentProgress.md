@@ -313,3 +313,159 @@ Benefits:
 
 Priority: Medium (Week 2-3)
 Blockers: None (can implement anytime)
+
+---
+
+## Day 4: RAG Pipeline, API, CLI & Integration Fixes
+
+### **What We Built:**
+
+#### 1. **RAG Chain Service** ✅
+- Implemented complete RAG pipeline (retrieve → generate → cite)
+- Integrated Ollama LLM (gemma3:1b model)
+- Semantic search with configurable threshold (default: 0.5)
+- Source citation with similarity scores
+- Processing time tracking
+
+#### 2. **FastAPI REST API** ✅
+- **Endpoints:**
+  - `POST /api/query` - Ask questions about companies
+  - `GET /api/companies` - List available companies
+  - `GET /api/companies/{ticker}/filings` - Get company filings
+  - `POST /api/companies/{ticker}/process` - Process filing
+  - `GET /api/health` - Health check with service verification
+  
+- **Features:**
+  - Modern lifespan context manager (replaced deprecated on_event)
+  - Real health checks (Postgres, Qdrant, Ollama)
+  - CORS middleware for web UI
+  - Comprehensive error handling
+  - Auto-documentation (Swagger UI at /docs)
+
+#### 3. **CLI Client** ✅
+- **Commands:**
+  - `ask` - Natural language queries
+  - `list-companies` - Show available companies
+  - `filings` - List company filings
+  - `process` - Manually process filings
+  - `health` - Check API status
+  
+- **Features:**
+  - Rich terminal output (tables, panels, colors)
+  - Environment variable configuration
+  - Input validation (ticker format)
+  - Comprehensive help text
+  - Error recovery suggestions
+
+#### 4. **Filing Service Orchestration** ✅
+- Complete pipeline: SEC → Parse → Chunk → Postgres → Qdrant
+- Lazy loading (auto-fetch missing filings)
+- Idempotency (skip already-processed filings)
+- Transaction safety (atomic operations)
+- Status tracking (ready, processing, error)
+
+#### 5. **Database Enhancements** ✅
+- Added `embeddings_generated` column to track Qdrant sync
+- Context manager for session handling
+- Proper transaction management (commit/rollback)
+- Bulk insert optimization
+
+
+python cli/client.py ask "Who is the CFO of Tesla?" --ticker TSLA
+# ✅ Answer: Vaibhav Taneja
+# ⏱️  Processing time: 1.84s
+```
+
+### **Performance Metrics:**
+
+- **First query (new filing)**: 30-60 seconds (includes SEC fetch + processing)
+- **Subsequent queries**: 1-3 seconds (cached in Qdrant)
+- **Health check**: <100ms
+- **Embedding generation**: ~30 seconds for 500 chunks
+- **Qdrant upload**: ~2 seconds (batched)
+
+### **System Status:**
+
+✅ **Fully Operational:**
+- SEC filing fetching
+- HTML parsing
+- Document chunking
+- Postgres storage
+- Qdrant vector storage
+- Semantic search
+- LLM generation
+- REST API
+- CLI interface
+- Health monitoring
+
+✅ **Companies Processed:**
+- AAPL (Apple) - 1 filing
+- TSLA (Tesla) - 1 filing
+
+### **Configuration:**
+
+#### Environment Variables:
+- `DATABASE_URL` - Postgres connection
+- `QDRANT_HOST`, `QDRANT_PORT` - Vector DB
+- `OLLAMA_BASE_URL` - LLM service
+- `SEC_USER_AGENT` - SEC API compliance
+- `FINANCE_AGENT_API_URL` - CLI API endpoint (optional)
+
+#### Default Settings:
+- Score threshold: 0.5 (retrieval)
+- Top-k: 5 chunks
+- LLM model: gemma3:1b
+- Embedding model: BAAI/bge-large-en-v1.5 (1024-dim)
+- Chunk size: 512 chars (15% overlap)
+
+### **Commands Reference:**
+
+```bash
+# Start API server
+uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
+
+# CLI Commands
+python cli/client.py health
+python cli/client.py list-companies
+python cli/client.py filings AAPL
+python cli/client.py process MSFT --filing-type 10-K
+python cli/client.py ask "What were the revenues?" --ticker AAPL
+
+# Verify signatures
+python verify_signatures.py
+```
+
+### **Key Learnings:**
+
+1. **Integration Testing is Critical**: Unit tests passed but integration revealed 10+ signature mismatches
+2. **Context Managers**: Modern Python pattern for resource management (lifespan, sessions)
+3. **Type Safety**: Proper type hints catch issues early
+4. **Documentation**: Comprehensive docs prevent confusion and speed up debugging
+5. **Verification Tools**: Automated signature checking prevents runtime errors
+
+### **Next Steps (Day 5):**
+
+- [ ] Add rate limiting to API endpoints
+- [ ] Implement API authentication
+- [ ] Add response caching
+- [ ] Create integration test suite
+- [ ] Add Prometheus metrics
+- [ ] Implement comparative analysis (multi-company queries)
+- [ ] Add streaming responses for long answers
+- [ ] Build web UI
+
+### **Technical Debt:**
+
+- Improve table parsing to preserve unit context (e.g., "in millions")
+- Add post-processing to format financial numbers with proper units
+- Consider keeping table headers with each row during chunking
+- CORS allows all origins (restrict for production)
+- No rate limiting on expensive endpoints
+- Missing API versioning strategy
+- N+1 query in list_companies endpoint
+- No distributed locking for concurrent processing
+
+---
+
+**Status**: Day 4 Complete ✅  
+**Next Session**: Day 5 - Advanced Features & Production Hardening

@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 # Type hints for better code clarity
 from typing import List, Dict, Optional
 from datetime import datetime, date
+from contextlib import contextmanager
 # UUID for generating unique chunk identifiers (shared with Qdrant)
 import uuid
 
@@ -35,6 +36,28 @@ class DatabaseStorage:
         if self.session is None:
             self.session = SessionLocal()
         return self.session
+    
+    @contextmanager
+    def get_session(self):
+        """
+        Get a database session as a context manager.
+        
+        This allows using the session with 'with' statement:
+            with db_storage.get_session() as session:
+                # use session
+                pass
+        
+        The session is automatically closed after the block.
+        """
+        session = SessionLocal()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
     
     def close(self):
         """Close database session."""

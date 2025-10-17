@@ -58,6 +58,7 @@ class SECFiling(Base):
     document_url = Column(Text)
     document_path = Column(Text)  # Local file path
     processed = Column(Boolean, default=False)
+    embeddings_generated = Column(Boolean, default=False)  # Track if vectors are in Qdrant
     num_chunks = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     

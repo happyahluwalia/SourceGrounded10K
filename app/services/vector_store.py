@@ -173,11 +173,44 @@ class VectorStore:
         # Convert numpy arrays to Python lists (Qdrant API requires lists)
         return embeddings.tolist()
 
+
+    def _normalize_section_name(self, section: str) -> str:
+        """
+        Normalize section names for consistent filtering.
+
+        Examples:
+            "Item 7: Management's Discussion..." → "Item 7"
+            "Item 1A: Risk Factors" → "Item 1A"
+            "Item 8 - Financial Statements" → "Item 8"
+
+        Args:
+            section: Original section name from SEC filing
+
+        Returns:
+            Normalized section name (e.g., "Item 7")
+        """
+        import re
+        
+        # Extract "Item X" or "Item XA" pattern
+        match = re.match(r'(Item\s+\d+[A-Z]?)', section, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        
+        # If no "Item X" pattern, return first part before colon/dash
+        if ':' in section:
+            return section.split(':')[0].strip()
+        elif '-' in section:
+            return section.split('-')[0].strip()
+        
+        # Fallback: return as-is
+        return section
+
+
     def add_chunks(
     self, 
     chunks: List[Dict],
     batch_size: int = 100
-) -> None:
+    ) -> None:
         """
         Add chunks with embeddings to Qdrant.
         
@@ -249,22 +282,26 @@ class VectorStore:
         embeddings = self.embed_texts(texts, batch_size=32)
         
         # Step 4: Create points (vector + metadata)
+         # Step 4: Create points (vector + metadata)
         points = []
         for chunk, embedding in zip(new_chunks, embeddings):
+            # Normalize section name for easier filtering
+            section_normalized = self._normalize_section_name(chunk['section'])
+            
             point = PointStruct(
-                id=str(chunk['id']),  # Same UUID as Postgres
-                vector=embedding,      # 1024-dimensional vector
+                id=str(chunk['id']),
+                vector=embedding,
                 payload={
-                    # Store metadata for filtering
                     "chunk_id": str(chunk['id']),
                     "filing_id": str(chunk['filing_id']),
                     "ticker": chunk['ticker'],
                     "filing_type": chunk['filing_type'],
                     "report_date": chunk['report_date'],
-                    "section": chunk['section'],
+                    "section": section_normalized,  # ← Normalized: "Item 7"
+                    "section_full": chunk['section'],  # ← Keep full name for display
                     "chunk_index": chunk['chunk_index'],
                     "chunk_type": chunk['chunk_type'],
-                    "text": chunk['text'],  # Store text for retrieval
+                    "text": chunk['text'],
                 }
             )
             points.append(point)
@@ -348,12 +385,22 @@ class VectorStore:
             )
         
         if section:
+            # Normalize the section query
+            section_normalized = self._normalize_section_name(section)
+            # If user just provided a number (e.g., "7"), add "Item " prefix
+            if section_normalized.isdigit():
+                section_normalized = f"Item {section_normalized}"
+
+            # Normalize case: "ITEM 7" → "Item 7", "item 7" → "Item 7"
+            if section_normalized.lower().startswith('item'):
+                section_normalized = 'Item ' + section_normalized.split()[-1].upper()
+
             # Filter by section name (exact match)
             # Example: Only search in "Item 1A: Risk Factors"
             filter_conditions.append(
                 FieldCondition(
                     key="section",
-                    match=MatchValue(value=section)
+                    match=MatchValue(value=section_normalized)
                 )
             )
         

@@ -71,8 +71,13 @@ docker compose up -d
 # 3. Initialize databases
 python -c "from app.models.database import Base, engine; Base.metadata.create_all(bind=engine)"
 
-# 4. Download Ollama model
+# 4. Download Ollama models
+# Development (lightweight)
 docker exec -it financeagent_ollama ollama pull gemma3:1b
+
+# Production (recommended for deployment)
+docker exec -it financeagent_ollama ollama pull phi3:mini-instruct
+docker exec -it financeagent_ollama ollama pull nomic-embed-text
 
 # 5. Start backend
 uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
@@ -158,8 +163,12 @@ print(response.json()['answer'])
 - FastAPI - Modern async Python web framework
 - Qdrant - Vector database for semantic search
 - PostgreSQL - Relational database for metadata
-- Ollama - Local LLM inference (gemma3:1b)
-- BGE-large-en-v1.5 - Embedding model (1024-dim)
+- Ollama - Local LLM inference
+  - **Development**: gemma3:1b (lightweight testing)
+  - **Production**: phi3:mini-instruct (3.8B params, stable on 8GB RAM)
+- Embeddings:
+  - **Development**: BGE-large-en-v1.5 (1024-dim)
+  - **Production**: nomic-embed-text-v1.5 (768-dim, 8K context)
 
 **Frontend:**
 - React 18 - UI framework
@@ -176,9 +185,20 @@ print(response.json()['answer'])
 
 Deploy to cloud platforms with one command:
 
-### Digital Ocean
+### Digital Ocean (8GB Droplet)
+
+**Production-ready configuration included!**
+
+See detailed guide: [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)
+
+Quick reference: [docs/QUICK_DEPLOY_REFERENCE.md](docs/QUICK_DEPLOY_REFERENCE.md)
 
 ```bash
+# Pull production models
+docker exec -it financeagent_ollama ollama pull nomic-embed-text
+docker exec -it financeagent_ollama ollama pull phi3:mini-instruct
+
+# Deploy
 doctl apps create --spec app.yaml
 ```
 
@@ -201,15 +221,26 @@ railway up
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment guides.
+See deployment guides:
+- [PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) - Full production guide for Digital Ocean
+- [QUICK_DEPLOY_REFERENCE.md](docs/QUICK_DEPLOY_REFERENCE.md) - Quick reference commands
+- [MODEL_SELECTION_ANALYSIS.md](docs/MODEL_SELECTION_ANALYSIS.md) - Model selection rationale
 
 ## 📊 Performance
 
+**Development (gemma3:1b, BGE embeddings):**
 - **First query** (new company): 30-60s (includes SEC fetch + processing)
 - **Subsequent queries**: 1-3s (cached in vector DB)
 - **Embedding generation**: ~30s for 500 chunks
 - **Vector search**: <100ms
 - **LLM generation**: 1-2s
+
+**Production (phi3:mini-instruct, nomic embeddings):**
+- **First query**: 40-80s (higher quality processing)
+- **Subsequent queries**: 3-5s (better reasoning)
+- **Embedding generation**: ~40-50s for 500 chunks
+- **Vector search**: <100ms
+- **LLM generation**: 3-5s (higher quality answers)
 
 ## 🔧 Configuration
 
@@ -226,10 +257,15 @@ QDRANT_PORT=6333
 
 # LLM
 OLLAMA_BASE_URL=http://localhost:11434
-LLM_MODEL=gemma3:1b
+OLLAMA_MODEL=phi3:mini-instruct  # Production (gemma3:1b for dev)
+
+# Embeddings
+EMBEDDING_MODEL=nomic-embed-text-v1.5  # Production
+EMBEDDING_DIMENSION=768
 
 # RAG Settings
-CHUNK_SIZE=512
+CHUNK_SIZE=2048  # Increased for production (512 for dev)
+CHUNK_OVERLAP=300
 TOP_K=5
 SCORE_THRESHOLD=0.5
 ```

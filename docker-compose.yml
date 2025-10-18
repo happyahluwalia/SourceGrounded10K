@@ -57,6 +57,22 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # Optional: Auto-pull models on startup
+  # Uncomment this service to automatically download models
+  # ollama-init:
+  #   image: ollama/ollama:latest
+  #   container_name: financeagent_ollama_init
+  #   depends_on:
+  #     ollama:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./scripts/ollama-init.sh:/ollama-init.sh
+  #   environment:
+  #     EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+  #     LLM_MODEL: ${OLLAMA_MODEL:-phi3:mini-instruct}
+  #   entrypoint: ["/bin/bash", "/ollama-init.sh"]
+  #   restart: "no"
+
 volumes:
   postgres_data:
   qdrant_storage:

@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: financeagent_postgres
     environment:
-      POSTGRES_DB: financeagent
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: dev_password_change_in_prod
+      POSTGRES_DB: ${POSTGRES_DB:-financeagent}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_change_in_prod}
     ports:
       - "5432:5432"
     volumes:
@@ -41,7 +41,24 @@ services:
       timeout: 5s
       retries: 5
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: financeagent_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   qdrant_storage:
   redis_data:
+  ollama_data:

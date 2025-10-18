@@ -1,0 +1,84 @@
+# Digital Ocean App Platform Configuration
+name: finance-agent
+region: nyc
+
+# Database
+databases:
+  - name: postgres
+    engine: PG
+    version: "15"
+    production: true
+    cluster_name: finance-agent-db
+
+# Services
+services:
+  # Backend API
+  - name: backend
+    github:
+      repo: yourusername/financeagent
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: Dockerfile
+    http_port: 8000
+    instance_count: 1
+    instance_size_slug: basic-xs
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: ${postgres.DATABASE_URL}
+      - key: SEC_USER_AGENT
+        scope: RUN_TIME
+        type: SECRET
+      - key: QDRANT_HOST
+        scope: RUN_TIME
+        value: "qdrant"
+      - key: QDRANT_PORT
+        scope: RUN_TIME
+        value: "6333"
+      - key: OLLAMA_BASE_URL
+        scope: RUN_TIME
+        value: "http://ollama:11434"
+
+  # Frontend
+  - name: frontend
+    github:
+      repo: yourusername/financeagent
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: Dockerfile.frontend
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    health_check:
+      http_path: /
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 3
+
+  # Qdrant Vector DB (as a worker service)
+  - name: qdrant
+    image:
+      registry_type: DOCKER_HUB
+      registry: qdrant
+      repository: qdrant
+      tag: latest
+    http_port: 6333
+    instance_count: 1
+    instance_size_slug: basic-xs
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 20
+      period_seconds: 10
+
+  # Note: Ollama requires GPU which is not available on App Platform
+  # Consider using OpenAI API or deploying Ollama on a separate GPU Droplet

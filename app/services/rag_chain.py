@@ -15,7 +15,8 @@ from typing import List, Dict, Optional
 import logging
 from datetime import datetime
 
-from app.services.vector_store import VectorStore 
+from app.services.vector_store import VectorStore
+from app.core.config import settings 
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class RAGChain:
         self,
         vector_store: VectorStore,
         llm_client = None,      # initially use Ollama Client
-        model_name: str = "gemma3:1b"
+        model_name: str = None
     ):
 
         """
@@ -47,7 +48,7 @@ class RAGChain:
         """
 
         self.vector_store = vector_store
-        self.model_name = model_name 
+        self.model_name = model_name or settings.ollama_model 
 
         if llm_client is None:
                 try:
@@ -67,8 +68,8 @@ class RAGChain:
         ticker: Optional[str] = None,
         section: Optional[str]= None,
         filing_type: Optional[str] = None,
-        top_k: int = 5,
-        score_threshold: float = 0.7
+        top_k: int = None,
+        score_threshold: float = None
     )-> List[Dict]:
         """
             Retrieve relevant chunks for query.
@@ -85,6 +86,10 @@ class RAGChain:
                 List of retrieved chunks
         """
 
+        # Use settings if not provided
+        top_k = top_k or settings.top_k
+        score_threshold = score_threshold or settings.score_threshold
+        
         logger.info(f"Retrieving chunks for query: {query[:100]}...")
 
         results = self.vector_store.search(
@@ -178,7 +183,7 @@ class RAGChain:
         
         return prompt
 
-    def generate(self, prompt:str, max_tokens: int = 500) -> str:
+    def generate(self, prompt:str, max_tokens: int = None) -> str:
         """
             Generate answer using LLM
 
@@ -194,6 +199,9 @@ class RAGChain:
             return "Error: LLM client not initialized. Please install Ollama"
         
         try:
+            # Use settings if not provided
+            max_tokens = max_tokens or settings.max_tokens
+            
             logger.info(f" Generating answer with {self.model_name}...")
 
             # Call Ollama
@@ -201,8 +209,8 @@ class RAGChain:
                 model = self.model_name,
                 prompt = prompt,
                 options = {
-                    "num_predict":max_tokens,
-                    "temperature":0.1,          # Low temperature for factual answers
+                    "num_predict": max_tokens,
+                    "temperature": 0.1,          # Low temperature for factual answers
                 }
             )
             answer = response['response'].strip()
@@ -220,8 +228,8 @@ class RAGChain:
         ticker: Optional[str] = None,
         section: Optional[str] = None,
         filing_type: Optional[str] = None,
-        top_k: int = 5,
-        score_threshold: float = 0.5,  # Lower default for better recall
+        top_k: int = None,
+        score_threshold: float = None,
         include_sources:bool = True
     )-> Dict:
         """

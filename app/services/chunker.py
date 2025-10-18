@@ -4,6 +4,8 @@ import enum
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 # Type hints for better code clarity and IDE support
 from typing import Dict, List, Optional
+# Import settings for configuration
+from app.core.config import settings
 
 class FinancialDocumentChunker:
     """
@@ -23,18 +25,21 @@ class FinancialDocumentChunker:
     """
 
     def __init__(self,
-        chunk_size:int=512,
-        chunk_overlap:int=75, # 15% of 512
+        chunk_size: int = None,
+        chunk_overlap: int = None,
         min_chunk_size: int = 50
         ) :
         """
         Initialize chunker
 
         Args:
-            chunk_size: Target chunk size in tokens 
-            chunk_overlap: Overlap between chunks to avoid context loss
+            chunk_size: Target chunk size in characters (default: from settings)
+            chunk_overlap: Overlap between chunks to avoid context loss (default: from settings)
             min_chunk_size: minimum chunk size.
         """
+        # Use settings if not provided
+        chunk_size = chunk_size or settings.chunk_size
+        chunk_overlap = chunk_overlap or settings.chunk_overlap
 
         # Store parameters as instance attributes for use in other methods
         self.chunk_size = chunk_size

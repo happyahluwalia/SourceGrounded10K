@@ -34,9 +34,11 @@ from qdrant_client.models import (
    Range,           # Range filter (dates, numbers)
 )
 
-# Sentence transformers for converting text to embeddings
-# This is the "AI" that understands semantic meaning
-from sentence_transformers import SentenceTransformer
+# Ollama client for embeddings
+import ollama
+
+# Import settings for configuration
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -50,42 +52,46 @@ class VectorStore:
 
     """
 
-    # TODO: move hardcoding to configuration file
     def __init__(
         self,
-        host: str = "localhost",
-        port: int = 6333,
-        collection_name: str = "financial_filings"
+        host: str = None,
+        port: int = None,
+        collection_name: str = None
     ):
         """
-            Initialize connection to Qdrant and load embedding model.
+            Initialize connection to Qdrant and configure embedding model.
 
             Args:
-                host: Qdrant server address (default: localhost)
-                port: Qdrant server port (default: 6333)
-                collection_name: Collection name (like a table in Postgres)
+                host: Qdrant server address (default: from settings)
+                port: Qdrant server port (default: from settings)
+                collection_name: Collection name (default: from settings)
 
         """
+        # Use settings if not provided
+        host = host or settings.qdrant_host
+        port = port or settings.qdrant_port
+        collection_name = collection_name or settings.qdrant_collection_name
 
         # Connect to Qdrant vector database
         # This is like connecting to Postgres, but for vectors
         self.client = QdrantClient(host=host, port=port)
-        self.collection_name= collection_name
+        self.collection_name = collection_name
 
-        # Load embedding model (converts text -> vectors)
-        # bge-large-en-v1.5 is a state-of-the-art model for semantic search
-        # - "bge" = BAAI General Embedding
-        # - "large" = 335M parameters (good quality)
-        # - "en" = English language
-        # - "v1.5" = version
-        logger.info(" Loading embedding model: BAAI/bge-large-en-v1.5")
-        self.model = SentenceTransformer('BAAI/bge-large-en-v1.5')
-
-        # Get vector dimensions from the model
-        # bge-large-en-v1.5 produces 1024-dimensional vectors
-        # This means each piece of text becomes 1024 numbers
-        self.vector_size = self.model.get_sentence_embedding_dimension()
-        logger.info(f" Embedding dimension: {self.vector_size}")
+        # Configure embedding model from settings
+        # nomic-embed-text-v1.5 via Ollama:
+        # - 768-dimensional vectors (vs BGE's 1024)
+        # - 8K context window (vs BGE's 512 tokens)
+        # - Better for long financial documents
+        self.embedding_model = settings.embedding_model
+        self.vector_size = settings.embedding_dimension
+        
+        # Initialize Ollama client
+        # Parse base URL to get host for Ollama client
+        ollama_host = settings.ollama_base_url
+        self.ollama_client = ollama.Client(host=ollama_host)
+        
+        logger.info(f"✓ Using embedding model: {self.embedding_model}")
+        logger.info(f"✓ Embedding dimension: {self.vector_size}")
 
     def create_collection(self, recreate: bool = False) -> None:
         """
@@ -135,43 +141,50 @@ class VectorStore:
 
         logger.info(f"Collection created with {self.vector_size}-dim vectors")
 
-    def embed_texts(self, texts: List[str], batch_size: int =32) -> List[List[float]]:
+    def embed_texts(self, texts: List[str], batch_size: int = None) -> List[List[float]]:
         """
-            Converts text to embedding vectors.
+            Converts text to embedding vectors using Ollama.
             This is where the magic happens:
             Input: ["Revenue increased 15%", "Net income rose"]
             Output: [[0.23, -0.45, ...], [0.19, -0.41, ...]]
 
-            The model incodes semantic meaning into numbers
+            The model encodes semantic meaning into numbers
             Similar texts -> similar vectors
 
             Args:
-                texts, list of text chunks to embed
-                batch_size: Process N texts at once (GPU efficiency)
+                texts: List of text chunks to embed
+                batch_size: Process N texts at once (currently processes sequentially)
 
             Returns:
-                List of embedding vectors (each vector = 1024 floats)
+                List of embedding vectors (each vector = 768 floats for nomic)
         """
 
-        logger.info(f"Embedding {len(texts)} texts...")
+        # Use settings if not provided
+        batch_size = batch_size or settings.embedding_batch_size
+        
+        logger.info(f"Embedding {len(texts)} texts using {self.embedding_model}...")
 
-        # Convert text to vectors using the transformer model
-        # This is the "AI magic" that understands semantic meaning
-        # Example: "revenue increased" and "sales grew" get similar vectors
-        # 
-        # Performance notes:
-        # - batch_size=32: Process 32 texts at once (GPU efficiency)
-        # - show_progress_bar: Visual feedback for long operations
-        # - convert_to_numpy: Efficient array format
-        embeddings = self.model.encode(
-            texts,
-            batch_size = batch_size,
-            show_progress_bar=True,
-            convert_to_numpy=True       # Return as numpy arrays
-        )
-
-        # Convert numpy arrays to Python lists (Qdrant API requires lists)
-        return embeddings.tolist()
+        embeddings = []
+        
+        # Process texts (Ollama embeddings API processes one at a time)
+        for i, text in enumerate(texts):
+            if i % 50 == 0 and i > 0:
+                logger.info(f"  Embedded {i}/{len(texts)} texts...")
+            
+            try:
+                # Call Ollama embeddings API
+                response = self.ollama_client.embeddings(
+                    model=self.embedding_model,
+                    prompt=text
+                )
+                embeddings.append(response['embedding'])
+            except Exception as e:
+                logger.error(f"Error embedding text {i}: {e}")
+                # Return zero vector on error to avoid breaking the pipeline
+                embeddings.append([0.0] * self.vector_size)
+        
+        logger.info(f"✓ Embedded {len(texts)} texts")
+        return embeddings
 
 
     def _normalize_section_name(self, section: str) -> str:
@@ -209,7 +222,7 @@ class VectorStore:
     def add_chunks(
     self, 
     chunks: List[Dict],
-    batch_size: int = 100
+    batch_size: int = None
     ) -> None:
         """
         Add chunks with embeddings to Qdrant.
@@ -275,11 +288,14 @@ class VectorStore:
         
         logger.info(f"Adding {len(new_chunks)} new chunks to Qdrant...")
         
+        # Use settings if not provided
+        batch_size = batch_size or settings.qdrant_upload_batch_size
+        
         # Step 2: Extract texts from new chunks only
         texts = [chunk['text'] for chunk in new_chunks]
         
         # Step 3: Generate embeddings (only for new chunks)
-        embeddings = self.embed_texts(texts, batch_size=32)
+        embeddings = self.embed_texts(texts)
         
         # Step 4: Create points (vector + metadata)
          # Step 4: Create points (vector + metadata)
@@ -321,7 +337,7 @@ class VectorStore:
     def search(
         self,
         query: str,
-        limit: int = 5,
+        limit: int = None,
         ticker:Optional[str] = None,
         filing_type:Optional[str] = None,
         section:Optional[str] = None,
@@ -362,6 +378,9 @@ class VectorStore:
             ]
         """
 
+        # Use settings if not provided
+        limit = limit or settings.top_k
+        
         # Step 1: Convert query to embedding vector
         # The query must be in the same vector space as the documents
         # Example: "What is Apple's revenue?" -> [0.23, -0.45, ..., 0.12]

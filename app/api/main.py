@@ -120,19 +120,26 @@ See Also:
 - app.core.config: Configuration management
 """
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from contextlib import asynccontextmanager
+from datetime import datetime
 import logging
 from sqlalchemy import text
 import requests
+import json
+import asyncio
+import queue
+import re
 
 from app.services.vector_store import VectorStore
 from app.services.rag_chain import RAGChain
 from app.services.filing_service import FilingService
 from app.services.storage import DatabaseStorage
+from app.services.log_streamer import subscribe_to_logs, unsubscribe_from_logs, get_log_stream_handler
 from app.core.config import settings
 
 # Configure logging
@@ -141,6 +148,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Initialize log streaming handler
+get_log_stream_handler()
 
 # ============================================================================
 # Initialize Services (before app creation)
@@ -169,9 +179,12 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("Starting Finance Agent API...")
-    logger.info(f"Database: {settings.database_url}")
+    # Mask sensitive database URL (hide password)
+    db_host = settings.database_url.split('@')[1].split('/')[0] if '@' in settings.database_url else 'configured'
+    logger.info(f"Database: {db_host}")
     logger.info(f"Qdrant: {settings.qdrant_host}:{settings.qdrant_port}")
     logger.info(f"Ollama: {settings.ollama_base_url}")
+    logger.info(f"Debug logs streaming: {'enabled' if settings.enable_debug_logs else 'disabled'}")
     
     # Verify critical services
     try:
@@ -210,10 +223,14 @@ app = FastAPI(
     lifespan=lifespan  # Use lifespan instead of deprecated on_event
 )
 
-# Add CORS middleware (for future web UI)
+# Add CORS middleware
+# Configure via CORS_ORIGINS environment variable
+# Examples: 
+#   Development: CORS_ORIGINS=*
+#   Production: CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
+    allow_origins=settings.cors_origins.split(",") if settings.cors_origins != "*" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -227,12 +244,32 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     """Request model for /api/query endpoint."""
     
-    query: str = Field(..., description="Question to ask about the company")
-    ticker: str = Field(..., description="Company ticker symbol (e.g., AAPL)")
+    query: str = Field(..., min_length=1, max_length=500, description="Question to ask about the company")
+    ticker: str = Field(..., min_length=1, max_length=10, description="Company ticker symbol (e.g., AAPL)")
     filing_type: str = Field(default="10-K", description="Type of SEC filing")
     section: Optional[str] = Field(None, description="Specific section to search (e.g., 'Item 7')")
     top_k: int = Field(default=5, ge=1, le=20, description="Number of chunks to retrieve")
     score_threshold: float = Field(default=0.5, ge=0.0, le=1.0, description="Minimum similarity score")
+    
+    @validator('ticker')
+    def validate_ticker(cls, v):
+        """Validate ticker is alphanumeric and uppercase."""
+        v = v.upper().strip()
+        if not re.match(r'^[A-Z]{1,10}$', v):
+            raise ValueError('Ticker must be 1-10 uppercase letters')
+        return v
+    
+    @validator('query')
+    def validate_query(cls, v):
+        """Sanitize query to prevent SQL injection."""
+        v = v.strip()
+        # Check for dangerous SQL keywords
+        dangerous = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'ALTER', 'EXEC', 'UNION', '--', ';', '/*', '*/']
+        v_upper = v.upper()
+        for word in dangerous:
+            if word in v_upper:
+                raise ValueError(f'Query contains forbidden keyword: {word}')
+        return v
     
     class Config:
         json_schema_extra = {
@@ -350,7 +387,10 @@ async def query_company(request: QueryRequest):
         }
     """
     try:
-        logger.info(f"Query request: {request.ticker} - {request.query[:50]}...")
+        # Log delimiter for new query
+        logger.info("=" * 80)
+        logger.info(f"🔍 NEW QUERY: {request.ticker} - {request.query[:50]}...")
+        logger.info("=" * 80)
         
         # Step 1: Ensure filing exists (fetch if missing)
         filing_result = filing_service.get_or_process_filing(
@@ -537,6 +577,110 @@ async def process_company_filing(ticker: str, request: ProcessFilingRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing filing: {str(e)}"
         )
+
+
+@app.get("/api/logs/stream")
+async def stream_logs(session_id: Optional[str] = None):
+    """
+    Server-Sent Events endpoint for real-time log streaming.
+    
+    This endpoint streams application logs to connected clients in real-time.
+    Perfect for the debug panel in the frontend to show actual backend logs.
+    
+    Can be disabled via ENABLE_DEBUG_LOGS=False environment variable.
+    
+    Query Parameters:
+        session_id: Optional session ID to filter logs for a specific session.
+                   If not provided, shows all application logs (useful for monitoring).
+    
+    Usage:
+        // All logs (monitoring mode)
+        const eventSource = new EventSource('/api/logs/stream');
+        
+        // Session-specific logs
+        const eventSource = new EventSource('/api/logs/stream?session_id=abc123');
+        
+        eventSource.onmessage = (event) => {
+            const log = JSON.parse(event.data);
+            console.log(log);
+        };
+    """
+    # Check if debug logs are enabled
+    if not settings.enable_debug_logs:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Debug log streaming is disabled. Set ENABLE_DEBUG_LOGS=True to enable."
+        )
+    async def event_generator():
+        log_queue = subscribe_to_logs()
+        
+        # Log to backend
+        logger.info("New log stream client connected")
+        
+        try:
+            # Send initial connection message
+            mode = "session-specific" if session_id else "global monitoring"
+            initial_msg = {
+                'timestamp': datetime.now().isoformat(),
+                'level': 'INFO',
+                'logger': 'log_stream',
+                'message': f'🔌 Connected to real-time log stream ({mode})'
+            }
+            yield f"data: {json.dumps(initial_msg)}\n\n"
+            
+            # Send a test log to verify streaming works
+            test_msg = {
+                'timestamp': datetime.now().isoformat(),
+                'level': 'INFO',
+                'logger': 'log_stream',
+                'message': '✅ Log streaming is active - ask a question to see the RAG pipeline!'
+            }
+            yield f"data: {json.dumps(test_msg)}\n\n"
+            
+            keepalive_counter = 0
+            while True:
+                try:
+                    # Check queue without blocking - check multiple times per iteration
+                    has_logs = False
+                    for _ in range(10):  # Check up to 10 times per iteration
+                        try:
+                            log_entry = log_queue.get_nowait()
+                            # Format as SSE and yield immediately
+                            yield f"data: {json.dumps(log_entry)}\n\n"
+                            has_logs = True
+                        except queue.Empty:
+                            break
+                    
+                    if not has_logs:
+                        # No logs available, sleep briefly
+                        await asyncio.sleep(0.1)  # Check every 100ms for responsiveness
+                        keepalive_counter += 1
+                        # Send keepalive every 300 iterations (30 seconds)
+                        if keepalive_counter >= 300:
+                            yield f": keepalive\n\n"
+                            keepalive_counter = 0
+                    
+                except GeneratorExit:
+                    # Client disconnected
+                    logger.info("Log stream client disconnected")
+                    break
+                    
+                except Exception as e:
+                    logger.error(f"Error in log stream: {e}", exc_info=True)
+                    break
+        finally:
+            unsubscribe_from_logs(log_queue)
+            logger.info("Log stream client cleanup complete")
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
 
 
 # ============================================================================

@@ -314,5 +314,8 @@ class RAGChain:
             f"Completed in {response['processing_time']:.2f}s "
             f"using {response['num_sources']} sources"
         )
+        logger.info("=" * 80)
+        logger.info("✅ QUERY COMPLETED")
+        logger.info("=" * 80)
         
         return response

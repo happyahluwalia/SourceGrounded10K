@@ -10,8 +10,17 @@ class Settings(BaseSettings):
     
     # App
     app_name: str = "FinanceAgent"
-    debug: bool = True
+    debug: bool = False  # Changed to False for production
     log_level: str = "INFO"
+    
+    # Security
+    cors_origins: str = "*"  # Comma-separated list, use "*" for development
+    api_key: str = ""  # Optional API key for authentication
+    enable_debug_logs: bool = True  # Control debug log streaming to UI
+    
+    # Rate Limiting
+    rate_limit_per_minute: int = 10
+    rate_limit_per_hour: int = 100
     
     # Database
     database_url: str

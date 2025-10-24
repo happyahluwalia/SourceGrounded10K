@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     ollama_model: str = "phi3:mini-instruct"  # Production: 3.8B params, stable on 8GB
     
     # Embeddings
-    embedding_model: str = "nomic-embed-text-v1.5"  # Production: 768-dim, 8K context
+    embedding_model: str = "nomic-embed-text"  # Production: 768-dim, 8K context
     embedding_dimension: int = 768  # Changed from 384 to match nomic model
     
     # Chunking

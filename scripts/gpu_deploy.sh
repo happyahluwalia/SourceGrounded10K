@@ -190,13 +190,21 @@ echo ""
 # STEP 6: Pull AI models
 # ============================================================================
 log_info "Pulling Ollama models (this takes 5-10 minutes)..."
-log_info "Model: $RECOMMENDED_MODEL"
 
-docker exec financeagent_ollama ollama pull $RECOMMENDED_MODEL &
+# Get actual Ollama container name
+OLLAMA_CONTAINER=$(docker ps --filter "name=ollama" --format "{{.Names}}" | head -1)
+if [ -z "$OLLAMA_CONTAINER" ]; then
+    log_error "Ollama container not found"
+    exit 1
+fi
+log_info "Using Ollama container: $OLLAMA_CONTAINER"
+
+log_info "Pulling LLM model: $RECOMMENDED_MODEL"
+docker exec $OLLAMA_CONTAINER ollama pull $RECOMMENDED_MODEL &
 PID1=$!
 
-log_info "Model: nomic-embed-text"
-docker exec financeagent_ollama ollama pull nomic-embed-text &
+log_info "Pulling embedding model: nomic-embed-text"
+docker exec $OLLAMA_CONTAINER ollama pull nomic-embed-text &
 PID2=$!
 
 wait $PID1
@@ -204,6 +212,10 @@ log_success "LLM model downloaded: $RECOMMENDED_MODEL"
 
 wait $PID2
 log_success "Embedding model downloaded: nomic-embed-text"
+
+# Verify models are available
+log_info "Verifying models..."
+docker exec $OLLAMA_CONTAINER ollama list
 echo ""
 
 # ============================================================================
@@ -211,14 +223,21 @@ echo ""
 # ============================================================================
 log_info "Initializing database..."
 
-docker exec financeagent_backend python -c "
+# Get actual backend container name
+BACKEND_CONTAINER=$(docker ps --filter "name=backend" --format "{{.Names}}" | head -1)
+if [ -z "$BACKEND_CONTAINER" ]; then
+    log_error "Backend container not found"
+    exit 1
+fi
+
+docker exec $BACKEND_CONTAINER python -c "
 from app.models.database import Base, engine
 Base.metadata.create_all(bind=engine)
 print('✓ Database initialized')
 " 2>/dev/null && log_success "Database tables created" || log_warning "Database may already be initialized"
 
 log_info "Initializing Qdrant vector store..."
-docker exec financeagent_backend python -c "
+docker exec $BACKEND_CONTAINER python -c "
 from app.services.vector_store import VectorStore
 vs = VectorStore()
 vs.create_collection()

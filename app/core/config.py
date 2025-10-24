@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     
     # LLM
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "phi3:mini-instruct"  # Production: 3.8B params, stable on 8GB
+    ollama_model: str = "llama3.1"  # Production: 8B params for Quadro P4000
     
     # Embeddings
     embedding_model: str = "nomic-embed-text"  # Production: 768-dim, 8K context

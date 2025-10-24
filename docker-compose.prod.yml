@@ -58,6 +58,20 @@ services:
       QDRANT_PORT: 6333
       OLLAMA_BASE_URL: http://ollama:11434
       
+      # LLM & Embeddings
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-768}
+      
+      # Chunking
+      CHUNK_SIZE: ${CHUNK_SIZE:-1024}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-150}
+      
+      # RAG Settings
+      TOP_K: ${TOP_K:-5}
+      SCORE_THRESHOLD: ${SCORE_THRESHOLD:-0.3}
+      MAX_TOKENS: ${MAX_TOKENS:-500}
+      
       # SEC API
       SEC_USER_AGENT: ${SEC_USER_AGENT}
       

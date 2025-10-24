@@ -53,8 +53,9 @@ class RAGChain:
         if llm_client is None:
                 try:
                     import ollama
-                    self.llm_client = ollama
-                    logger.info(f"Initialized Ollama client with model: {model_name}")
+                    # Initialize client with explicit host from settings
+                    self.llm_client = ollama.Client(host=settings.ollama_base_url)
+                    logger.info(f"Initialized Ollama client at {settings.ollama_base_url} with model: {self.model_name}")
                 except ImportError:
                     self.llm_client = None
                     raise ImportError("Please install ollama to use Ollama client")

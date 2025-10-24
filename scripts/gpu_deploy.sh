@@ -112,12 +112,60 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if docker run --rm --gpus all nvidia/cuda:12.0-base-ubuntu22.04 nvidia-smi &> /dev/null 2>&1; then
-    log_success "Docker can access GPU"
+# Test GPU access with NVIDIA Container Registry image (the one that works!)
+GPU_TEST_PASSED=false
+log_info "Testing GPU access with nvcr.io/nvidia/cuda:11.8.0-base-ubuntu22.04..."
+if docker run --rm --gpus all nvcr.io/nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi &> /dev/null 2>&1; then
+    GPU_TEST_PASSED=true
+    log_info "GPU test passed ✓"
+fi
+
+if [ "$GPU_TEST_PASSED" = true ]; then
+    log_success "Docker can access GPU ✓"
 else
-    log_error "Docker cannot access GPU. Install nvidia-docker2"
-    log_info "Run: sudo apt-get install -y nvidia-docker2 && sudo systemctl restart docker"
-    exit 1
+    log_warning "Docker cannot access GPU. Attempting to fix..."
+    
+    # Check if nvidia-docker2 is installed
+    if ! dpkg -l | grep -q nvidia-docker2; then
+        log_error "nvidia-docker2 not installed."
+        log_info "Run as root: sudo ./scripts/provision_server.sh"
+        exit 1
+    fi
+    
+    # Configure Docker daemon for NVIDIA runtime
+    log_info "Configuring Docker daemon for NVIDIA runtime..."
+    sudo tee /etc/docker/daemon.json > /dev/null << 'EOF'
+{
+  "default-runtime": "nvidia",
+  "runtimes": {
+    "nvidia": {
+      "path": "nvidia-container-runtime",
+      "runtimeArgs": []
+    }
+  }
+}
+EOF
+    
+    log_info "Restarting Docker..."
+    sudo systemctl restart docker
+    sleep 3
+    
+    # Test again
+    GPU_TEST_PASSED=false
+    log_info "Testing GPU access with nvcr.io/nvidia/cuda:11.8.0-base-ubuntu22.04..."
+    if docker run --rm --gpus all nvcr.io/nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi &> /dev/null 2>&1; then
+        GPU_TEST_PASSED=true
+        log_info "GPU test passed ✓"
+    fi
+    
+    if [ "$GPU_TEST_PASSED" = true ]; then
+        log_success "Docker can now access GPU ✓"
+    else
+        log_error "Still cannot access GPU. Manual intervention required."
+        log_info "Try running: sudo systemctl restart docker"
+        log_info "Then test: docker run --rm --gpus all nvidia/cuda:latest nvidia-smi"
+        exit 1
+    fi
 fi
 echo ""
 

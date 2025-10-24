@@ -76,8 +76,25 @@ if command -v nvidia-smi &> /dev/null; then
         tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
     apt update
     apt install -y nvidia-docker2
+    
+    # Configure Docker to use NVIDIA runtime by default
+    if [ ! -f /etc/docker/daemon.json ]; then
+        mkdir -p /etc/docker
+        cat > /etc/docker/daemon.json << 'EOF'
+{
+  "default-runtime": "nvidia",
+  "runtimes": {
+    "nvidia": {
+      "path": "nvidia-container-runtime",
+      "runtimeArgs": []
+    }
+  }
+}
+EOF
+    fi
+    
     systemctl restart docker
-    log_success "NVIDIA Docker Toolkit installed."
+    log_success "NVIDIA Docker Toolkit installed and configured."
 else
     log_warning "nvidia-smi not found. Skipping NVIDIA Docker Toolkit. The app will run in CPU mode."
 fi

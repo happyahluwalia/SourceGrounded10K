@@ -78,8 +78,13 @@ if [ ! -f ".env" ]; then
         POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
         API_KEY=$(openssl rand -base64 32)
         
+        # Update passwords in .env
         sed -i.bak "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|" .env
         sed -i.bak "s|API_KEY=.*|API_KEY=$API_KEY|" .env
+        
+        # Update DATABASE_URL with the generated password
+        sed -i.bak "s|\${POSTGRES_PASSWORD}|$POSTGRES_PASSWORD|g" .env
+        
         rm -f .env.bak
         
         log_success "Created .env with auto-configured settings"

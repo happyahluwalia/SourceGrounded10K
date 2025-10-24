@@ -42,6 +42,10 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Suppress noisy HTTP logs from this module
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 class VectorStore:
     """
         Manages vector embeddings and similarity search

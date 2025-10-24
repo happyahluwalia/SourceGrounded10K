@@ -207,7 +207,7 @@ log_success "Embedding model downloaded: nomic-embed-text"
 echo ""
 
 # ============================================================================
-# STEP 7: Initialize database
+# STEP 7: Initialize database and vector store
 # ============================================================================
 log_info "Initializing database..."
 
@@ -215,11 +215,83 @@ docker exec financeagent_backend python -c "
 from app.models.database import Base, engine
 Base.metadata.create_all(bind=engine)
 print('✓ Database initialized')
-" 2>/dev/null && log_success "Database initialized" || log_warning "Database may already be initialized"
+" 2>/dev/null && log_success "Database tables created" || log_warning "Database may already be initialized"
+
+log_info "Initializing Qdrant vector store..."
+docker exec financeagent_backend python -c "
+from app.services.vector_store import VectorStore
+vs = VectorStore()
+vs.create_collection()
+print('✓ Qdrant collection created')
+" 2>/dev/null && log_success "Qdrant collection created" || log_warning "Qdrant collection may already exist"
 echo ""
 
 # ============================================================================
-# STEP 8: Verify deployment
+# STEP 8: Configure Nginx (if installed)
+# ============================================================================
+if command -v nginx &> /dev/null; then
+    log_info "Configuring Nginx reverse proxy..."
+    
+    # Get domain from .env or use localhost
+    DOMAIN=$(grep "^DOMAIN=" .env 2>/dev/null | cut -d'=' -f2 || echo "localhost")
+    
+    sudo tee /etc/nginx/sites-available/financeagent > /dev/null << EOF
+server {
+    listen 80;
+    server_name $DOMAIN www.$DOMAIN;
+
+    # Frontend (React on port 3000)
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Backend API - strip /api prefix
+    location /api/ {
+        proxy_pass http://localhost:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    # API Documentation
+    location /docs {
+        proxy_pass http://localhost:8000/docs;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+    }
+}
+EOF
+    
+    # Enable site
+    sudo ln -sf /etc/nginx/sites-available/financeagent /etc/nginx/sites-enabled/financeagent
+    
+    # Test and reload
+    if sudo nginx -t 2>/dev/null; then
+        sudo systemctl enable nginx
+        sudo systemctl start nginx 2>/dev/null || sudo systemctl reload nginx
+        log_success "Nginx configured for $DOMAIN"
+    else
+        log_warning "Nginx configuration test failed - skipping"
+    fi
+else
+    log_info "Nginx not installed - skipping reverse proxy setup"
+fi
+echo ""
+
+# ============================================================================
+# STEP 9: Verify deployment
 # ============================================================================
 log_info "Verifying deployment..."
 sleep 10
@@ -290,9 +362,19 @@ echo ""
 # ============================================================================
 # Access Information
 # ============================================================================
+DOMAIN=$(grep "^DOMAIN=" .env 2>/dev/null | cut -d'=' -f2 || echo "localhost")
+
 echo "🌐 Access Points:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Frontend:         http://localhost"
+if [ "$DOMAIN" != "localhost" ]; then
+    echo "  🌍 Public URL:     https://$DOMAIN"
+    echo "  📱 Frontend:       https://$DOMAIN"
+    echo "  🔌 Backend API:    https://$DOMAIN/api"
+    echo "  📚 API Docs:       https://$DOMAIN/docs"
+    echo ""
+    echo "  Local access:"
+fi
+echo "  Frontend:         http://localhost:3000"
 echo "  Backend API:      http://localhost:8000"
 echo "  API Docs:         http://localhost:8000/docs"
 echo "  Ollama:           http://localhost:11434"

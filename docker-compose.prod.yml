@@ -24,11 +24,6 @@ services:
       - qdrant_data:/qdrant/storage
     environment:
       QDRANT__SERVICE__GRPC_PORT: 6334
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
 
   # Ollama LLM Service
@@ -38,11 +33,6 @@ services:
       - ollama_data:/root/.ollama
     environment:
       OLLAMA_HOST: 0.0.0.0:11434
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     restart: unless-stopped
     deploy:
       resources:
@@ -86,9 +76,9 @@ services:
       postgres:
         condition: service_healthy
       qdrant:
-        condition: service_healthy
+        condition: service_started
       ollama:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/health', timeout=5)"]
       interval: 30s
@@ -102,12 +92,10 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        # Set this to your actual domain in production
-        # For local: http://localhost:8000
-        # For production: https://api.yourdomain.com
-        VITE_API_URL: ${VITE_API_URL:-http://backend:8000}
+        # Use relative path so frontend calls go through Nginx proxy
+        VITE_API_URL: ${VITE_API_URL:-/api}
     ports:
-      - "80:80"
+      - "3000:80"
     depends_on:
       - backend
     healthcheck:

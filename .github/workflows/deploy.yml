@@ -58,11 +58,32 @@ jobs:
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
 
+  # Deploy to RTX 3060 GPU Server
+  deploy-gpu-server:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Deploy to RTX 3060 Server via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.GPU_SERVER_HOST }}
+          username: ${{ secrets.GPU_SERVER_USER }}
+          key: ${{ secrets.GPU_SERVER_SSH_KEY }}
+          port: ${{ secrets.GPU_SERVER_PORT || 22 }}
+          script: |
+            cd ${{ secrets.GPU_SERVER_PATH || '/opt/financeagent' }}
+            git pull origin main
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
+            docker-compose -f docker-compose.prod.yml ps
+            
   # Deploy to Digital Ocean (optional)
   deploy-digitalocean:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && false  # Disabled by default
     
     steps:
       - name: Deploy to Digital Ocean App Platform

@@ -29,6 +29,10 @@ class LogStreamHandler(logging.Handler):
         Broadcasts the log to all subscribers.
         """
         try:
+            # Filter out noisy HTTP logs
+            if record.name in ('httpx', 'httpcore', 'qdrant_client') and record.levelno < logging.WARNING:
+                return
+            
             log_entry = {
                 'timestamp': datetime.fromtimestamp(record.created).isoformat(),
                 'level': record.levelname,

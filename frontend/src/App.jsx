@@ -160,7 +160,8 @@ function App() {
         <header className="border-b border-border bg-card px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">Finance Agent</h1>
+            <h1 className="text-xl font-bold">10kiq</h1>
+            <span className="text-sm text-muted-foreground">AI Financial Analysis</span>
           </div>
           <div className="flex items-center gap-2">
             <Button

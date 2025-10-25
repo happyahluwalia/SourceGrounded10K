@@ -268,12 +268,19 @@ class QueryRequest(BaseModel):
     def validate_query(cls, v):
         """Sanitize query to prevent SQL injection."""
         v = v.strip()
-        # Check for dangerous SQL keywords
+        # Check for dangerous SQL keywords (as whole words, not substrings)
         dangerous = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'ALTER', 'EXEC', 'UNION', '--', ';', '/*', '*/']
         v_upper = v.upper()
         for word in dangerous:
-            if word in v_upper:
-                raise ValueError(f'Query contains forbidden keyword: {word}')
+            # Use word boundaries for alphanumeric keywords, exact match for symbols
+            if word.isalnum():
+                # Match as whole word (e.g., "EXEC" but not "EXECUTIVES")
+                if re.search(r'\b' + re.escape(word) + r'\b', v_upper):
+                    raise ValueError(f'Query contains forbidden keyword: {word}')
+            else:
+                # For symbols like '--', ';', '/*', '*/': exact substring match
+                if word in v_upper:
+                    raise ValueError(f'Query contains forbidden keyword: {word}')
         return v
     
     class Config:

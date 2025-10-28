@@ -1,433 +1,577 @@
 # Deployment Guide
 
-This guide covers deploying the Finance Agent application to various cloud platforms.
+Complete guide for deploying Finance Agent to production environments.
 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [Digital Ocean Deployment](#digital-ocean-deployment)
-- [Railway Deployment](#railway-deployment)
-- [Render Deployment](#render-deployment)
+- [Quick Deploy (GPU Server)](#quick-deploy-gpu-server)
+- [Digital Ocean Droplet](#digital-ocean-droplet)
+- [Cloud Platforms](#cloud-platforms)
 - [Docker Compose (Self-Hosted)](#docker-compose-self-hosted)
-- [Environment Variables](#environment-variables)
+- [Configuration](#configuration)
+- [Post-Deployment](#post-deployment)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Prerequisites
 
-Before deploying, ensure you have:
+**Required:**
+- SEC User Agent email (SEC API compliance)
+- Server with 8GB+ RAM (16GB recommended for Llama 3.1)
+- Docker & Docker Compose
+- Domain name (optional, for SSL)
 
-1. **SEC User Agent Email**: Required for SEC API compliance
-2. **Domain name** (optional but recommended)
-3. **Cloud platform account** (Digital Ocean, Railway, or Render)
-4. **Docker** installed (for local testing)
-
----
-
-## Digital Ocean Deployment
-
-### Option 1: App Platform (Easiest)
-
-Digital Ocean App Platform is the simplest way to deploy with automatic scaling and managed databases.
-
-#### Steps:
-
-1. **Create a new App**
-   ```bash
-   # Install doctl CLI
-   brew install doctl  # macOS
-   
-   # Authenticate
-   doctl auth init
-   ```
-
-2. **Create `app.yaml` configuration** (already included in repo)
-
-3. **Deploy via CLI**
-   ```bash
-   doctl apps create --spec app.yaml
-   ```
-
-4. **Or deploy via Web UI**
-   - Go to Digital Ocean Console → Apps → Create App
-   - Connect your GitHub repository
-   - Select the `main` branch
-   - Digital Ocean will auto-detect the Dockerfile
-   - Add environment variables (see below)
-   - Deploy!
-
-#### Estimated Cost:
-- Basic tier: $12/month (backend + frontend)
-- Managed Postgres: $15/month
-- Total: ~$27/month
-
-### Option 2: Droplet (More Control)
-
-For more control and potentially lower costs, use a Droplet.
-
-1. **Create a Droplet**
-   - Choose Ubuntu 22.04 LTS
-   - Minimum: 4GB RAM, 2 vCPUs ($24/month)
-   - Recommended: 8GB RAM, 4 vCPUs ($48/month) for Ollama
-
-2. **SSH into Droplet**
-   ```bash
-   ssh root@your-droplet-ip
-   ```
-
-3. **Install Docker**
-   ```bash
-   curl -fsSL https://get.docker.com -o get-docker.sh
-   sh get-docker.sh
-   ```
-
-4. **Install Docker Compose**
-   ```bash
-   apt-get update
-   apt-get install docker-compose-plugin
-   ```
-
-5. **Clone your repository**
-   ```bash
-   git clone https://github.com/yourusername/financeagent.git
-   cd financeagent
-   ```
-
-6. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   nano .env  # Edit with your values
-   ```
-
-7. **Deploy with Docker Compose**
-   ```bash
-   docker compose -f docker-compose.prod.yml up -d
-   ```
-
-8. **Set up Nginx reverse proxy** (optional, for HTTPS)
-   ```bash
-   apt-get install nginx certbot python3-certbot-nginx
-   
-   # Configure nginx
-   nano /etc/nginx/sites-available/financeagent
-   
-   # Enable site
-   ln -s /etc/nginx/sites-available/financeagent /etc/nginx/sites-enabled/
-   
-   # Get SSL certificate
-   certbot --nginx -d yourdomain.com
-   ```
-
-9. **Pull Ollama model**
-   ```bash
-   docker exec -it financeagent_ollama ollama pull gemma3:1b
-   ```
+**For GPU deployment:**
+- NVIDIA GPU with 8GB+ VRAM
+- CUDA 11.0+
+- nvidia-docker2
 
 ---
 
-## Railway Deployment
+## Quick Deploy (GPU Server)
 
-Railway offers simple deployment with automatic HTTPS and environment management.
+### Automated Setup
 
-### Steps:
+```bash
+# 1. SSH into server
+ssh user@your-server-ip
 
-1. **Install Railway CLI**
-   ```bash
-   npm install -g @railway/cli
-   railway login
-   ```
+# 2. Download and run provisioning script
+wget https://raw.githubusercontent.com/yourusername/financeagent/main/scripts/provision_server.sh
+chmod +x provision_server.sh
+./provision_server.sh
 
-2. **Initialize project**
-   ```bash
-   cd financeagent
-   railway init
-   ```
+# 3. Log out and back in (for docker group)
+exit
+ssh user@your-server-ip
 
-3. **Create services**
-   ```bash
-   # Create Postgres database
-   railway add --database postgres
-   
-   # Deploy backend
-   railway up
-   ```
+# 4. Clone and deploy
+git clone https://github.com/yourusername/financeagent.git
+cd financeagent
+./scripts/gpu_deploy.sh
+```
 
-4. **Add environment variables**
-   ```bash
-   railway variables set SEC_USER_AGENT="your-email@example.com"
-   railway variables set QDRANT_HOST="qdrant"
-   railway variables set OLLAMA_BASE_URL="http://ollama:11434"
-   ```
+**Provisioning includes:**
+- Docker + Docker Compose + nvidia-docker2
+- Nginx + SSL (Certbot)
+- UFW firewall + Fail2Ban
+- Security patches + auto-updates
+- System optimizations
 
-5. **Deploy frontend separately**
-   - Create a new service in Railway dashboard
-   - Connect to your repo
-   - Set root directory to `frontend`
-   - Railway will auto-detect Vite and build
-
-#### Estimated Cost:
-- Hobby plan: $5/month (includes $5 credit)
-- Additional usage: ~$10-20/month
-- Total: ~$15-25/month
-
-**Note**: Railway may not support GPU for Ollama. Consider using a smaller model or external LLM API.
+**Time:** ~15-20 minutes
 
 ---
 
-## Render Deployment
+## Digital Ocean Droplet
 
-Render provides free tiers for testing and easy scaling for production.
+### Server Specs
 
-### Steps:
+| Tier | RAM | vCPU | Cost/mo | Use Case |
+|------|-----|------|---------|----------|
+| Basic | 4GB | 2 | $24 | Development only |
+| **Recommended** | **8GB** | **4** | **$48** | **Production (Phi-3)** |
+| High-end | 16GB | 8 | $96 | Production (Llama 3.1) |
 
-1. **Create a Render account** at https://render.com
+### Step-by-Step Setup
 
-2. **Deploy Backend**
-   - New → Web Service
-   - Connect your GitHub repo
-   - Name: `financeagent-backend`
-   - Environment: Docker
-   - Dockerfile path: `Dockerfile`
-   - Add environment variables
+#### 1. Create Droplet
 
-3. **Deploy Frontend**
-   - New → Static Site
-   - Connect your GitHub repo
-   - Build command: `cd frontend && npm install && npm run build`
-   - Publish directory: `frontend/dist`
+```bash
+# Via doctl CLI
+doctl compute droplet create financeagent \
+  --image ubuntu-22-04-x64 \
+  --size s-4vcpu-8gb \
+  --region nyc1 \
+  --ssh-keys YOUR_SSH_KEY_ID
 
-4. **Create Postgres Database**
-   - New → PostgreSQL
-   - Copy the internal database URL
-   - Add to backend environment variables
+# Or use Digital Ocean web console
+```
 
-5. **Deploy Qdrant** (use external service)
-   - Sign up at https://cloud.qdrant.io
-   - Create a cluster
-   - Get API key and URL
-   - Add to backend environment variables
+#### 2. Initial Server Setup
 
-6. **Configure Ollama** (use external API)
-   - Option 1: Use OpenAI API instead
-   - Option 2: Deploy Ollama on separate GPU server
-   - Option 3: Use Render's GPU instances (beta)
+```bash
+# SSH into droplet
+ssh root@your-droplet-ip
 
-#### Estimated Cost:
-- Free tier: $0/month (limited resources)
-- Starter: $7/month (backend) + $7/month (Postgres)
-- Total: ~$14/month (without Ollama GPU)
+# Update system
+apt update && apt upgrade -y
 
----
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
 
-## Docker Compose (Self-Hosted)
+# Install Docker Compose
+apt install docker-compose-plugin -y
 
-For self-hosting on your own server or VPS.
+# (Optional) Install nvidia-docker for GPU
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
+  tee /etc/apt/sources.list.d/nvidia-docker.list
+apt update && apt install -y nvidia-docker2
+systemctl restart docker
+```
 
-### Quick Start:
+#### 3. Deploy Application
 
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/financeagent.git
 cd financeagent
 
-# Copy environment file
-cp .env.example .env
+# Copy and configure environment
+cp .env.production.example .env
+nano .env  # Edit with your values
 
-# Edit environment variables
-nano .env
-
-# Build and start all services
+# Start services
 docker compose -f docker-compose.prod.yml up -d
 
-# Pull Ollama model
-docker exec -it financeagent_ollama ollama pull gemma3:1b
+# Pull Ollama models
+docker exec -it financeagent_ollama ollama pull nomic-embed-text
+docker exec -it financeagent_ollama ollama pull phi3:mini-instruct
 
-# Check logs
-docker compose -f docker-compose.prod.yml logs -f
-
-# Access the application
-# Frontend: http://localhost
-# API: http://localhost/api
-# API Docs: http://localhost/api/docs
+# Verify deployment
+docker compose -f docker-compose.prod.yml ps
+curl http://localhost:8000/api/health
 ```
 
-### System Requirements:
-
-- **Minimum**: 8GB RAM, 4 CPU cores, 50GB storage
-- **Recommended**: 16GB RAM, 8 CPU cores, 100GB storage
-- **GPU**: NVIDIA GPU with 8GB+ VRAM (for Ollama)
-
-### Updating:
+#### 4. Setup Nginx & SSL
 
 ```bash
-# Pull latest changes
-git pull
+# Install Nginx
+apt install nginx certbot python3-certbot-nginx -y
 
-# Rebuild and restart
-docker compose -f docker-compose.prod.yml up -d --build
+# Copy Nginx config
+cp nginx.conf /etc/nginx/sites-available/financeagent
+ln -s /etc/nginx/sites-available/financeagent /etc/nginx/sites-enabled/
+rm /etc/nginx/sites-enabled/default
 
-# Clean up old images
-docker system prune -a
+# Update domain in config
+nano /etc/nginx/sites-available/financeagent
+# Replace yourdomain.com with your actual domain
+
+# Test and reload
+nginx -t
+systemctl reload nginx
+
+# Get SSL certificate
+certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+#### 5. Setup Firewall
+
+```bash
+# Configure UFW
+ufw allow 22/tcp    # SSH
+ufw allow 80/tcp    # HTTP
+ufw allow 443/tcp   # HTTPS
+ufw enable
+
+# Install Fail2Ban (SSH protection)
+apt install fail2ban -y
+systemctl enable fail2ban
+systemctl start fail2ban
 ```
 
 ---
 
-## Environment Variables
+## Cloud Platforms
 
-### Required Variables:
+### Railway
+
+**Pros:** Simple, auto-scaling, managed databases  
+**Cons:** More expensive, no GPU support
 
 ```bash
-# SEC API Compliance (REQUIRED)
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login and deploy
+railway login
+railway init
+railway up
+```
+
+**Cost:** ~$20-30/month (without Ollama, use OpenAI API instead)
+
+### Render
+
+**Pros:** Free tier available, auto-deploy from GitHub  
+**Cons:** Limited resources, no GPU
+
+```bash
+# Deploy via render.yaml (included in repo)
+# 1. Connect GitHub repo in Render dashboard
+# 2. Render auto-detects render.yaml
+# 3. Add environment variables
+# 4. Deploy
+```
+
+**Cost:** Free tier (limited), $7+/month for production
+
+### Google Cloud / AWS / Azure
+
+See cloud-specific guides in `docs/cloud/` directory.
+
+---
+
+## Docker Compose (Self-Hosted)
+
+### Development
+
+```bash
+# Start all services
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+### Production
+
+```bash
+# Use production compose file
+docker compose -f docker-compose.prod.yml up -d
+
+# With GPU support
+docker compose -f docker-compose.prod.yml --profile gpu up -d
+
+# View resource usage
+docker stats
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+**Required:**
+```bash
 SEC_USER_AGENT=your-email@example.com
-
-# Database
-DATABASE_URL=postgresql://user:password@host:5432/dbname
-POSTGRES_USER=financeuser
-POSTGRES_PASSWORD=your-secure-password
-POSTGRES_DB=financeagent
-
-# Vector Database
+DATABASE_URL=postgresql://user:pass@postgres:5432/financeagent
 QDRANT_HOST=qdrant
-QDRANT_PORT=6333
-
-# LLM Service
 OLLAMA_BASE_URL=http://ollama:11434
 ```
 
-### Optional Variables:
-
+**Model Configuration:**
 ```bash
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-CORS_ORIGINS=*
+# Embeddings
+EMBEDDING_MODEL=nomic-embed-text-v1.5
+EMBEDDING_DIMENSION=768
 
-# Embedding Model
-EMBEDDING_MODEL=BAAI/bge-large-en-v1.5
-EMBEDDING_DIMENSION=1024
+# LLM (choose one)
+OLLAMA_MODEL=phi3:mini-instruct      # Recommended (8GB RAM)
+# OLLAMA_MODEL=llama3.1:8b-instruct  # Better quality (16GB RAM)
+# OLLAMA_MODEL=gemma3:1b             # Development only
+```
 
-# LLM Configuration
-LLM_MODEL=gemma3:1b
-LLM_TEMPERATURE=0.1
-LLM_MAX_TOKENS=500
-
-# RAG Configuration
-CHUNK_SIZE=512
-CHUNK_OVERLAP=0.15
+**RAG Settings:**
+```bash
+CHUNK_SIZE=2048
+CHUNK_OVERLAP=300
 TOP_K=5
-SCORE_THRESHOLD=0.5
+SCORE_THRESHOLD=0.3
+MAX_TOKENS=500
+```
 
-# Logging
-LOG_LEVEL=INFO
+**Security:**
+```bash
+DEBUG=False
+CORS_ORIGINS=https://yourdomain.com
+API_KEY=your-secret-api-key
+RATE_LIMIT_PER_MINUTE=10
+RATE_LIMIT_PER_HOUR=100
+```
+
+### Model Selection Guide
+
+| Model | RAM | VRAM | Quality | Speed | Use Case |
+|-------|-----|------|---------|-------|----------|
+| gemma3:1b | 2GB | - | Basic | Fast | Development |
+| **phi3:mini** | **3GB** | - | **Good** | **Medium** | **Production (8GB)** |
+| llama3.1:8b | 6GB | - | Better | Slow | Production (16GB) |
+| llama3.1:8b | - | 8GB | Better | Fast | GPU server |
+
+### Memory Budget (8GB Server)
+
+```
+Component               Memory    Notes
+────────────────────────────────────────────────────────
+System/OS               500 MB    Base Ubuntu
+PostgreSQL              300 MB    Metadata storage
+Qdrant (10K vectors)    500 MB    768-dim embeddings
+Redis                   100 MB    Caching
+Nginx                    50 MB    Reverse proxy
+────────────────────────────────────────────────────────
+Infrastructure Total   1.45 GB
+
+Available for Ollama   6.55 GB
+────────────────────────────────────────────────────────
+Phi-3 Mini:            3.0 GB    ✅ Safe (3.5GB buffer)
+Llama 3.1:             6.0 GB    ⚠️ Risky (0.5GB buffer)
 ```
 
 ---
 
-## Post-Deployment Checklist
+## Post-Deployment
 
-- [ ] Verify all services are healthy: `curl http://your-domain/api/health`
-- [ ] Test a query: `curl -X POST http://your-domain/api/query -d '{"query":"test","ticker":"AAPL"}'`
-- [ ] Set up monitoring (Sentry, DataDog, etc.)
-- [ ] Configure backups for Postgres and Qdrant
-- [ ] Set up SSL/TLS certificates
-- [ ] Configure CORS for your domain
-- [ ] Add rate limiting
-- [ ] Set up authentication (if needed)
-- [ ] Monitor costs and resource usage
+### Verification Checklist
+
+```bash
+# 1. Check all services are running
+docker compose ps
+
+# 2. Verify health endpoint
+curl http://localhost:8000/api/health
+
+# 3. Check Ollama models
+docker exec -it financeagent_ollama ollama list
+
+# 4. Test query endpoint
+curl -X POST http://localhost:8000/api/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Test query", "ticker": "AAPL"}'
+
+# 5. Check logs for errors
+docker compose logs --tail=100
+
+# 6. Monitor memory usage
+docker stats --no-stream
+```
+
+### Monitoring
+
+**Docker Stats:**
+```bash
+# Real-time resource monitoring
+docker stats
+
+# Expected memory usage:
+# - ollama: 3-6GB (depending on model)
+# - postgres: 200-400MB
+# - qdrant: 300-600MB
+# - backend: 100-300MB
+```
+
+**Logs:**
+```bash
+# All services
+docker compose logs -f
+
+# Specific service
+docker compose logs -f backend
+
+# Last 100 lines
+docker compose logs --tail=100 backend
+```
+
+**Health Checks:**
+```bash
+# API health
+curl http://localhost:8000/api/health
+
+# Qdrant health
+curl http://localhost:6333/health
+
+# PostgreSQL
+docker exec financeagent_postgres pg_isready -U postgres
+```
+
+### Backup Strategy
+
+**Database Backup:**
+```bash
+# PostgreSQL
+docker exec financeagent_postgres pg_dump -U postgres financeagent > backup.sql
+
+# Restore
+docker exec -i financeagent_postgres psql -U postgres financeagent < backup.sql
+```
+
+**Qdrant Backup:**
+```bash
+# Create snapshot
+curl -X POST http://localhost:6333/collections/financial_filings/snapshots
+
+# Download snapshot
+curl http://localhost:6333/collections/financial_filings/snapshots/snapshot_name \
+  -o qdrant_backup.snapshot
+```
+
+**Ollama Models:**
+```bash
+# Models persist in Docker volume
+docker volume inspect financeagent_ollama_data
+
+# Backup volume
+docker run --rm -v financeagent_ollama_data:/data -v $(pwd):/backup \
+  alpine tar czf /backup/ollama_models.tar.gz /data
+```
+
+### Auto-Updates
+
+**Setup automatic security updates:**
+```bash
+# Install unattended-upgrades
+apt install unattended-upgrades -y
+
+# Configure
+dpkg-reconfigure --priority=low unattended-upgrades
+```
+
+**Docker image updates:**
+```bash
+# Pull latest images
+docker compose pull
+
+# Recreate containers
+docker compose up -d --force-recreate
+```
 
 ---
 
 ## Troubleshooting
 
-### Ollama not responding
+### Common Issues
+
+#### Services Won't Start
 
 ```bash
-# Check if model is downloaded
+# Check logs
+docker compose logs
+
+# Restart services
+docker compose restart
+
+# Full restart
+docker compose down && docker compose up -d
+```
+
+#### Out of Memory
+
+```bash
+# Check memory usage
+docker stats
+
+# Solutions:
+# 1. Switch to smaller model
+docker exec -it financeagent_ollama ollama pull phi3:mini-instruct
+# Update .env: OLLAMA_MODEL=phi3:mini-instruct
+docker compose restart backend
+
+# 2. Increase swap
+fallocate -l 4G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+```
+
+#### Ollama Model Not Found
+
+```bash
+# List models
 docker exec -it financeagent_ollama ollama list
 
-# Pull model manually
-docker exec -it financeagent_ollama ollama pull gemma3:1b
+# Pull missing model
+docker exec -it financeagent_ollama ollama pull nomic-embed-text
+docker exec -it financeagent_ollama ollama pull phi3:mini-instruct
 
-# Check logs
-docker logs financeagent_ollama
+# Verify
+docker exec -it financeagent_ollama ollama list
 ```
 
-### Database connection errors
+#### Qdrant Collection Error
 
 ```bash
-# Check Postgres is running
-docker ps | grep postgres
+# Delete and recreate collection
+curl -X DELETE http://localhost:6333/collections/financial_filings
 
-# Test connection
-docker exec -it financeagent_postgres psql -U postgres -d financeagent
-
-# Check logs
-docker logs financeagent_postgres
+# Restart backend (will recreate collection)
+docker compose restart backend
 ```
 
-### Qdrant connection errors
+#### SSL Certificate Issues
 
 ```bash
-# Check Qdrant is running
-curl http://localhost:6333/health
+# Renew certificate
+certbot renew
 
-# View collections
-curl http://localhost:6333/collections
+# Test renewal
+certbot renew --dry-run
 
-# Check logs
-docker logs financeagent_qdrant
+# Force renewal
+certbot renew --force-renewal
 ```
 
-### Frontend not loading
+#### Port Already in Use
 
 ```bash
-# Check nginx logs
-docker logs financeagent_frontend
+# Find process using port
+lsof -i :8000
 
-# Verify build
-docker exec -it financeagent_frontend ls /usr/share/nginx/html
+# Kill process
+kill -9 <PID>
 
-# Test API proxy
-curl http://localhost/api/health
+# Or change port in docker-compose.yml
 ```
 
----
+### Performance Optimization
 
-## Cost Comparison
+**Increase uvicorn workers:**
+```yaml
+# docker-compose.prod.yml
+command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
 
-| Platform | Monthly Cost | Pros | Cons |
-|----------|-------------|------|------|
-| **Digital Ocean Droplet** | $24-48 | Full control, GPU support | Manual setup |
-| **Digital Ocean App Platform** | $27+ | Managed, auto-scaling | Limited GPU |
-| **Railway** | $15-25 | Easy setup, auto-deploy | No GPU on hobby plan |
-| **Render** | $14+ (free tier available) | Free tier, easy setup | GPU in beta |
-| **Self-Hosted** | $0 (hardware cost) | Full control, no limits | Maintenance required |
+**PostgreSQL tuning:**
+```bash
+# Edit postgresql.conf
+docker exec -it financeagent_postgres bash
+nano /var/lib/postgresql/data/postgresql.conf
 
----
+# Increase connections and memory
+max_connections = 100
+shared_buffers = 256MB
+effective_cache_size = 1GB
+```
 
-## Production Recommendations
+**Qdrant optimization:**
+```bash
+# Increase HNSW parameters for better search quality
+# (at the cost of memory)
+curl -X PATCH http://localhost:6333/collections/financial_filings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "hnsw_config": {
+      "m": 32,
+      "ef_construct": 200
+    }
+  }'
+```
 
-1. **Use managed databases** for Postgres (easier backups, scaling)
-2. **Deploy Qdrant separately** on Qdrant Cloud for better performance
-3. **Use external LLM API** (OpenAI, Anthropic) instead of Ollama for production
-4. **Set up monitoring** with Sentry, DataDog, or Prometheus
-5. **Enable HTTPS** with Let's Encrypt or cloud provider SSL
-6. **Add authentication** for production use
-7. **Implement rate limiting** to prevent abuse
-8. **Set up CI/CD** with GitHub Actions
-9. **Configure backups** for all data stores
-10. **Use CDN** for frontend assets (Cloudflare, etc.)
+### Getting Help
+
+- **Logs**: Always check `docker compose logs` first
+- **Health endpoint**: `curl http://localhost:8000/api/health`
+- **GitHub Issues**: Open an issue with logs and configuration
+- **Documentation**: See other guides in `docs/` directory
 
 ---
 
 ## Next Steps
 
-After deployment:
+- **[CONFIGURATION.md](CONFIGURATION.md)** - Detailed configuration options
+- **[SECURITY.md](SECURITY.md)** - Security hardening guide
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture details
+- **[QUICKSTART.md](QUICKSTART.md)** - Local development setup
 
-1. Process initial companies: `POST /api/companies/{ticker}/process`
-2. Test queries via UI or API
-3. Monitor logs and performance
-4. Set up alerts for errors
-5. Plan for scaling based on usage
+---
 
-For questions or issues, check the main README or open an issue on GitHub.
+**Deployment complete! 🚀**

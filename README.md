@@ -221,14 +221,13 @@ railway up
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-See deployment guides:
-- **[SERVER_SETUP_GUIDE.md](docs/SERVER_SETUP_GUIDE.md)** - Complete server setup (Docker, Nginx, SSL, security)
-- **[SERVER_SPECS.md](docs/SERVER_SPECS.md)** - GPU server specifications and deployment
-- [DEPLOYMENT.md](docs/DEPLOYMENT.md) - General deployment guide (Digital Ocean, Railway, Render)
-- [GITHUB_ACTIONS_SETUP.md](docs/GITHUB_ACTIONS_SETUP.md) - Automated CI/CD deployment
-- [PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) - Full production guide
-- [QUICK_DEPLOY_REFERENCE.md](docs/QUICK_DEPLOY_REFERENCE.md) - Quick reference commands
-- [MODEL_SELECTION_ANALYSIS.md](docs/MODEL_SELECTION_ANALYSIS.md) - Model selection rationale
+See documentation:
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Complete deployment guide (all platforms)
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and design decisions
+- **[SECURITY.md](docs/SECURITY.md)** - Security hardening and best practices
+- **[FEATURES.md](docs/FEATURES.md)** - Feature documentation (logs, caching, etc.)
+- **[CONFIGURATION.md](docs/CONFIGURATION.md)** - Configuration options
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide
 
 ## 📊 Performance
 

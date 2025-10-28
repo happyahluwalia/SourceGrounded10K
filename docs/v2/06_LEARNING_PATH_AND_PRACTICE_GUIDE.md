@@ -1,0 +1,956 @@
+# Finance Agent v2.0: Learning Path & Practice Guide
+
+## Overview
+
+This guide provides a structured 8-week learning path to build Finance Agent v2.0 while mastering multi-agent systems for interview preparation. Each week includes:
+- **Learning objectives** with clear outcomes
+- **Hands-on coding challenges** with starter code
+- **Evaluation criteria** using Anthropic's patterns
+- **Decision logging exercises** from Day 1
+- **Interview prep questions** aligned with OpenAI/Anthropic
+- **Self-assessment rubrics** to track progress
+
+---
+
+## Week 1: Foundation & Single Agent (Days 1-7)
+
+### Learning Objectives
+- Understand LangGraph StateGraph fundamentals
+- Master state management and checkpointing
+- Build decision logging infrastructure
+- Wrap existing RAG as LangGraph node
+
+### Day 1-2: Setup & LangGraph Basics
+
+**Study Materials:**
+1. Complete [LangGraph Quickstart](https://langchain-ai.github.io/langgraph/tutorials/introduction/) (2 hours)
+2. Read state management patterns in Architecture doc (1 hour)
+3. Watch LangGraph Academy Module 1 (1 hour)
+
+**Coding Challenge 1: Hello World Graph**
+```python
+# Challenge: Build simplest possible graph
+# File: app/graphs/hello_graph.py
+
+from langgraph.graph import StateGraph, START, END
+from typing import TypedDict
+
+class HelloState(TypedDict):
+    message: str
+    count: int
+
+def hello_node(state: HelloState) -> HelloState:
+    # TODO: Implement
+    # 1. Increment count
+    # 2. Append "Hello" to message
+    # 3. Return updated state
+    pass
+
+# TODO: Build graph
+# 1. Create StateGraph(HelloState)
+# 2. Add hello_node
+# 3. Add edges START -> hello_node -> END
+# 4. Compile and test
+```
+
+**Evaluation Criteria:**
+- [ ] Graph compiles without errors
+- [ ] State updates correctly
+- [ ] Can invoke graph and get result
+- [ ] Code has type hints
+
+**Decision Log Entry Template:**
+```markdown
+## Decision: [Title]
+**Date:** YYYY-MM-DD
+**Context:** What problem are you solving?
+**Options Considered:**
+1. Option A - Pros/Cons
+2. Option B - Pros/Cons
+**Decision:** Chose Option X
+**Reasoning:** Why this option?
+**Trade-offs:** What did you sacrifice?
+**Learning:** What did you learn?
+```
+
+**Interview Prep Question:**
+> "Explain the difference between StateGraph and MessageGraph in LangGraph. When would you use each?"
+
+**Self-Assessment Rubric (1-5):**
+- [ ] Can explain what a StateGraph is (1=no idea, 5=teach others)
+- [ ] Can build a simple graph from scratch (1=need help, 5=easy)
+- [ ] Understand state immutability (1=confused, 5=clear)
+
+---
+
+### Day 3-4: Decision Logging Infrastructure
+
+**Coding Challenge 2: Decision Tree Data Structure**
+```python
+# File: app/schemas/decision_tree.py
+
+from typing import TypedDict, List, Optional
+from datetime import datetime
+from uuid import uuid4
+
+class DecisionNode(TypedDict):
+    """Represents a single decision point in agent execution."""
+    node_id: str
+    agent_name: str
+    timestamp: datetime
+    decision_point: str  # "Which agents to spawn?"
+    options_considered: List[str]  # ["rag_only", "rag+web", "all_agents"]
+    chosen_option: str  # "rag+web"
+    reasoning: str  # "Query needs recent context"
+    confidence: float  # 0.0-1.0
+    parent_id: Optional[str]  # Link to previous decision
+    children_ids: List[str]  # Links to next decisions
+
+class ReasoningStep(TypedDict):
+    """Captures agent's thinking process."""
+    step_id: str
+    agent_name: str
+    timestamp: datetime
+    thought: str  # "I need to compare two companies"
+    action: str  # "Spawning RAG agents for AAPL and MSFT"
+    observation: str  # "Retrieved 5 chunks from each"
+    next_thought: str  # "Now I'll analyze the data"
+
+# TODO: Implement DecisionTreeBuilder class
+class DecisionTreeBuilder:
+    def __init__(self):
+        self.nodes: List[DecisionNode] = []
+        self.current_node_id: Optional[str] = None
+    
+    def add_decision(self, **kwargs) -> str:
+        """Add a decision node and return its ID."""
+        # TODO: Implement
+        pass
+    
+    def get_tree_json(self) -> dict:
+        """Export tree as JSON for UI visualization."""
+        # TODO: Implement
+        pass
+```
+
+**Evaluation Criteria:**
+- [ ] DecisionNode captures all required fields
+- [ ] Can build tree structure with parent/child links
+- [ ] Can export to JSON for UI
+- [ ] Thread-safe for concurrent agents
+
+**Decision Log Entry:**
+```markdown
+## Decision: Decision Tree Data Structure
+**Options Considered:**
+1. Flat list of decisions - Simple but loses relationships
+2. Tree with parent/child links - Complex but shows flow
+3. Graph structure - Most flexible but overkill
+**Decision:** Tree with parent/child links
+**Reasoning:** Need to visualize decision flow in UI, tree is sufficient
+**Trade-offs:** More complex than flat list, but worth it for visualization
+```
+
+**Interview Prep:**
+> "How would you design a system to capture and visualize an agent's decision-making process in real-time?"
+
+---
+
+### Day 5-7: Wrap Existing RAG as LangGraph Node
+
+**Coding Challenge 3: RAG Agent Node**
+```python
+# File: app/agents/rag_agent.py
+
+from typing import TypedDict, List, Dict, Any, Annotated
+from operator import add
+import structlog
+from datetime import datetime
+
+from app.services.rag_chain import RAGChain  # Your existing RAG
+from app.schemas.decision_tree import DecisionTreeBuilder, ReasoningStep
+
+logger = structlog.get_logger()
+
+class FinanceAgentState(TypedDict):
+    # Input
+    query: str
+    user_id: str
+    session_id: str
+    ticker: str
+    
+    # Results
+    retrieval_results: Dict[str, Any]
+    
+    # Observability
+    execution_log: Annotated[List[str], add]
+    reasoning_steps: Annotated[List[ReasoningStep], add]
+    decision_tree: DecisionTreeBuilder
+    
+    # Metadata
+    start_time: datetime
+    token_count: int
+
+async def rag_agent_node(
+    state: FinanceAgentState
+) -> FinanceAgentState:
+    """
+    Wraps existing RAG system as LangGraph node with full observability.
+    
+    TODO:
+    1. Log reasoning step: "Starting RAG search for {ticker}"
+    2. Call existing RAG system
+    3. Log decision: "Retrieved X chunks with avg score Y"
+    4. Update state with results
+    5. Track token usage
+    6. Return updated state
+    """
+    log = logger.bind(
+        agent="rag_agent",
+        session_id=state["session_id"],
+        ticker=state["ticker"]
+    )
+    
+    # TODO: Add reasoning step
+    reasoning_step = ReasoningStep(
+        step_id=str(uuid4()),
+        agent_name="rag_agent",
+        timestamp=datetime.now(),
+        thought="",  # TODO: Fill in
+        action="",   # TODO: Fill in
+        observation="",  # TODO: Fill in
+        next_thought=""  # TODO: Fill in
+    )
+    
+    try:
+        # TODO: Call your existing RAG
+        rag = RAGChain()
+        result = await rag.query(
+            query=state["query"],
+            ticker=state["ticker"]
+        )
+        
+        # TODO: Log decision
+        decision_id = state["decision_tree"].add_decision(
+            agent_name="rag_agent",
+            decision_point="",  # TODO: Fill in
+            options_considered=[],  # TODO: Fill in
+            chosen_option="",  # TODO: Fill in
+            reasoning="",  # TODO: Fill in
+            confidence=0.0  # TODO: Calculate
+        )
+        
+        # Update state
+        state["retrieval_results"] = result
+        state["reasoning_steps"].append(reasoning_step)
+        state["execution_log"].append(f"RAG completed: {len(result['chunks'])} chunks")
+        
+        log.info("rag_agent_success", chunks=len(result['chunks']))
+        
+    except Exception as e:
+        log.error("rag_agent_failed", error=str(e))
+        state["execution_log"].append(f"RAG failed: {e}")
+    
+    return state
+```
+
+**Evaluation Criteria (Anthropic Pattern):**
+
+**Outcome Evaluation:**
+- [ ] Returns valid results for known queries
+- [ ] Handles errors gracefully (no crashes)
+- [ ] State updates correctly
+
+**Process Evaluation:**
+- [ ] Logs all decisions with reasoning
+- [ ] Captures thinking process
+- [ ] Reasonable tool usage (not excessive)
+
+**LLM-as-Judge Rubric:**
+```python
+# File: tests/evals/rag_agent_eval.py
+
+EVAL_PROMPT = """
+Evaluate the RAG agent's performance:
+
+Query: {query}
+Agent Output: {output}
+Expected Behavior: Retrieve relevant SEC filing chunks
+
+Score each criterion 0.0-1.0:
+
+1. **Factual Accuracy**: Do results match query intent?
+2. **Source Quality**: Are chunks from correct filings?
+3. **Completeness**: Are all relevant aspects covered?
+4. **Efficiency**: Reasonable number of chunks retrieved?
+5. **Error Handling**: Graceful degradation if issues?
+
+Output JSON:
+{{
+  "factual_accuracy": 0.0-1.0,
+  "source_quality": 0.0-1.0,
+  "completeness": 0.0-1.0,
+  "efficiency": 0.0-1.0,
+  "error_handling": 0.0-1.0,
+  "overall_pass": true/false,
+  "reasoning": "Brief explanation"
+}}
+"""
+```
+
+**Decision Log Entry:**
+```markdown
+## Decision: State Schema Design
+**Options:**
+1. Minimal state (query, results only)
+2. Rich state (query, results, logs, decisions, reasoning)
+**Decision:** Rich state with observability fields
+**Reasoning:** Need full visibility for learning and debugging
+**Trade-offs:** More complex state management, but essential for interviews
+```
+
+**Interview Prep:**
+> "Walk me through how you would migrate an existing RAG system to a multi-agent architecture without breaking production."
+
+**Week 1 Self-Assessment:**
+- [ ] Built working LangGraph with 1 node (5/5 = production ready)
+- [ ] Decision logging infrastructure in place (5/5 = captures everything)
+- [ ] Can explain state management to interviewer (5/5 = confident)
+- [ ] Wrapped existing RAG with full observability (5/5 = complete)
+
+**Week 1 Deliverable:**
+- Working graph: `START -> rag_agent -> END`
+- Decision tree captures all agent decisions
+- Reasoning steps logged
+- 3+ decision log entries
+- Can demo to interviewer
+
+---
+
+## Week 2: Observability & Streaming (Days 8-14)
+
+### Learning Objectives
+- Implement real-time thinking stream to UI
+- Add PostgreSQL checkpointing
+- Build evaluation framework with LLM-as-judge
+- Master async streaming patterns
+
+### Day 8-10: Streaming Thinking Process
+
+**Coding Challenge 4: SSE Streaming Endpoint**
+```python
+# File: app/api/v2/streaming.py
+
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from typing import AsyncGenerator
+import json
+
+router = APIRouter()
+
+@router.get("/stream/{session_id}")
+async def stream_agent_thinking(session_id: str) -> StreamingResponse:
+    """
+    Stream agent's thinking process via Server-Sent Events.
+    
+    TODO:
+    1. Connect to graph execution
+    2. Stream reasoning steps as they happen
+    3. Stream decision nodes
+    4. Handle client disconnection
+    """
+    
+    async def event_generator() -> AsyncGenerator[str, None]:
+        # TODO: Implement
+        # Yield events in SSE format:
+        # data: {"type": "thought", "content": "...", "agent": "rag_agent"}
+        pass
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream"
+    )
+```
+
+**Frontend Challenge:**
+```jsx
+// File: frontend/src/components/ThinkingPanel.jsx
+
+export function ThinkingPanel({ sessionId }) {
+  const [thoughts, setThoughts] = useState([]);
+  
+  useEffect(() => {
+    // TODO: Connect to SSE endpoint
+    // TODO: Update thoughts state as events arrive
+    // TODO: Auto-scroll to latest
+    // TODO: Cleanup on unmount
+  }, [sessionId]);
+  
+  return (
+    <div className="thinking-panel">
+      {thoughts.map(t => (
+        <ThoughtBubble 
+          key={t.id}
+          agent={t.agent}
+          content={t.content}
+          timestamp={t.timestamp}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+**Evaluation:**
+- [ ] Thoughts stream in real-time (< 100ms latency)
+- [ ] UI updates smoothly without flicker
+- [ ] Handles disconnection gracefully
+- [ ] Shows which agent is thinking
+
+**Decision Log:**
+```markdown
+## Decision: SSE vs WebSocket for Streaming
+**Options:**
+1. WebSocket - Bidirectional, more complex
+2. SSE - Unidirectional, simpler, auto-reconnect
+**Decision:** SSE
+**Reasoning:** Only need server→client, SSE has built-in reconnection
+**Trade-offs:** Can't send client→server, but don't need that
+```
+
+**Interview Prep:**
+> \"How would you implement real-time streaming of agent thoughts to a web UI? What are the trade-offs between WebSocket and SSE?\"
+
+---
+
+### Day 11-12: Checkpointing & Time Travel
+
+**Coding Challenge 5: PostgreSQL Checkpointer**
+```python
+# File: app/graphs/checkpointed_graph.py
+
+from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.graph import StateGraph
+
+async def build_checkpointed_graph():
+    \"\"\"
+    Build graph with PostgreSQL checkpointing for state persistence.
+    
+    TODO:
+    1. Create PostgresSaver from DATABASE_URL
+    2. Compile graph with checkpointer
+    3. Test state persistence across runs
+    4. Implement time-travel debugging
+    \"\"\"
+    
+    checkpointer = PostgresSaver.from_conn_string(
+        # TODO: Get from settings
+    )
+    
+    graph = StateGraph(FinanceAgentState)
+    # TODO: Add nodes
+    
+    app = graph.compile(checkpointer=checkpointer)
+    
+    return app
+
+# Time-travel debugging
+async def replay_execution(session_id: str):
+    \"\"\"
+    Replay agent execution step-by-step for debugging.
+    
+    TODO:
+    1. Get all checkpoints for session
+    2. Display state at each step
+    3. Allow jumping to any point
+    \"\"\"
+    config = {\"configurable\": {\"thread_id\": session_id}}
+    
+    for checkpoint in app.get_state_history(config):
+        print(f\"Step: {checkpoint.values['current_step']}\")
+        print(f\"State: {checkpoint.values}\")
+```
+
+**Evaluation:**
+- [ ] State persists across server restarts
+- [ ] Can resume execution from any checkpoint
+- [ ] Time-travel debugging works
+- [ ] No data loss on crashes
+
+**Interview Prep:**
+> \"Explain how checkpointing works in LangGraph. Why is it important for production systems?\"
+
+---
+
+### Day 13-14: LLM-as-Judge Evaluation
+
+**Coding Challenge 6: Evaluation Framework**
+```python
+# File: tests/evals/eval_framework.py
+
+from typing import List, Dict
+import asyncio
+from anthropic import Anthropic
+
+class AgentEvaluator:
+    \"\"\"
+    Evaluates agent performance using LLM-as-judge pattern.
+    \"\"\"
+    
+    def __init__(self, test_cases: List[Dict]):
+        self.test_cases = test_cases
+        self.client = Anthropic()
+    
+    async def evaluate_agent(self, agent_output: Dict) -> Dict:
+        \"\"\"
+        Use Claude to evaluate agent output.
+        
+        TODO:
+        1. Build evaluation prompt
+        2. Call Claude with output and rubric
+        3. Parse scores from response
+        4. Return structured evaluation
+        \"\"\"
+        
+        eval_prompt = f\"\"\"
+        Evaluate this agent's performance:
+        
+        Query: {agent_output['query']}
+        Agent Answer: {agent_output['answer']}
+        Sources Used: {agent_output['sources']}
+        
+        Rubric (score 0.0-1.0 each):
+        1. Factual Accuracy: Claims match sources?
+        2. Citation Accuracy: Citations correct?
+        3. Completeness: All aspects covered?
+        4. Source Quality: Used authoritative sources?
+        5. Tool Efficiency: Reasonable tool usage?
+        
+        Output JSON with scores and reasoning.
+        \"\"\"
+        
+        # TODO: Call Claude
+        # TODO: Parse response
+        # TODO: Return scores
+        pass
+    
+    async def run_eval_suite(self) -> Dict:
+        \"\"\"
+        Run all test cases and aggregate results.
+        
+        TODO:
+        1. Run agent on each test case
+        2. Evaluate each output
+        3. Calculate aggregate metrics
+        4. Identify failure patterns
+        \"\"\"
+        results = []
+        
+        for test_case in self.test_cases:
+            # TODO: Run agent
+            # TODO: Evaluate
+            # TODO: Store result
+            pass
+        
+        return {
+            \"total_tests\": len(self.test_cases),
+            \"passed\": sum(1 for r in results if r['overall_pass']),
+            \"avg_scores\": {},  # TODO: Calculate
+            \"failures\": []  # TODO: List failed cases
+        }
+
+# Test cases
+TEST_CASES = [
+    {
+        \"query\": \"What was Apple's revenue in Q4 2024?\",
+        \"expected_answer_contains\": [\"$119.6\", \"billion\", \"Q4 2024\"],
+        \"expected_sources\": [\"10-K\", \"10-Q\"],
+        \"complexity\": \"simple\"
+    },
+    {
+        \"query\": \"Compare Apple and Microsoft Q4 revenues\",
+        \"expected_answer_contains\": [\"Apple\", \"Microsoft\", \"comparison\"],
+        \"expected_sources\": [\"10-K\", \"10-Q\"],
+        \"complexity\": \"medium\"
+    },
+    # TODO: Add 18 more test cases
+]
+```
+
+**Evaluation Criteria:**
+- [ ] LLM-as-judge scores align with human judgment (>80% agreement)
+- [ ] Eval suite runs in < 5 minutes
+- [ ] Identifies failure patterns clearly
+- [ ] Tracks metrics over time
+
+**Decision Log:**
+```markdown
+## Decision: Evaluation Strategy
+**Options:**
+1. Manual testing only - Doesn't scale
+2. Rule-based evals - Brittle, misses nuance
+3. LLM-as-judge - Scalable, catches nuance
+**Decision:** LLM-as-judge with 20 test cases
+**Reasoning:** Anthropic's research shows this works well
+**Trade-offs:** Costs money, but worth it for quality
+```
+
+**Week 2 Deliverable:**
+- Thinking stream visible in UI
+- Checkpointing working
+- 20 test cases with LLM-as-judge
+- Eval suite passing >80%
+- 3+ decision log entries
+
+---
+
+## Week 3-4: Multi-Agent Orchestration (Days 15-28)
+
+### Learning Objectives
+- Build lead agent (orchestrator)
+- Implement parallel worker execution
+- Add web search agent
+- Master conditional routing
+
+### Day 15-17: Lead Agent
+
+**Coding Challenge 7: Orchestrator Agent**
+```python
+# File: app/agents/lead_agent.py
+
+async def lead_agent_node(state: FinanceAgentState) -> FinanceAgentState:
+    \"\"\"
+    Lead agent analyzes query and creates research plan.
+    
+    TODO:
+    1. Analyze query complexity
+    2. Identify companies mentioned
+    3. Determine which agents to spawn
+    4. Create research plan
+    5. Log decision with reasoning
+    \"\"\"
+    
+    # Load prompt
+    prompt = load_prompt(\"lead_agent\")
+    
+    # TODO: Call LLM to analyze query
+    analysis = await llm.ainvoke(prompt.format(
+        query=state[\"query\"],
+        available_agents=[\"rag_agent\", \"web_search_agent\", \"analysis_agent\"]
+    ))
+    
+    # TODO: Parse analysis
+    # TODO: Create research plan
+    # TODO: Log decision
+    
+    state[\"query_complexity\"] = analysis[\"complexity\"]
+    state[\"research_plan\"] = analysis[\"plan\"]
+    state[\"agents_to_spawn\"] = analysis[\"agents_needed\"]
+    
+    return state
+
+def route_to_workers(state: FinanceAgentState) -> List[str]:
+    \"\"\"
+    Route to appropriate worker agents based on research plan.
+    
+    TODO:
+    1. Read research_plan from state
+    2. Return list of agent names to execute
+    3. Log routing decision
+    \"\"\"
+    plan = state[\"research_plan\"]
+    
+    # TODO: Implement routing logic
+    # Simple query -> [\"rag_agent\"]
+    # Medium query -> [\"rag_agent\", \"web_search_agent\"]
+    # Complex query -> all agents
+    
+    pass
+```
+
+**Evaluation:**
+- [ ] Correctly classifies query complexity (>90% accuracy)
+- [ ] Spawns appropriate agents (not too many, not too few)
+- [ ] Explains reasoning clearly
+- [ ] Handles edge cases (ambiguous queries)
+
+**Interview Prep:**
+> \"Design an orchestrator agent that can dynamically route queries to specialized workers. How do you prevent it from spawning too many agents?\"
+
+---
+
+### Day 18-21: Parallel Execution
+
+**Coding Challenge 8: Parallel RAG Agents**
+```python
+# File: app/graphs/parallel_graph.py
+
+def build_parallel_graph():
+    \"\"\"
+    Build graph with parallel worker execution.
+    
+    TODO:
+    1. Lead agent decides which companies to query
+    2. Spawn RAG agent for each company in parallel
+    3. Collect results
+    4. Synthesize in lead agent
+    \"\"\"
+    
+    graph = StateGraph(FinanceAgentState)
+    
+    graph.add_node(\"lead\", lead_agent_node)
+    
+    # Dynamic parallel execution
+    graph.add_node(\"rag_apple\", lambda s: rag_agent_node({**s, \"ticker\": \"AAPL\"}))
+    graph.add_node(\"rag_msft\", lambda s: rag_agent_node({**s, \"ticker\": \"MSFT\"}))
+    
+    graph.add_node(\"synthesis\", synthesis_agent_node)
+    
+    # TODO: Add conditional edges
+    # TODO: Parallel execution of RAG agents
+    # TODO: Converge to synthesis
+    
+    return graph.compile(checkpointer=checkpointer)
+```
+
+**Performance Test:**
+```python
+# Measure parallel vs sequential
+import time
+
+async def test_parallel_performance():
+    # Sequential
+    start = time.time()
+    result1 = await rag_agent(state, \"AAPL\")
+    result2 = await rag_agent(state, \"MSFT\")
+    sequential_time = time.time() - start
+    
+    # Parallel
+    start = time.time()
+    results = await asyncio.gather(
+        rag_agent(state, \"AAPL\"),
+        rag_agent(state, \"MSFT\")
+    )
+    parallel_time = time.time() - start
+    
+    speedup = sequential_time / parallel_time
+    print(f\"Speedup: {speedup}x\")
+    
+    # TODO: Assert speedup > 1.5x
+```
+
+**Evaluation:**
+- [ ] Parallel execution faster than sequential (>1.5x speedup)
+- [ ] No race conditions in state updates
+- [ ] All agents complete successfully
+- [ ] Results merged correctly
+
+**Decision Log:**
+```markdown
+## Decision: Parallel vs Sequential Execution
+**Context:** Comparing 2 companies requires 2 RAG queries
+**Options:**
+1. Sequential - Simple, slower
+2. Parallel - Complex, faster
+**Decision:** Parallel with asyncio.gather
+**Reasoning:** 2x speedup worth the complexity
+**Trade-offs:** More complex error handling
+**Measurement:** Achieved 1.8x speedup in tests
+```
+
+---
+
+### Day 22-24: Web Search Agent
+
+**Coding Challenge 9: Web Search Integration**
+```python
+# File: app/agents/web_search_agent.py
+# File: app/tools/web_search.py
+
+from langchain.tools import tool
+
+@tool
+async def search_financial_news(
+    query: str,
+    companies: List[str],
+    time_period: str = \"1m\"
+) -> Dict[str, Any]:
+    \"\"\"
+    Search web for recent financial news.
+    
+    Use Tavily API for structured results.
+    
+    TODO:
+    1. Construct search queries
+    2. Call Tavily API
+    3. Filter for authoritative sources
+    4. Return structured results
+    \"\"\"
+    pass
+
+async def web_search_agent_node(state: FinanceAgentState) -> FinanceAgentState:
+    \"\"\"
+    Search web for recent context.
+    
+    TODO:
+    1. Generate 3-5 search queries
+    2. Execute searches in parallel
+    3. Filter and rank results
+    4. Log decisions
+    \"\"\"
+    pass
+```
+
+**Evaluation:**
+- [ ] Returns relevant, recent articles
+- [ ] Filters out SEO spam
+- [ ] Prefers authoritative sources
+- [ ] Handles API failures gracefully
+
+**Week 3-4 Deliverable:**
+- Lead agent + 2 workers (RAG, web search)
+- Parallel execution working
+- Comparison queries working
+- 5+ decision log entries
+- Can explain orchestrator pattern to interviewer
+
+---
+
+## Week 5-6: Advanced Agents & Tools (Days 29-42)
+
+### Learning Objectives
+- Add analysis agent for calculations
+- Build citation agent
+- Implement synthesis agent
+- Master tool calling patterns
+
+### Coding Challenges:
+- Challenge 10: Financial calculator tool
+- Challenge 11: Analysis agent with code execution
+- Challenge 12: Citation agent
+- Challenge 13: Synthesis agent
+
+**Evaluation Focus:**
+- Tool selection accuracy
+- Calculation correctness
+- Citation accuracy
+- Synthesis quality
+
+**Week 5-6 Deliverable:**
+- 5 agents working together
+- Complex queries handled end-to-end
+- All citations accurate
+- Eval suite passing >85%
+
+---
+
+## Week 7-8: Production & Interview Prep (Days 43-56)
+
+### Learning Objectives
+- Production hardening
+- Cost optimization
+- Interview preparation
+- Demo creation
+
+### Activities:
+- Error handling for all failure modes
+- Cost tracking and optimization
+- Load testing
+- Create demo video
+- Practice interview questions
+- Write blog post about learnings
+
+### Final Deliverable:
+- Production-ready Finance Agent v2.0
+- 20+ decision log entries
+- Eval suite passing >90%
+- 5-minute demo video
+- Interview question answers documented
+- Blog post published
+
+---
+
+## Evaluation Rubrics
+
+### Agent Quality Rubric (Anthropic Pattern)
+
+**Outcome Metrics:**
+- Factual Accuracy: 0.0-1.0
+- Citation Accuracy: 0.0-1.0
+- Completeness: 0.0-1.0
+- Source Quality: 0.0-1.0
+
+**Process Metrics:**
+- Tool Efficiency: 0.0-1.0 (not too many, not too few)
+- Decision Quality: 0.0-1.0 (reasonable choices)
+- Error Handling: 0.0-1.0 (graceful degradation)
+
+**Pass Threshold:** All metrics > 0.7, overall > 0.8
+
+### Interview Readiness Rubric
+
+**Technical Knowledge (1-5):**
+- [ ] Can explain multi-agent architecture (5 = teach others)
+- [ ] Can discuss LangGraph internals (5 = contribute to library)
+- [ ] Can compare frameworks (5 = make informed recommendations)
+
+**System Design (1-5):**
+- [ ] Can design agent systems (5 = production-ready designs)
+- [ ] Can discuss trade-offs (5 = quantify with data)
+- [ ] Can optimize for cost/quality (5 = proven strategies)
+
+**Production Experience (1-5):**
+- [ ] Can discuss failures (5 = learned from real incidents)
+- [ ] Can explain monitoring (5 = built observability systems)
+- [ ] Can discuss scaling (5 = scaled to production load)
+
+**Target:** All metrics ≥ 4 for interview readiness
+
+---
+
+## Interview Question Bank
+
+### Week 1-2 Questions:
+1. Explain StateGraph vs MessageGraph
+2. Why is state immutability important?
+3. How does checkpointing work?
+4. Design a decision logging system
+
+### Week 3-4 Questions:
+1. Orchestrator-worker vs peer-to-peer patterns?
+2. When to use parallel vs sequential execution?
+3. How to prevent agent coordination failures?
+4. Design a routing system for dynamic agent selection
+
+### Week 5-6 Questions:
+1. How do you evaluate agent quality?
+2. LLM-as-judge vs rule-based evaluation?
+3. Tool calling best practices?
+4. How to handle tool failures?
+
+### Week 7-8 Questions:
+1. Production challenges in multi-agent systems?
+2. Cost optimization strategies?
+3. How to debug emergent behaviors?
+4. Scaling multi-agent systems?
+
+---
+
+## Success Metrics
+
+**By Week 4:**
+- [ ] Working multi-agent system (3+ agents)
+- [ ] Decision log with 10+ entries
+- [ ] Can explain architecture on whiteboard
+- [ ] Eval suite passing >80%
+
+**By Week 8:**
+- [ ] Production-ready system
+- [ ] Decision log with 20+ entries
+- [ ] Demo video recorded
+- [ ] Eval suite passing >90%
+- [ ] Ready for interviews
+
+---
+
+**Remember:** Focus on learning deeply, not just building quickly. Every decision is a learning opportunity. Document your reasoning. The goal is interview readiness AND a production system.

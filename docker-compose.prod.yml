@@ -59,9 +59,11 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       
       # LLM & Embeddings
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-768}
+      SUPERVISOR_MODEL: ${SUPERVISOR_MODEL:-llama3.1}
+      PLANNER_MODEL: ${PLANNER_MODEL:-llama3.1}
+      SYNTHESIZER_MODEL: ${SYNTHESIZER_MODEL:-llama3.1}
       
       # Chunking
       CHUNK_SIZE: ${CHUNK_SIZE:-1024}

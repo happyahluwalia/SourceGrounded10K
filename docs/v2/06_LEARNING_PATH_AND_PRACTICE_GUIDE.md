@@ -83,76 +83,349 @@ def hello_node(state: HelloState) -> HelloState:
 
 ---
 
-### Day 3-4: Decision Logging Infrastructure
+### Day 3-4: Observability with LangSmith
 
-**Coding Challenge 2: Decision Tree Data Structure**
-```python
-# File: app/schemas/decision_tree.py
+**Goal:** Set up production-grade observability without building custom infrastructure.
 
-from typing import TypedDict, List, Optional
-from datetime import datetime
-from uuid import uuid4
+**Key Insight:** LangGraph + LangSmith provide built-in tracing, state history, and debugging. Don't reinvent the wheel!
 
-class DecisionNode(TypedDict):
-    """Represents a single decision point in agent execution."""
-    node_id: str
-    agent_name: str
-    timestamp: datetime
-    decision_point: str  # "Which agents to spawn?"
-    options_considered: List[str]  # ["rag_only", "rag+web", "all_agents"]
-    chosen_option: str  # "rag+web"
-    reasoning: str  # "Query needs recent context"
-    confidence: float  # 0.0-1.0
-    parent_id: Optional[str]  # Link to previous decision
-    children_ids: List[str]  # Links to next decisions
+---
 
-class ReasoningStep(TypedDict):
-    """Captures agent's thinking process."""
-    step_id: str
-    agent_name: str
-    timestamp: datetime
-    thought: str  # "I need to compare two companies"
-    action: str  # "Spawning RAG agents for AAPL and MSFT"
-    observation: str  # "Retrieved 5 chunks from each"
-    next_thought: str  # "Now I'll analyze the data"
+**Coding Challenge 2: Enable LangSmith Tracing**
 
-# TODO: Implement DecisionTreeBuilder class
-class DecisionTreeBuilder:
-    def __init__(self):
-        self.nodes: List[DecisionNode] = []
-        self.current_node_id: Optional[str] = None
-    
-    def add_decision(self, **kwargs) -> str:
-        """Add a decision node and return its ID."""
-        # TODO: Implement
-        pass
-    
-    def get_tree_json(self) -> dict:
-        """Export tree as JSON for UI visualization."""
-        # TODO: Implement
-        pass
+**Step 1: Setup (5 minutes)**
+```bash
+# Install LangSmith
+pip install langsmith
+
+# Get free API key from https://smith.langchain.com
+# Add to .env
+echo "LANGCHAIN_TRACING_V2=true" >> .env
+echo "LANGCHAIN_API_KEY=your_key_here" >> .env
 ```
 
+**Step 2: Enable in Your App (2 minutes)**
+```python
+# File: app/core/config.py
+
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    # ... existing settings ...
+    
+    # LangSmith Observability
+    LANGCHAIN_TRACING_V2: bool = True
+    LANGCHAIN_API_KEY: str = ""
+    LANGCHAIN_PROJECT: str = "finance-agent-v2"  # Optional: organize traces
+    
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+```
+
+**Step 3: Test Tracing (15 minutes)**
+```python
+# File: tests/test_tracing.py
+
+import os
+from typing import Literal
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.tools import tool
+from langgraph.graph import StateGraph, MessagesState, START, END
+
+# Ensure tracing is enabled
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+
+# Define a simple tool
+@tool
+def get_company_info(ticker: str) -> str:
+    """Get basic company information."""
+    return f"Company {ticker} is a technology company."
+
+# Setup LLM with tools
+llm = ChatAnthropic(model="claude-3-5-sonnet-20241022")
+tools = [get_company_info]
+tools_by_name = {tool.name: tool for tool in tools}
+llm_with_tools = llm.bind_tools(tools)
+
+# Define agent nodes
+def llm_call(state: MessagesState):
+    """LLM decides whether to call a tool or not."""
+    return {
+        "messages": [
+            llm_with_tools.invoke(
+                [SystemMessage(content="You are a helpful financial assistant.")]
+                + state["messages"]
+            )
+        ]
+    }
+
+def tool_node(state: MessagesState):
+    """Execute tool calls."""
+    result = []
+    for tool_call in state["messages"][-1].tool_calls:
+        tool = tools_by_name[tool_call["name"]]
+        observation = tool.invoke(tool_call["args"])
+        result.append(
+            ToolMessage(content=str(observation), tool_call_id=tool_call["id"])
+        )
+    return {"messages": result}
+
+def should_continue(state: MessagesState) -> Literal["tool_node", END]:
+    """Route to tool node or end based on LLM decision."""
+    last_message = state["messages"][-1]
+    if last_message.tool_calls:
+        return "tool_node"
+    return END
+
+# Build the agent graph
+agent_builder = StateGraph(MessagesState)
+agent_builder.add_node("llm_call", llm_call)
+agent_builder.add_node("tool_node", tool_node)
+agent_builder.add_edge(START, "llm_call")
+agent_builder.add_conditional_edges("llm_call", should_continue, ["tool_node", END])
+agent_builder.add_edge("tool_node", "llm_call")
+
+# Compile the agent
+agent = agent_builder.compile()
+
+# Run test query - will automatically trace to LangSmith!
+messages = [HumanMessage(content="Tell me about Apple (AAPL)")]
+result = agent.invoke({"messages": messages})
+
+print("Check LangSmith UI for trace: https://smith.langchain.com")
+print(f"\nResult: {result['messages'][-1].content}")
+```
+
+**Step 4: Add Simple Logging (30 minutes)**
+```python
+# File: app/utils/agent_logger.py
+
+import logging
+from datetime import datetime
+from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
+
+def log_agent_decision(
+    agent_name: str,
+    decision_point: str,
+    chosen_option: str,
+    reasoning: str,
+    metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Log agent decisions for debugging and analysis.
+    
+    This complements LangSmith tracing with custom decision points.
+    """
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "agent": agent_name,
+        "decision_point": decision_point,
+        "chosen_option": chosen_option,
+        "reasoning": reasoning,
+        "metadata": metadata or {}
+    }
+    
+    logger.info(
+        f"DECISION | {agent_name} | {decision_point} | {chosen_option}",
+        extra=log_entry
+    )
+    
+    return log_entry
+
+
+def log_tool_call(
+    tool_name: str,
+    arguments: Dict[str, Any],
+    result: Any,
+    duration_ms: float
+) -> None:
+    """Log tool execution for monitoring."""
+    logger.info(
+        f"TOOL | {tool_name} | {duration_ms}ms",
+        extra={
+            "tool": tool_name,
+            "arguments": arguments,
+            "duration_ms": duration_ms,
+            "success": result is not None
+        }
+    )
+```
+
+**Step 5: Build Your Orchestrator Agent (30 minutes)**
+```python
+# File: app/agents/orchestrator.py
+
+from typing import Literal
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langgraph.graph import StateGraph, MessagesState, START, END
+from app.tools.data_prep_tool import ensure_filing_available
+from app.tools.rag_search_tool import search_sec_filings
+from app.utils.agent_logger import log_agent_decision
+from app.core.config import settings
+
+# Setup LLM with tools
+llm = ChatAnthropic(
+    model="claude-3-5-sonnet-20241022",
+    api_key=settings.ANTHROPIC_API_KEY
+)
+
+tools = [ensure_filing_available, search_sec_filings]
+tools_by_name = {tool.name: tool for tool in tools}
+llm_with_tools = llm.bind_tools(tools)
+
+# Define orchestrator nodes
+def llm_call(state: MessagesState):
+    """Orchestrator LLM decides which tools to call."""
+    system_prompt = """You are a financial research assistant.
+    
+    When users ask about company financials:
+    1. Extract the company ticker from the query
+    2. Use ensure_filing_available() to ensure data is ready
+    3. Use search_sec_filings() to find the answer
+    4. Provide clear, accurate answers with sources
+    
+    Be helpful and thorough."""
+    
+    return {
+        "messages": [
+            llm_with_tools.invoke(
+                [SystemMessage(content=system_prompt)] + state["messages"]
+            )
+        ]
+    }
+
+def tool_node(state: MessagesState):
+    """Execute tool calls made by the orchestrator."""
+    result = []
+    for tool_call in state["messages"][-1].tool_calls:
+        tool = tools_by_name[tool_call["name"]]
+        
+        # Log the tool call
+        log_agent_decision(
+            agent_name="orchestrator",
+            decision_point="tool_selection",
+            chosen_option=tool_call["name"],
+            reasoning="LLM decided to call this tool",
+            metadata={"args": tool_call["args"]}
+        )
+        
+        # Execute tool
+        observation = tool.invoke(tool_call["args"])
+        result.append(
+            ToolMessage(content=str(observation), tool_call_id=tool_call["id"])
+        )
+    
+    return {"messages": result}
+
+def should_continue(state: MessagesState) -> Literal["tool_node", END]:
+    """Route to tool execution or end."""
+    last_message = state["messages"][-1]
+    if last_message.tool_calls:
+        return "tool_node"
+    return END
+
+# Build the orchestrator graph
+orchestrator_builder = StateGraph(MessagesState)
+orchestrator_builder.add_node("llm_call", llm_call)
+orchestrator_builder.add_node("tool_node", tool_node)
+orchestrator_builder.add_edge(START, "llm_call")
+orchestrator_builder.add_conditional_edges(
+    "llm_call",
+    should_continue,
+    ["tool_node", END]
+)
+orchestrator_builder.add_edge("tool_node", "llm_call")
+
+# Compile the orchestrator (automatically traces to LangSmith!)
+orchestrator = orchestrator_builder.compile()
+
+# Usage example
+async def answer_query(query: str) -> dict:
+    """Answer a natural language financial query."""
+    messages = [HumanMessage(content=query)]
+    result = await orchestrator.ainvoke({"messages": messages})
+    
+    return {
+        "query": query,
+        "answer": result["messages"][-1].content,
+        "messages": result["messages"]
+    }
+```
+
+---
+
+**What You Get Out-of-the-Box:**
+
+✅ **LangSmith Tracing:**
+- Full execution tree visualization
+- Token usage per step
+- Latency per node
+- Input/output for each step
+- Error tracking
+- Cost monitoring
+
+✅ **LangGraph State History:**
+- Every state snapshot
+- Time-travel debugging
+- Execution order
+- Which node ran when
+
+✅ **Message History:**
+- Agent reasoning (AI messages)
+- Tool calls with arguments
+- Tool results
+- Full conversation flow
+
+---
+
 **Evaluation Criteria:**
-- [ ] DecisionNode captures all required fields
-- [ ] Can build tree structure with parent/child links
-- [ ] Can export to JSON for UI
-- [ ] Thread-safe for concurrent agents
+- [ ] LangSmith tracing enabled and working
+- [ ] Can view traces in LangSmith UI
+- [ ] Custom logging added for key decisions
+- [ ] Logs are structured and searchable
+- [ ] Can debug agent execution using traces
 
 **Decision Log Entry:**
 ```markdown
-## Decision: Decision Tree Data Structure
+## Decision: Observability Strategy
 **Options Considered:**
-1. Flat list of decisions - Simple but loses relationships
-2. Tree with parent/child links - Complex but shows flow
-3. Graph structure - Most flexible but overkill
-**Decision:** Tree with parent/child links
-**Reasoning:** Need to visualize decision flow in UI, tree is sufficient
-**Trade-offs:** More complex than flat list, but worth it for visualization
+1. Build custom decision tree infrastructure - Full control but time-consuming
+2. Use LangSmith + simple logging - Fast, production-ready, less control
+3. Use only Python logging - Simple but limited visibility
+**Decision:** LangSmith + simple logging
+**Reasoning:** 
+- LangSmith provides 90% of what we need out-of-the-box
+- Free tier is generous for learning/MVP
+- Production-grade without building infrastructure
+- Can add custom decision tree later if needed (Week 5-6)
+**Trade-offs:** 
+- Slight vendor lock-in (but can export traces)
+- Less customization than building our own
+- Worth it for speed and reliability
 ```
 
 **Interview Prep:**
-> "How would you design a system to capture and visualize an agent's decision-making process in real-time?"
+> "How do you implement observability for multi-agent systems?"
+
+**Expected Answer:**
+- Use LangSmith for automatic tracing of agent execution
+- LangGraph checkpointing for state persistence and time-travel debugging
+- Structured logging for custom decision points
+- Monitor: token usage, latency, tool calls, error rates
+- Can export traces for custom analysis if needed
+- Don't build custom infrastructure when production tools exist
+
+---
+
+**📚 Learning Exercise for Later (Week 5-6):**
+
+Once you're comfortable with LangSmith, you can build a custom decision tree visualization as an advanced exercise. This helps you understand what's happening under the hood and gives you a great interview talking point. See "Week 5: Advanced Observability" for the custom decision tree implementation.
 
 ---
 
@@ -471,14 +744,168 @@ async def replay_execution(session_id: str):
         print(f\"State: {checkpoint.values}\")
 ```
 
+---
+
+#### **Production Checkpointing Best Practices**
+
+**Critical for interviews and production deployment!**
+
+##### 1. Use Persistent Storage
+```python
+# ❌ Never in production
+from langgraph.checkpoint.memory import InMemorySaver
+
+# ✅ Production-ready
+from langgraph.checkpoint.postgres import PostgresSaver
+checkpointer = PostgresSaver.from_conn_string("postgresql://...")
+```
+
+##### 2. Thread Management
+```python
+# Unique, namespaced thread IDs
+thread_id = f"{user_id}_{session_id}_{timestamp}"
+
+# Include metadata for queries/cleanup
+config = {
+    "configurable": {
+        "thread_id": thread_id,
+        "user_id": user_id,  # For queries/cleanup
+    }
+}
+```
+
+##### 3. Control State Size
+```python
+from langchain_core.messages import trim_messages
+
+def chatbot(state: State):
+    # Keep last N messages only
+    trimmed = trim_messages(
+        state["messages"],
+        max_tokens=4000,  # Or message count
+        strategy="last"
+    )
+    return {"messages": llm.invoke(trimmed)}
+```
+
+##### 4. Implement Cleanup
+```python
+# File: app/services/checkpoint_cleanup.py
+
+async def cleanup_old_threads(days=30):
+    """
+    Delete old checkpoints periodically.
+    Run as scheduled job (cron/celery).
+    """
+    cutoff_date = datetime.now() - timedelta(days=days)
+    checkpointer.delete_threads(older_than=cutoff_date)
+```
+
+##### 5. Handle Errors Gracefully
+```python
+try:
+    state = graph.get_state(config)
+    if state is None:
+        # Thread doesn't exist - start fresh
+        state = initialize_new_state()
+except Exception as e:
+    logger.error(f"Failed to load checkpoint: {e}")
+    state = initialize_new_state()
+```
+
+##### 6. Security
+```python
+import uuid
+
+# ✅ Use UUIDs for unpredictable IDs
+thread_id = f"{user_id}_{uuid.uuid4()}"
+
+# ✅ Validate thread ownership before loading
+async def validate_thread_access(thread_id: str, user_id: str) -> bool:
+    """Ensure user owns this thread."""
+    config = {"configurable": {"thread_id": thread_id}}
+    state = graph.get_state(config)
+    return state.values.get("user_id") == user_id
+
+# ❌ Don't expose thread IDs in URLs/logs
+# Bad: /api/chat?thread=user123_session456
+# Good: /api/chat?session=<opaque_token>
+```
+
+##### 7. Monitor Size
+```python
+# File: app/utils/checkpoint_monitoring.py
+
+async def monitor_checkpoint_size(config: dict):
+    """Track checkpoint sizes and alert on bloat."""
+    state = graph.get_state(config)
+    size = len(str(state.values))
+    
+    if size > 100_000:  # 100KB threshold
+        logger.warning(f"Large checkpoint: {size} bytes", 
+                      thread_id=config["configurable"]["thread_id"])
+        # Trigger summarization or cleanup
+        await summarize_old_messages(state)
+```
+
+##### 8. Separate Concerns
+```python
+# Different thread types for different purposes
+support_thread = f"support_{ticket_id}"
+chat_thread = f"chat_{user_id}_{date}"
+workflow_thread = f"workflow_{job_id}"
+
+# Use prefixes for easy querying
+def get_user_threads(user_id: str):
+    return checkpointer.list_threads(prefix=f"chat_{user_id}_")
+```
+
+#### **Production Checklist**
+- [ ] PostgreSQL/SQLite checkpointer (not InMemory)
+- [ ] Unique thread IDs with user context
+- [ ] Message trimming (keep last 20-50 messages)
+- [ ] Automated cleanup job (delete >30 days)
+- [ ] Thread ownership validation
+- [ ] Size monitoring and alerts
+- [ ] Backup strategy for checkpoint DB
+- [ ] Error handling for missing/corrupt checkpoints
+
+**Key Principle:** Treat checkpoints like any other database - validate, monitor, clean up, and secure. 🎯
+
+---
+
 **Evaluation:**
 - [ ] State persists across server restarts
 - [ ] Can resume execution from any checkpoint
 - [ ] Time-travel debugging works
 - [ ] No data loss on crashes
+- [ ] Thread IDs are secure (UUIDs)
+- [ ] Cleanup job implemented
+- [ ] Size monitoring in place
+
+**Decision Log Entry:**
+```markdown
+## Decision: Checkpoint Storage Strategy
+**Options:**
+1. InMemorySaver - Fast but loses data on restart
+2. SQLite - Simple file-based persistence
+3. PostgreSQL - Production-grade, already in stack
+**Decision:** PostgreSQL
+**Reasoning:** Already using Postgres, need durability, supports concurrent access
+**Trade-offs:** Slightly more complex setup, but worth it for production
+**Security:** Using UUIDs in thread IDs, validating ownership before loading
+```
 
 **Interview Prep:**
-> \"Explain how checkpointing works in LangGraph. Why is it important for production systems?\"
+> \"Explain how checkpointing works in LangGraph. Why is it important for production systems? What are the security and performance considerations?\"
+
+**Expected Answer Points:**
+- State persistence across restarts
+- Time-travel debugging capability
+- Must use persistent storage (Postgres/SQLite)
+- Security: validate thread ownership, use UUIDs
+- Performance: trim messages, monitor size, cleanup old threads
+- Production concerns: backup strategy, error handling
 
 ---
 

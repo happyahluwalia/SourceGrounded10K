@@ -45,3 +45,9 @@ rich==14.2.0
 
 # Security & Rate Limiting
 slowapi==0.1.9
+
+# Building tools and using them
+langchain-core=0.3.79
+langsmith=0.4.35
+langgraph=1.0.2
+langchain-ollama=1.0.0

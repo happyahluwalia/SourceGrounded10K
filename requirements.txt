@@ -32,7 +32,7 @@ requests==2.31.0
 beautifulsoup4==4.14.2
 sec-edgar-downloader==5.0.3
 # Day 2 : Text chunking
-langchain-text-splitters==0.3.11
+langchain-text-splitters==1.0.0
 
 # Day 3 Qdrant Vector storage and retrieval
 #  Client library for the Qdrant vector search engine
@@ -47,7 +47,7 @@ rich==14.2.0
 slowapi==0.1.9
 
 # Building tools and using them
-langchain-core==0.3.79
+langchain-core==1.0.0
 langsmith==0.4.35
-langgraph==1.0.2
-langchain-ollama==1.0.0
+langgraph
+langchain-ollama

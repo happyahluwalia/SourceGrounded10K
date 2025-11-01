@@ -1,0 +1,15 @@
+As a financial analyst, answer the following question using ONLY the provided SEC filing context.
+
+Context:
+{context}
+
+Question: {query}
+
+Instructions:
+- If context is insufficient, state so.
+- Cite sources (e.g., "According to Document 1").
+- Be specific with numbers/dates.
+- Synthesize info from multiple documents if relevant.
+- Keep answer concise and complete.
+
+Answer:

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # Qdrant
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
-    qdrant_collection_name: str = "financial_documents"
+    qdrant_collection_name: str = "financial_documents"  # Read from QDRANT_COLLECTION_NAME in .env
     
     # Redis
     redis_host: str = "localhost"
@@ -37,11 +37,13 @@ class Settings(BaseSettings):
     
     # LLM
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.1"  # Production: 8B params for Quadro P4000
+    supervisor_model: str = "llama3.1"  # For the main supervisor agent
+    planner_model: str = "llama3.1"       # For the planner agent
+    synthesizer_model: str = "gemma3:1b"  # For the RAG synthesizer agent
     
     # Embeddings
-    embedding_model: str = "nomic-embed-text"  # Production: 768-dim, 8K context
-    embedding_dimension: int = 768  # Changed from 384 to match nomic model
+    embedding_model: str = "nomic-embed-text"  # 768-dim model via Ollama (matches existing data)
+    embedding_dimension: int = 768  # nomic-embed-text dimension
     
     # Chunking
     # Context window math for phi3 (4K tokens):
@@ -64,6 +66,11 @@ class Settings(BaseSettings):
     
     # SEC
     sec_user_agent: str
+
+    #LangSmith Observabilitty
+    LANGCHAIN_TRACING_V2: bool = True
+    LANGCHAIN_API_KEY: str = ""
+    LANGCHAIN_PROJECT: str = "finance-agent-v2"
     
     class Config:
         env_file = ".env"

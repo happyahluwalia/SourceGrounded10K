@@ -10,7 +10,7 @@ const api = axios.create({
 })
 
 export const queryCompany = async (query, ticker, options = {}) => {
-  const response = await api.post('/api/query', {
+  const response = await api.post('/api/v2/chat', {
     query,
     ticker,
     filing_type: options.filing_type || '10-K',

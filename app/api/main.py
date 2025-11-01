@@ -115,7 +115,7 @@ Monitoring:
 See Also:
 --------
 - app.services.rag_chain: RAG implementation
-- app.services.filing_service: Filing processing pipeline
+- app.tools.annual_financial_report_tool: Filing processing pipeline
 - app.services.vector_store: Qdrant operations
 - app.core.config: Configuration management
 """
@@ -136,10 +136,10 @@ import queue
 import re
 
 from app.services.vector_store import VectorStore
-from app.services.rag_chain import RAGChain
-from app.services.filing_service import FilingService
-from app.services.storage import DatabaseStorage
 from app.services.log_streamer import subscribe_to_logs, unsubscribe_from_logs, get_log_stream_handler
+from app.agents.supervisor import SupervisorAgent
+
+
 from app.core.config import settings
 
 # Configure logging
@@ -161,13 +161,9 @@ get_log_stream_handler()
 # Initialize Services (before app creation)
 # ============================================================================
 
-db_storage = DatabaseStorage()
-vector_store = VectorStore()
-rag_chain = RAGChain(vector_store=vector_store)
-filing_service = FilingService(
-    db_storage=db_storage,
-    vector_store=vector_store
-)
+# All services are now encapsulated within the SupervisorAgent and its tools.
+# We only need to instantiate the SupervisorAgent here.
+supervisor = SupervisorAgent()
 
 
 # ============================================================================
@@ -202,7 +198,7 @@ async def lifespan(app: FastAPI):
         raise
     
     try:
-        vector_store.client.get_collections()
+        VectorStore().client.get_collections()
         logger.info("✓ Qdrant connection verified")
     except Exception as e:
         logger.error(f"✗ Qdrant connection failed: {e}")
@@ -246,82 +242,20 @@ app.add_middleware(
 # Request/Response Models
 # ============================================================================
 
-class QueryRequest(BaseModel):
-    """Request model for /api/query endpoint."""
+class ChatRequest(BaseModel):
+    """Request model for /api/v2/chat endpoint."""
     
-    query: str = Field(..., min_length=1, max_length=500, description="Question to ask about the company")
-    ticker: str = Field(..., min_length=1, max_length=10, description="Company ticker symbol (e.g., AAPL)")
-    filing_type: str = Field(default="10-K", description="Type of SEC filing")
-    section: Optional[str] = Field(None, description="Specific section to search (e.g., 'Item 7')")
-    top_k: int = Field(default=5, ge=1, le=20, description="Number of chunks to retrieve")
-    score_threshold: float = Field(default=0.5, ge=0.0, le=1.0, description="Minimum similarity score")
-    
-    @validator('ticker')
-    def validate_ticker(cls, v):
-        """Validate ticker is alphanumeric and uppercase."""
-        v = v.upper().strip()
-        if not re.match(r'^[A-Z]{1,10}$', v):
-            raise ValueError('Ticker must be 1-10 uppercase letters')
-        return v
-    
-    @validator('query')
-    def validate_query(cls, v):
-        """Sanitize query to prevent SQL injection."""
-        v = v.strip()
-        # Check for dangerous SQL keywords (as whole words, not substrings)
-        dangerous = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'ALTER', 'EXEC', 'UNION', '--', ';', '/*', '*/']
-        v_upper = v.upper()
-        for word in dangerous:
-            # Use word boundaries for alphanumeric keywords, exact match for symbols
-            if word.isalnum():
-                # Match as whole word (e.g., "EXEC" but not "EXECUTIVES")
-                if re.search(r'\b' + re.escape(word) + r'\b', v_upper):
-                    raise ValueError(f'Query contains forbidden keyword: {word}')
-            else:
-                # For symbols like '--', ';', '/*', '*/': exact substring match
-                if word in v_upper:
-                    raise ValueError(f'Query contains forbidden keyword: {word}')
-        return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "query": "What were the total revenues in 2024?",
-                "ticker": "AAPL",
-                "filing_type": "10-K",
-                "top_k": 5,
-                "score_threshold": 0.5
-            }
-        }
+    query: str = Field(..., min_length=1, max_length=1000, description="Natural language question about company financials")
 
 
-class QueryResponse(BaseModel):
-    """Response model for /api/query endpoint."""
+class ChatResponse(BaseModel):
+    """Response model for /api/v2/chat endpoint."""
     
     query: str
     answer: str
-    ticker: str
-    num_sources: int
-    processing_time: float
-    sources: Optional[List[dict]] = None
+    metadata: Optional[dict] = None
 
 
-class ProcessFilingRequest(BaseModel):
-    """Request model for /api/companies/{ticker}/process endpoint."""
-    
-    filing_type: str = Field(default="10-K", description="Type of filing to process")
-    force_reprocess: bool = Field(default=False, description="Force reprocess if already exists")
-
-
-class FilingInfo(BaseModel):
-    """Filing information model."""
-    
-    filing_id: str
-    ticker: str
-    filing_type: str
-    report_date: str
-    num_chunks: int
-    status: str
 
 
 # ============================================================================
@@ -358,7 +292,7 @@ async def health_check():
     
     # Check Qdrant
     try:
-        vector_store.client.get_collections()
+        VectorStore().client.get_collections()
         health_status["services"]["vector_store"] = "connected"
     except Exception as e:
         health_status["services"]["vector_store"] = f"error: {str(e)}"
@@ -379,215 +313,36 @@ async def health_check():
     return health_status
 
 
-@app.post("/api/query", response_model=QueryResponse)
-async def query_company(request: QueryRequest):
+@app.post("/api/v2/chat")
+async def chat_endpoint(request: ChatRequest):
     """
-    Ask a question about a company.
+    Natural language chat endpoint for the v2 Supervisor Agent.
     
-    This endpoint:
-    1. Checks if the filing exists locally
-    2. Fetches and processes it if missing (lazy loading)
-    3. Runs RAG chain to answer the question
-    4. Returns answer with sources
+    This is the main endpoint for the agentic architecture. The supervisor
+    analyzes the query and delegates to appropriate specialist tools.
     
     Example:
-        POST /api/query
+        POST /api/v2/chat
         {
-            "query": "What were Apple's revenues?",
-            "ticker": "AAPL",
-            "filing_type": "10-K"
+            "query": "What are the risks of investing in Apple?"
         }
     """
     try:
-        # Log delimiter for new query
         logger.info("=" * 80)
-        logger.info(f"🔍 NEW QUERY: {request.ticker} - {request.query[:50]}...")
+        logger.info(f"🔍 NEW QUERY: {request.query[:100]}...")
         logger.info("=" * 80)
         
-        # Step 1: Ensure filing exists (fetch if missing)
-        filing_result = filing_service.get_or_process_filing(
-            ticker=request.ticker,
-            filing_type=request.filing_type
-        )
+        result = await supervisor.ainvoke(request.query)
         
-        if filing_result['status'] == 'error':
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=filing_result['message']
-            )
-        
-        # Log if we had to fetch the filing
-        if filing_result['status'] == 'success':
-            logger.info(f"Fetched and processed {request.ticker} {request.filing_type}")
-        
-        # Step 2: Run RAG chain
-        response = rag_chain.answer(
-            query=request.query,
-            ticker=request.ticker,
-            section=request.section,
-            filing_type=request.filing_type,
-            top_k=request.top_k,
-            score_threshold=request.score_threshold,
-            include_sources=True
-        )
-        
-        # Step 3: Format response
-        return QueryResponse(
-            query=request.query,
-            answer=response['answer'],
-            ticker=request.ticker,
-            num_sources=response['num_sources'],
-            processing_time=response['processing_time'],
-            sources=response.get('sources', [])
-        )
-    
-    except HTTPException:
-        raise
+        return {
+            "query": result['query'],
+            "answer": result['answer']
+        }
     except Exception as e:
         logger.error(f"Error processing query: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing query: {str(e)}"
-        )
-
-
-@app.get("/api/companies")
-async def list_companies():
-    """
-    List all companies in the database.
-    
-    Returns:
-        List of companies with their available filings
-    """
-    try:
-        with db_storage.get_session() as session:
-            from app.models.database import Company, SECFiling
-            
-            companies = session.query(Company).all()
-            
-            result = []
-            for company in companies:
-                filings = session.query(SECFiling).filter(
-                    SECFiling.ticker == company.ticker
-                ).all()
-                
-                result.append({
-                    "ticker": company.ticker,
-                    "name": company.name,
-                    "sector": company.sector,
-                    "num_filings": len(filings),
-                    "filings": [
-                        {
-                            "filing_type": f.filing_type,
-                            "report_date": f.report_date.isoformat(),
-                            "status": "ready" if f.embeddings_generated else "processing"
-                        }
-                        for f in filings
-                    ]
-                })
-            
-            return {"companies": result}
-    
-    except Exception as e:
-        logger.error(f"Error listing companies: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error listing companies: {str(e)}"
-        )
-
-
-@app.get("/api/companies/{ticker}/filings")
-async def get_company_filings(ticker: str):
-    """
-    Get all filings for a specific company.
-    
-    Args:
-        ticker: Company ticker symbol
-    
-    Returns:
-        List of filings with metadata
-    """
-    try:
-        ticker = ticker.upper()
-        
-        with db_storage.get_session() as session:
-            from app.models.database import SECFiling
-            
-            filings = session.query(SECFiling).filter(
-                SECFiling.ticker == ticker
-            ).order_by(SECFiling.report_date.desc()).all()
-            
-            if not filings:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"No filings found for {ticker}"
-                )
-            
-            return {
-                "ticker": ticker,
-                "filings": [
-                    {
-                        "filing_id": str(f.id),
-                        "filing_type": f.filing_type,
-                        "report_date": f.report_date.isoformat(),
-                        "filing_date": f.filing_date.isoformat() if f.filing_date else None,
-                        "num_chunks": f.num_chunks,
-                        "status": "ready" if f.embeddings_generated else "processing"
-                    }
-                    for f in filings
-                ]
-            }
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting filings: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error getting filings: {str(e)}"
-        )
-
-
-@app.post("/api/companies/{ticker}/process")
-async def process_company_filing(ticker: str, request: ProcessFilingRequest):
-    """
-    Manually trigger processing of a company's filing.
-    
-    Use this to pre-fetch filings before they're needed for queries.
-    
-    Args:
-        ticker: Company ticker symbol
-        request: Processing options
-    
-    Returns:
-        Processing result
-    """
-    try:
-        ticker = ticker.upper()
-        
-        logger.info(f"Manual processing request: {ticker} {request.filing_type}")
-        
-        result = filing_service.process_filing(
-            ticker=ticker,
-            filing_type=request.filing_type,
-            force_reprocess=request.force_reprocess
-        )
-        
-        if result['status'] == 'error':
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=result['message']
-            )
-        
-        return result
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error processing filing: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing filing: {str(e)}"
         )
 
 

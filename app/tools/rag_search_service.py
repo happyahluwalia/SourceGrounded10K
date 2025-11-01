@@ -14,7 +14,7 @@
 from typing import List, Dict, Optional
 import logging
 from datetime import datetime
-
+from langchain_core.tools import tool
 from app.services.vector_store import VectorStore
 from app.core.config import settings 
 
@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 
-class RAGChain:
+class RAGSearchTool:
     """
-        RAG Chain for financial document Q&A
+        RAG Search Tool for financial document Q&A
 
         Answers questions by:
         1. Finding relevant chunks via semantic search
@@ -38,7 +38,9 @@ class RAGChain:
         self,
         vector_store: VectorStore,
         llm_client = None,      # initially use Ollama Client
-        model_name: str = None
+        model_name: str = None,
+        db_storage = None,      # For checking if filing exists
+        data_prep_tool = None   # For auto-downloading missing filings
     ):
 
         """
@@ -52,7 +54,9 @@ class RAGChain:
         """
 
         self.vector_store = vector_store
-        self.model_name = model_name or settings.ollama_model 
+        self.model_name = model_name or settings.synthesizer_model
+        self.db_storage = db_storage
+        self.data_prep_tool = data_prep_tool
 
         if llm_client is None:
                 try:
@@ -66,7 +70,7 @@ class RAGChain:
         else:
             self.llm_client = llm_client
         
-    
+
     def retrieve(
         self,
         query: str,
@@ -155,38 +159,17 @@ class RAGChain:
 
     def build_prompt(self, query: str, context: str) -> str:
         """
-        Build LLM prompt with query and context.
-        
-        Uses a structured prompt that:
-        1. Defines the assistant's role (financial analyst)
-        2. Provides retrieved context
-        3. Gives clear instructions
-        4. Includes the user's question
-        
-        Args:
-            query: User's question
-            context: Retrieved context
-        
-        Returns:
-            Complete prompt for LLM
+        Build LLM prompt with query and context from an external file.
         """
-        prompt = f"""You are a financial analyst assistant. Your task is to answer questions about companies based on their SEC filings.
-
-            {context}
-
-            Instructions:
-            1. Answer the question using ONLY the information provided in the context above
-            2. If the context doesn't contain enough information, say so clearly
-            3. Cite which document(s) you used (e.g., "According to Document 1...")
-            4. Be specific with numbers, dates, and metrics when available
-            5. If multiple documents have relevant info, synthesize them
-            6. Keep your answer concise but complete
-
-            Question: {query}
-
-            Answer:"""
+        try:
+            from pathlib import Path
+            prompt_path = Path(__file__).parent.parent / "prompts" / "synthesizer.txt"
+            prompt_template = prompt_path.read_text()
+        except FileNotFoundError:
+            print("ERROR: Synthesizer prompt file not found. Using fallback prompt.")
+            prompt_template = """As a financial analyst, answer the following question using ONLY the provided SEC filing context.\n\nContext:\n{context}\n\nQuestion: {query}\n\nAnswer:"""
         
-        return prompt
+        return prompt_template.format(context=context, query=query)
 
     def generate(self, prompt:str, max_tokens: int = None) -> str:
         """
@@ -226,7 +209,8 @@ class RAGChain:
         except Exception as e:
             logger.error(f"Error generating answer: {e}")
             return f"Error: Unable to generate answer. {str(e)}"
-        
+
+
     def answer(
         self,
         query: str,
@@ -264,6 +248,26 @@ class RAGChain:
         start_time = datetime.now()
 
         logger.info(f" Processing query: {query[:100]}...")
+
+        # Step 0: Auto-download filing if missing (only if ticker provided)
+        if ticker and self.db_storage and self.data_prep_tool:
+            filing_type = filing_type or "10-K"
+            
+            # Check if any filing exists for this ticker/type
+            from app.models.database import SECFiling
+            session = self.db_storage._get_session()
+            filing = session.query(SECFiling).filter_by(
+                ticker=ticker,
+                filing_type=filing_type
+            ).first()
+            
+            if not filing:
+                logger.info(f"📥 Filing not found for {ticker} {filing_type}, downloading from EDGAR...")
+                result = self.data_prep_tool.get_or_process_filing(ticker, filing_type)
+                if result['status'] in ['success', 'exists']:
+                    logger.info(f"✅ Filing ready for {ticker}")
+                else:
+                    logger.warning(f"⚠️ Failed to download {ticker}: {result.get('message')}")
 
         # Step 1: Retrieve relevant chunks
         chunks = self.retrieve(

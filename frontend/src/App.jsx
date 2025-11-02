@@ -1,92 +1,132 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { Send, Settings, Terminal, Loader2, TrendingUp } from 'lucide-react'
-import { Button } from './components/Button'
-import { Input } from './components/Input'
-import { ChatMessage } from './components/ChatMessage'
-import { DebugPanel } from './components/DebugPanel'
-import { queryCompany } from './lib/api'
-import { cn } from './lib/utils'
+import React, { useState, useRef, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid'; // Import uuid
+import { Send, Settings, Terminal, Loader2, TrendingUp, MessageSquarePlus } from 'lucide-react';
+import { Button } from './components/Button';
+import { Input } from './components/Input';
+import { ChatMessage } from './components/ChatMessage';
+import { DebugPanel } from './components/DebugPanel';
+import { chatWithAgent } from './lib/api'; // Import the new API function
+import { cn } from './lib/utils';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function App() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Hello! I\'m your AI financial analyst. Ask me questions about any company\'s SEC filings. For example: "What were Apple\'s revenues last year?" or "Who is Tesla\'s CFO?"',
+      content: 'Hello! I\'m your AI financial analyst. Ask me questions about supported companies. For example: "What were Apple\'s revenues last year?" or "Who is the CFO of Microsoft?"',
       timestamp: new Date(),
     },
-  ])
-  const [input, setInput] = useState('')
-  const [ticker, setTicker] = useState('AAPL')
-  const [isLoading, setIsLoading] = useState(false)
-  const [debugLogs, setDebugLogs] = useState([])
-  const [showDebug, setShowDebug] = useState(false)
-  const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
-  const eventSourceRef = useRef(null)
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebug, setShowDebug] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const eventSourceRef = useRef(null);
+
+  // Initialize session ID from localStorage or create new one
+  useEffect(() => {
+    try {
+      const storedSessionId = localStorage.getItem('finance_agent_session_id');
+      if (storedSessionId) {
+        console.log('📝 Loaded existing session:', storedSessionId);
+        setSessionId(storedSessionId);
+      } else {
+        const newSessionId = uuidv4();
+        console.log('🆕 Created new session:', newSessionId);
+        try {
+          localStorage.setItem('finance_agent_session_id', newSessionId);
+          setSessionId(newSessionId);
+        } catch (storageError) {
+          console.error('Failed to save session to localStorage:', storageError);
+          // Still set session for current page load
+          setSessionId(newSessionId);
+          addLog('WARN', 'Session will not persist across refreshes (localStorage unavailable)');
+        }
+      }
+    } catch (error) {
+      console.error('Error accessing localStorage:', error);
+      // Fallback: create session without persistence
+      const newSessionId = uuidv4();
+      setSessionId(newSessionId);
+      addLog('ERROR', 'localStorage unavailable - session will not persist');
+    }
+  }, []);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
+
+  // Warn user if they try to refresh during active query
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isLoading) {
+        e.preventDefault();
+        e.returnValue = 'Your query is still processing. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isLoading]);
 
   // Connect to real-time log stream
   useEffect(() => {
     if (showDebug && !eventSourceRef.current) {
-      console.log('Connecting to log stream...')
+      console.log('Connecting to log stream...');
       
       try {
-        const eventSource = new EventSource(`${API_BASE_URL}/api/logs/stream`)
+        const eventSource = new EventSource(`${API_BASE_URL}/api/logs/stream`);
         
         eventSource.onopen = () => {
-          console.log('✅ Log stream connected')
-        }
+          console.log('✅ Log stream connected');
+        };
         
         eventSource.onmessage = (event) => {
           try {
-            const log = JSON.parse(event.data)
-            setDebugLogs((prev) => [...prev, log])
+            const log = JSON.parse(event.data);
+            setDebugLogs((prev) => [...prev, log]);
           } catch (error) {
-            console.error('Error parsing log:', error, event.data)
+            console.error('Error parsing log:', error, event.data);
           }
-        }
+        };
         
         eventSource.onerror = (error) => {
-          console.error('EventSource error:', error)
+          console.error('EventSource error:', error);
           
-          // Check if it's a connection error
           if (eventSource.readyState === EventSource.CLOSED) {
-            console.log('Connection closed, will retry...')
+            console.log('Connection closed, will retry...');
           } else if (eventSource.readyState === EventSource.CONNECTING) {
-            console.log('Reconnecting...')
+            console.log('Reconnecting...');
           }
-          
-          // Don't close on error - let it auto-reconnect
-          // Only close if we're manually closing the panel
-        }
+        };
         
-        eventSourceRef.current = eventSource
+        eventSourceRef.current = eventSource;
       } catch (error) {
-        console.error('Failed to create EventSource:', error)
-        addLog('ERROR', `Failed to connect to log stream: ${error.message}`)
+        console.error('Failed to create EventSource:', error);
+        addLog('ERROR', `Failed to connect to log stream: ${error.message}`);
       }
     } else if (!showDebug && eventSourceRef.current) {
-      console.log('Disconnecting from log stream...')
-      eventSourceRef.current.close()
-      eventSourceRef.current = null
+      console.log('Disconnecting from log stream...');
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
     
     return () => {
       if (eventSourceRef.current) {
-        eventSourceRef.current.close()
-        eventSourceRef.current = null
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
-    }
-  }, [showDebug])
+    };
+  }, [showDebug]);
 
   const addLog = (level, message) => {
     setDebugLogs((prev) => [
@@ -97,60 +137,88 @@ function App() {
         logger: 'frontend',
         message,
       },
-    ])
-  }
+    ]);
+  };
+
+  const startNewConversation = () => {
+    if (confirm('Start a new conversation? Current context will be lost.')) {
+      // Clear session from localStorage
+      localStorage.removeItem('finance_agent_session_id');
+      
+      // Generate new session ID
+      const newSessionId = uuidv4();
+      localStorage.setItem('finance_agent_session_id', newSessionId);
+      setSessionId(newSessionId);
+      
+      // Clear messages except welcome message
+      setMessages([
+        {
+          role: 'assistant',
+          content: 'Hello! I\'m your AI financial analyst. Ask me questions about supported companies. For example: "What were Apple\'s revenues last year?" or "Who is the CFO of Microsoft?"',
+          timestamp: new Date(),
+        },
+      ]);
+      
+      console.log('🆕 Started new conversation:', newSessionId);
+      addLog('INFO', `Started new conversation: ${newSessionId}`);
+    }
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!input.trim() || !ticker.trim() || isLoading) return
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    // Wait for session to be initialized
+    if (!sessionId) {
+      console.warn('⚠️ Session not initialized yet, please wait...');
+      return;
+    }
 
     const userMessage = {
       role: 'user',
       content: input,
-      ticker: ticker.toUpperCase(),
       timestamp: new Date(),
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage])
-    setInput('')
-    setIsLoading(true)
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
 
     try {
-      const response = await queryCompany(input, ticker.toUpperCase(), {
-        filing_type: '10-K',
-        top_k: 5,
-        score_threshold: 0.5,
-      })
+      // Call the new v2 chat endpoint
+      const response = await chatWithAgent(input, sessionId);
+
+      // Store session_id from backend response (for conversation continuity)
+      if (response.session_id) {
+        localStorage.setItem('finance_agent_session_id', response.session_id);
+        setSessionId(response.session_id);
+        console.log('💾 Session ID updated:', response.session_id);
+      }
 
       const assistantMessage = {
         role: 'assistant',
         content: response.answer,
-        ticker: ticker.toUpperCase(),
         timestamp: new Date(),
-        metadata: {
-          processing_time: response.processing_time,
-          num_sources: response.num_sources,
-        },
-        sources: response.sources,
-      }
+        sessionId: response.session_id, // Store session_id in message for debugging
+      };
 
-      setMessages((prev) => [...prev, assistantMessage])
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error querying company:', error)
-      addLog('ERROR', `Error processing query: ${error.message}`)
+      console.error('Error querying agent:', error);
+      addLog('ERROR', `Error processing query: ${error.message}`);
 
       const errorMessage = {
         role: 'assistant',
         content: `Sorry, I encountered an error: ${error.response?.data?.detail || error.message}. Please make sure the API server is running and try again.`,
         timestamp: new Date(),
-      }
+      };
 
-      setMessages((prev) => [...prev, errorMessage])
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setIsLoading(false)
-      inputRef.current?.focus()
+      setIsLoading(false);
+      inputRef.current?.focus();
     }
-  }
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -164,6 +232,21 @@ function App() {
             <span className="text-sm text-muted-foreground">AI Financial Analysis</span>
           </div>
           <div className="flex items-center gap-2">
+            {sessionId && (
+              <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground mr-2">
+                <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+                <span>Active conversation</span>
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startNewConversation}
+              className="gap-2"
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+              <span className="hidden sm:inline">New Chat</span>
+            </Button>
             <Button
               variant={showDebug ? 'default' : 'outline'}
               size="sm"
@@ -202,25 +285,18 @@ function App() {
             <form onSubmit={handleSubmit} className="flex gap-2">
               <Input
                 ref={inputRef}
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                placeholder="Ticker"
-                className="w-24 uppercase"
-                maxLength={5}
-              />
-              <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about financial data... (e.g., What were the revenues?)"
+                placeholder={!sessionId ? "Initializing session..." : "Ask about a supported company... (e.g., What is Apple\'s revenue?)"}
                 className="flex-1"
-                disabled={isLoading}
+                disabled={isLoading || !sessionId}
               />
-              <Button type="submit" disabled={isLoading || !input.trim() || !ticker.trim()} size="icon">
+              <Button type="submit" disabled={isLoading || !input.trim() || !sessionId} size="icon">
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </Button>
             </form>
             <p className="text-xs text-muted-foreground mt-2">
-              Enter a ticker symbol (e.g., AAPL, TSLA, GOOG) and ask questions about their SEC filings.
+              Currently supported companies: Apple, Microsoft, Pfizer, Robinhood, Amazon.
             </p>
           </div>
         </div>
@@ -229,7 +305,7 @@ function App() {
       {/* Debug Panel */}
       <DebugPanel logs={debugLogs} isOpen={showDebug} onClose={() => setShowDebug(false)} />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

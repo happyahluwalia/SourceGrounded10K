@@ -134,6 +134,7 @@ import json
 import asyncio
 import queue
 import re
+import uuid
 
 from app.services.vector_store import VectorStore
 from app.services.log_streamer import subscribe_to_logs, unsubscribe_from_logs, get_log_stream_handler
@@ -204,12 +205,27 @@ async def lifespan(app: FastAPI):
         logger.error(f"✗ Qdrant connection failed: {e}")
         raise
     
+    # Initialize checkpointer for conversation persistence
+    try:
+        await SupervisorAgent.initialize_checkpointer()
+        logger.info("✓ Checkpointer initialized")
+    except Exception as e:
+        logger.error(f"✗ Checkpointer initialization failed: {e}")
+        raise
+    
     logger.info("Services initialized successfully")
     
     yield  # Application runs here
     
     # Shutdown
     logger.info("Shutting down Finance Agent API...")
+    
+    # Cleanup checkpointer resources
+    try:
+        await SupervisorAgent.cleanup_checkpointer()
+    except Exception as e:
+        logger.error(f"✗ Checkpointer cleanup failed: {e}", exc_info=True)
+    
     logger.info("Cleanup complete")
 
 
@@ -246,6 +262,8 @@ class ChatRequest(BaseModel):
     """Request model for /api/v2/chat endpoint."""
     
     query: str = Field(..., min_length=1, max_length=1000, description="Natural language question about company financials")
+    user_id: Optional[str] = Field(None, description="Optional user ID for session management")
+    session_id: Optional[str] = Field(None, description="Optional session ID for conversation history")
 
 
 class ChatResponse(BaseModel):
@@ -253,6 +271,7 @@ class ChatResponse(BaseModel):
     
     query: str
     answer: str
+    session_id: str = Field(..., description="Session ID for conversation continuity")
     metadata: Optional[dict] = None
 
 
@@ -317,27 +336,50 @@ async def health_check():
 async def chat_endpoint(request: ChatRequest):
     """
     Natural language chat endpoint for the v2 Supervisor Agent.
-    
+
     This is the main endpoint for the agentic architecture. The supervisor
     analyzes the query and delegates to appropriate specialist tools.
+    
+    Supports conversation continuity through session_id:
+    - Frontend should store session_id in localStorage
+    - Send same session_id for follow-up questions
+    - Omit session_id to start a new conversation
     
     Example:
         POST /api/v2/chat
         {
-            "query": "What are the risks of investing in Apple?"
+            "query": "What are the risks of investing in Apple?",
+            "session_id": "abc-123-def"  // Optional, for conversation history
         }
+    
+    Response includes session_id for frontend to persist.
     """
     try:
         logger.info("=" * 80)
         logger.info(f"🔍 NEW QUERY: {request.query[:100]}...")
+        if request.session_id:
+            logger.info(f"📝 Session ID: {request.session_id}")
         logger.info("=" * 80)
         
-        result = await supervisor.ainvoke(request.query)
+        # Process query with checkpointing
+        result = await supervisor.ainvoke(
+            query=request.query,
+            user_id=request.user_id,
+            session_id=request.session_id  # Can be None, will be generated
+        )
         
         return {
             "query": result['query'],
-            "answer": result['answer']
+            "answer": result['answer'],
+            "session_id": result['session_id']  # Return for frontend to store
         }
+    except RuntimeError as e:
+        # Checkpointer not initialized
+        logger.error(f"Checkpointer error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Conversation persistence service unavailable"
+        )
     except Exception as e:
         logger.error(f"Error processing query: {e}", exc_info=True)
         raise HTTPException(

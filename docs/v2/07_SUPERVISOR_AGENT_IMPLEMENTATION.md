@@ -46,7 +46,23 @@ This implementation successfully achieves the key deliverables for "Week 1-2" of
 *   **Create a simple LangGraph graph**: The `SupervisorAgent` is a simple but complete `StateGraph` with a start, a conditional edge for tool calling, a tool node, and an end.
 *   **Establish the Foundation**: This architecture is now ready for the "Week 3-4" tasks, where we will add new tools and agents to the Supervisor's team.
 
-## 4. Next Steps
+## 6. State Management & Checkpointing
+
+To ensure the `SupervisorAgent` is resilient, can handle long-running tasks, and supports multiple concurrent users, we have implemented LangGraph's checkpointing mechanism using PostgreSQL.
+
+### a. Checkpointing with `PostgresSaver`
+
+*   **Purpose**: Persists the agent's state to the database after every step, allowing conversations to be resumed even if the application restarts or crashes.
+*   **Implementation**: The `SupervisorAgent` is configured to use `langgraph.checkpoint.postgres.PostgresSaver`. This saver automatically creates the necessary tables (`langgraph_checkpoint`, `langgraph_thread`) in the PostgreSQL database if they don't already exist.
+*   **Benefit**: Provides durability and fault tolerance for agent conversations.
+
+### b. Session Management
+
+*   **Purpose**: To allow multiple users to interact with the agent simultaneously, each with their own independent conversation history and state.
+*   **Implementation**: The `/api/v2/chat` endpoint now accepts optional `user_id` and `session_id` parameters. These are combined to form a unique `thread_id` (e.g., `user_123_session_abc`) which is passed to LangGraph's `ainvoke` method via the `RunnableConfig`.
+*   **Benefit**: Enables multi-user support and ensures that each conversation's state is isolated and correctly managed by the checkpointing system.
+
+## 7. Next Steps
 
 The system is now ready for user testing via the UI, code check-in, and deployment. Once this version is validated, we will proceed with adding new specialist tools as outlined in the project roadmap.
 

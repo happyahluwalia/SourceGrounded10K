@@ -39,15 +39,14 @@ def preprocess_query_with_ticker(query: str) -> str:
     Identifies a company name from our supported list in the query and injects the verified ticker.
     If a company is found that is not supported, returns a special message.
     """
-    # print("\n" + "-"*80) # Removed print statements for cleaner tool output
-    # print("Step 0: Pre-processing query... [Deterministic Function Call]")
+    logger.info("Step 0: Pre-processing query... [Deterministic Function Call]")
     
     try:
         supported_companies_path = Path(__file__).parent.parent.parent / "app" / "core" / "supported_companies.json"
         with open(supported_companies_path, 'r') as f:
             supported_companies = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"ERROR: Could not load or parse supported_companies.json: {e}")
+        logger.error(f"Could not load or parse supported_companies.json: {e}")
         return query # Proceed without verification
 
     # Create a mapping from lowercase name to ticker for easy lookup

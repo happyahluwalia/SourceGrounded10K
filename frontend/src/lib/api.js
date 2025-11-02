@@ -9,16 +9,13 @@ const api = axios.create({
   },
 })
 
-export const queryCompany = async (query, ticker, options = {}) => {
+export const chatWithAgent = async (query, sessionId) => {
   const response = await api.post('/api/v2/chat', {
     query,
-    ticker,
-    filing_type: options.filing_type || '10-K',
-    top_k: options.top_k || 5,
-    score_threshold: options.score_threshold || 0.5,
-  })
-  return response.data
-}
+    session_id: sessionId,
+  });
+  return response.data;
+};
 
 export const getCompanies = async () => {
   const response = await api.get('/api/companies')

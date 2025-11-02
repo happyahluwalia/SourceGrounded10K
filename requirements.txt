@@ -9,7 +9,9 @@ pydantic-settings==2.1.0
 # Database & ORM
 sqlalchemy==2.0.44
 alembic==1.13.1
-psycopg2-binary==2.9.11
+psycopg2-binary==2.9.11  # For SQLAlchemy (sync)
+psycopg[binary]>=3.1.0  # For AsyncPostgresSaver (async checkpointing)
+psycopg-pool>=3.1.0  # Connection pooling for psycopg3
 
 # Vector Database
 qdrant-client==1.7.1

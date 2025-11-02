@@ -6,6 +6,7 @@ You are an Expert AI Developer.
 Below are guidelines however if there are best practices that you are aware off that are different than below guidelines share it with me with all pros and cons. I will then make a decision.
 KEY IS SIMPLICITY. We need to focus on features we can ship fast. We can add additional things incrementally.
 Always keep documentation updated. Keep adding different tradeoffs we make and why
+Review docs/Data_Safety_Rules.md to avoid critical errors
 ## Core Development Principles
 
 ### 1. Agent Design Principles
@@ -35,39 +36,9 @@ STATE MANAGEMENT RULES:
 - Document what each state field represents
 - Use Langraph checkpoint
 
-Example state schema:
-```python
-from typing import TypedDict, List, Dict, Any, Annotated, Literal
-from operator import add
-from datetime import datetime
-
-class AgentState(TypedDict):
-    # Required fields
-    query: str
-    user_id: str
-    session_id: str
-    
-    # Accumulated fields (merge across agents)
-    retrieval_results: Annotated[Dict[str, Any], add]
-    execution_log: Annotated[List[str], add]
-    
-    # Simple fields (last write wins)
-    current_step: str
-    confidence: float
-    
-    # Optional fields
-    error: str | None
-    retry_count: int
-    
-    # Metadata
-    created_at: datetime
-    updated_at: datetime
-```
-```
 
 ### 3. Error Handling and Resilience
 
-```
 ERROR HANDLING RULES:
 - Wrap all tool calls in try-except blocks
 - Implement exponential backoff for retries
@@ -76,31 +47,6 @@ ERROR HANDLING RULES:
 - Never let exceptions crash the entire graph
 - Use error states to trigger retry or fallback logic
 - Always inform user when partial results returned
-
-Example error handling:
-```python
-async def resilient_tool_call(
-    tool: Callable,
-    args: Dict[str, Any],
-    max_retries: int = 3
-) -> Dict[str, Any]:
-    """
-    Execute tool with retry logic and error recovery.
-    """
-    for attempt in range(max_retries):
-        try:
-            result = await tool(**args)
-            return {"success": True, "data": result, "error": None}
-        except RateLimitError as e:
-            wait_time = 2 ** attempt  # Exponential backoff
-            await asyncio.sleep(wait_time)
-            if attempt == max_retries - 1:
-                return {"success": False, "data": None, "error": str(e)}
-        except Exception as e:
-            logger.error(f"Tool call failed: {e}", exc_info=True)
-            return {"success": False, "data": None, "error": str(e)}
-```
-```
 
 ### 4. LangGraph Specific Rules
 
@@ -341,6 +287,52 @@ DEPLOYMENT RULES:
 10. **Monitor**: Watch logs and metrics
 11. **Prefer Determinstic call over LLM Call
 ---
+## 🛡️ DATA SAFETY - CRITICAL RULES
+
+### ABSOLUTE PROHIBITIONS
+
+**NEVER recommend these commands without explicit user request:**
+- `docker system prune -a` (destroys all images, volumes, data)
+- `docker system prune --volumes` (destroys all volumes)
+- `docker volume prune` or `docker volume rm` (destroys data)
+- `docker-compose down -v` (destroys volumes)
+- `rm -rf data/` or any recursive deletes
+- `DROP DATABASE` or `TRUNCATE TABLE`
+
+### REQUIRED PROCESS for ANY Destructive Command
+
+1. **Check**: Does this affect data/volumes/databases?
+2. **Alternative**: Provide safe alternative first
+3. **Warning**: Explicit warning with consequences
+4. **Backup**: Provide backup commands
+5. **Confirm**: Require user confirmation
+6. **Recovery**: Provide recovery steps
+
+### SAFE Docker Cleanup Commands
+
+```bash
+# ✅ SAFE - Only removes stopped containers
+docker container prune
+
+# ✅ SAFE - Only removes unused images
+docker image prune
+
+# ✅ SAFE - Only removes build cache
+docker builder prune
+```
+
+### GOLDEN RULE
+
+**"When in doubt, DON'T recommend it. Ask the user first."**
+
+If a command deletes/removes/drops anything → STOP. WARN. CONFIRM. BACKUP.
+
+---
+
+**Incident**: Nov 2, 2025 - Recommended `docker system prune -a` which destroyed production PostgreSQL, Qdrant, and Ollama data. Site completely down. Never again.
+
+**Full Documentation**: See DATA_SAFETY_RULES.md
+--------------
 
 ## Resources and Learning
 

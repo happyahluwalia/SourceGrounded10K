@@ -840,6 +840,7 @@ DEPLOYMENT RULES:
 - Implement graceful shutdown
 - Use process managers (gunicorn, uvicorn workers)
 - Implement circuit breakers for external services
+- Incremental releases should NEVER break current deployment
 
 Example Docker setup:
 ```dockerfile

@@ -105,7 +105,7 @@ export const chatWithAgentStreaming = async (query, sessionId, callbacks) => {
                 break;
               
               case 'complete':
-                onComplete(event.session_id, event.answer);
+                onComplete(event.session_id, event.answer, event.sources);
                 break;
               
               case 'error':

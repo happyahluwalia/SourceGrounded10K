@@ -22,17 +22,16 @@ export function ChatMessage({ message }) {
         </>
       )
     }
-
-    // Pattern to match citations in multiple formats:
-    // 1. "10-K filing (2025-06-30), Item 1: E OFFICERS"
-    // 2. "10-K Item 10 - Directors"
-    // 3. "Financial Table sections"
-    // 4. "Document 3, Section Item 10"
-    const citationPattern = /(?:(?:10-[KQ]|8-K)\s+filing\s+\([^)]+\),\s+Item\s+\d+[A-Z]?:\s*[A-Z\s]+|(?:10-[KQ]|8-K)\s+Item\s+\d+[A-Z]?(?:\s*[-:]\s*[A-Za-z\s,]+)?|Financial\s+Table\s+sections?|Document\s+\d+,\s+Section\s+Item\s+\d+[A-Z]?(?:\s*-\s*[A-Za-z\s,]+)?)/g
-    const parts = message.content.split(citationPattern)
+    
+    // Pattern to match citations - be permissive to catch various formats
+    // Matches: "10-K Item 1 - Executive Officers table", "Financial Table", etc.
+    const citationPattern = /(?:10-[KQ]|8-K)\s+(?:filing\s+\([^)]+\),\s+)?Item\s+\d+[A-Z]?(?:\s*[-:]\s*[A-Za-z\s]+(?:table|section|statement|officers?|directors?|governance|analysis|factors)?)?|Financial\s+Table\s*(?:sections?)?|Executive\s+Officers?\s+table/gi
+    
     const matches = message.content.match(citationPattern) || []
 
     const handleCitationClick = (citationText) => {
+      if (!citationText) return
+      
       // Extract Item number from citation
       // Handles: "10-K Item 10", "Document 3, Section Item 10", etc.
       const itemMatch = citationText.match(/Item\s+(\d+[A-Z]?)/i)
@@ -81,23 +80,49 @@ export function ChatMessage({ message }) {
       setTimeout(() => setHighlightedSource(null), 3000)
     }
 
-    let matchIndex = 0
+    // Split content and insert clickable citations
+    const parts = []
+    let lastIndex = 0
+    
+    matches.forEach((match, idx) => {
+      const matchIndex = message.content.indexOf(match, lastIndex)
+      
+      // Add text before match
+      if (matchIndex > lastIndex) {
+        parts.push(
+          <React.Fragment key={`text-${idx}`}>
+            {message.content.substring(lastIndex, matchIndex)}
+          </React.Fragment>
+        )
+      }
+      
+      // Add clickable citation
+      parts.push(
+        <button
+          key={`citation-${idx}`}
+          onClick={() => handleCitationClick(match)}
+          className="inline-flex items-center gap-1 text-primary hover:text-primary/80 underline decoration-dotted underline-offset-2 cursor-pointer transition-colors"
+          title="Click to view source"
+        >
+          {match}
+        </button>
+      )
+      
+      lastIndex = matchIndex + match.length
+    })
+    
+    // Add remaining text
+    if (lastIndex < message.content.length) {
+      parts.push(
+        <React.Fragment key="text-end">
+          {message.content.substring(lastIndex)}
+        </React.Fragment>
+      )
+    }
+
     return (
       <>
-        {parts.map((part, i) => (
-          <React.Fragment key={i}>
-            {part}
-            {i < parts.length - 1 && matches[matchIndex] && (
-              <button
-                onClick={() => handleCitationClick(matches[matchIndex])}
-                className="inline-flex items-center gap-1 text-primary hover:text-primary/80 underline decoration-dotted underline-offset-2 cursor-pointer transition-colors"
-                title="Click to view source"
-              >
-                {matches[matchIndex++]}
-              </button>
-            )}
-          </React.Fragment>
-        ))}
+        {parts}
         {message.isStreaming && (
           <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse" />
         )}

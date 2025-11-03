@@ -283,7 +283,7 @@ function App() {
         },
 
         // Handle completion
-        onComplete: (newSessionId, fullAnswer) => {
+        onComplete: (newSessionId, fullAnswer, sources) => {
           // Mark synthesis step as completed
           if (stepStartTimes.synthesis) {
             const duration = (Date.now() - stepStartTimes.synthesis) / 1000;
@@ -300,11 +300,11 @@ function App() {
             console.log('💾 Session ID updated:', newSessionId);
           }
 
-          // Mark streaming as complete
+          // Mark streaming as complete and add sources
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId
-                ? { ...msg, isStreaming: false, sessionId: newSessionId }
+                ? { ...msg, isStreaming: false, sessionId: newSessionId, sources: sources || [] }
                 : msg
             )
           );

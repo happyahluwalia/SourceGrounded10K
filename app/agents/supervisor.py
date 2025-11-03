@@ -272,6 +272,7 @@ class SupervisorAgent:
             accumulated_answer = ""
             current_step = None
             step_start_time = None
+            sources = []  # Store sources from tool output
             
             # Stream events from graph execution
             async for event in graph.astream_events(
@@ -335,6 +336,8 @@ class SupervisorAgent:
                     if current_step == "fetching" and tool_output:
                         import time
                         import asyncio
+                        import json
+                        
                         current_step = "synthesis"
                         step_start_time = time.time()
                         yield {
@@ -343,8 +346,18 @@ class SupervisorAgent:
                             "session_id": session_id
                         }
                         
-                        # Stream the tool output character by character for visual effect
-                        for char in str(tool_output):
+                        # Try to parse JSON output (answer + sources)
+                        try:
+                            result = json.loads(tool_output)
+                            answer_text = result.get("answer", tool_output)
+                            sources = result.get("sources", [])  # Store for complete event
+                        except json.JSONDecodeError:
+                            # Fallback if not JSON
+                            answer_text = str(tool_output)
+                            sources = []  # No sources available
+                        
+                        # Stream the answer character by character for visual effect
+                        for char in answer_text:
                             accumulated_answer += char
                             yield {
                                 "type": "token",
@@ -354,11 +367,12 @@ class SupervisorAgent:
                             # Small delay for streaming effect
                             await asyncio.sleep(0.01)
             
-            # Send completion event with full answer
+            # Send completion event with full answer and sources
             logger.info(f"✓ Streaming complete for thread_id: {thread_id}")
             yield {
                 "type": "complete",
                 "answer": accumulated_answer,
+                "sources": sources,
                 "session_id": session_id
             }
             

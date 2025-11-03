@@ -388,6 +388,85 @@ async def chat_endpoint(request: ChatRequest):
         )
 
 
+@app.post("/api/v2/chat/stream")
+async def chat_stream_endpoint(request: ChatRequest):
+    """
+    Streaming version of /api/v2/chat endpoint.
+    
+    Returns Server-Sent Events (SSE) stream with real-time updates:
+    - LLM tokens as they're generated (word-by-word)
+    - Tool execution progress
+    - Final completion event
+    
+    Event types:
+    - token: {"type": "token", "content": "word", "session_id": "..."}
+    - tool_start: {"type": "tool_start", "tool": "name", "session_id": "..."}
+    - tool_end: {"type": "tool_end", "tool": "name", "session_id": "..."}
+    - complete: {"type": "complete", "answer": "full text", "session_id": "..."}
+    - error: {"type": "error", "message": "error", "session_id": "..."}
+    
+    Example usage (JavaScript):
+        const response = await fetch('/api/v2/chat/stream', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({query: "What is Apple's revenue?", session_id: "abc"})
+        });
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            
+            const text = decoder.decode(value);
+            const lines = text.split('\\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const event = JSON.parse(line.slice(6));
+                    console.log(event);
+                }
+            }
+        }
+    """
+    async def event_generator():
+        try:
+            logger.info("=" * 80)
+            logger.info(f"🔍 STREAMING QUERY: {request.query[:100]}...")
+            if request.session_id:
+                logger.info(f"📝 Session ID: {request.session_id}")
+            logger.info("=" * 80)
+            
+            # Stream events from supervisor
+            async for event in supervisor.astream_response(
+                query=request.query,
+                user_id=request.user_id,
+                session_id=request.session_id
+            ):
+                # Format as Server-Sent Event
+                yield f"data: {json.dumps(event)}\n\n"
+                
+        except Exception as e:
+            logger.error(f"Error in streaming: {e}", exc_info=True)
+            error_event = {
+                "type": "error",
+                "message": str(e),
+                "session_id": request.session_id
+            }
+            yield f"data: {json.dumps(error_event)}\n\n"
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
+
+
 @app.get("/api/logs/stream")
 async def stream_logs(session_id: Optional[str] = None):
     """

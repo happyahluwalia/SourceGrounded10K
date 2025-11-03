@@ -23,7 +23,12 @@ export function ChatMessage({ message }) {
         </div>
 
         <div className="prose prose-sm max-w-none dark:prose-invert">
-          <p className="whitespace-pre-wrap text-foreground">{message.content}</p>
+          <p className="whitespace-pre-wrap text-foreground">
+            {message.content}
+            {message.isStreaming && (
+              <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
+            )}
+          </p>
         </div>
 
         {message.metadata && (

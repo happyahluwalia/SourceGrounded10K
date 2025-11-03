@@ -228,3 +228,107 @@ class SupervisorAgent:
         except Exception as e:
             logger.error(f"Error processing query: {e}", exc_info=True)
             raise Exception(f"Failed to process query: {str(e)}")
+    
+    async def astream_response(
+        self,
+        query: str,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None
+    ):
+        """
+        Stream events from graph execution for real-time UI updates.
+        
+        Yields different event types:
+        - {"type": "token", "content": "word", "session_id": "..."}
+        - {"type": "tool_start", "tool": "answer_filing_question", "session_id": "..."}
+        - {"type": "tool_end", "tool": "answer_filing_question", "session_id": "..."}
+        - {"type": "complete", "answer": "full answer", "session_id": "..."}
+        - {"type": "error", "message": "error details", "session_id": "..."}
+        
+        Args:
+            query: The user's question
+            user_id: Optional user identifier
+            session_id: Session ID for conversation continuity
+            
+        Yields:
+            dict: Event objects with type and relevant data
+        """
+        try:
+            # Validate session_id
+            if not session_id:
+                import uuid
+                session_id = str(uuid.uuid4())
+            
+            messages = [HumanMessage(content=query)]
+            thread_id = f"{user_id or 'anonymous'}_{session_id}"
+            config = {"configurable": {"thread_id": thread_id}}
+            
+            logger.info(f"Streaming query for thread_id: {thread_id}")
+            
+            # Get checkpointer and compile graph
+            checkpointer = self.get_checkpointer()
+            graph = self.graph_builder.compile(checkpointer=checkpointer)
+            
+            accumulated_answer = ""
+            
+            # Stream events from graph execution
+            async for event in graph.astream_events(
+                {"messages": messages},
+                config=config,
+                version="v2"
+            ):
+                event_type = event.get("event")
+                
+                # Stream LLM tokens (from any ChatOllama call)
+                if event_type == "on_chat_model_stream":
+                    chunk = event.get("data", {}).get("chunk")
+                    if chunk and hasattr(chunk, "content") and chunk.content:
+                        accumulated_answer += chunk.content
+                        yield {
+                            "type": "token",
+                            "content": chunk.content,
+                            "session_id": session_id
+                        }
+                
+                # Tool execution started
+                elif event_type == "on_tool_start":
+                    tool_name = event.get("name", "unknown")
+                    logger.info(f"🔧 Tool started: {tool_name}")
+                    yield {
+                        "type": "tool_start",
+                        "tool": tool_name,
+                        "session_id": session_id
+                    }
+                
+                # Tool execution completed
+                elif event_type == "on_tool_end":
+                    tool_name = event.get("name", "unknown")
+                    logger.info(f"✅ Tool completed: {tool_name}")
+                    yield {
+                        "type": "tool_end",
+                        "tool": tool_name,
+                        "session_id": session_id
+                    }
+            
+            # Send completion event with full answer
+            logger.info(f"✓ Streaming complete for thread_id: {thread_id}")
+            yield {
+                "type": "complete",
+                "answer": accumulated_answer,
+                "session_id": session_id
+            }
+            
+        except RuntimeError as e:
+            logger.error(f"Checkpointer error during streaming: {e}")
+            yield {
+                "type": "error",
+                "message": "Conversation persistence service unavailable",
+                "session_id": session_id
+            }
+        except Exception as e:
+            logger.error(f"Error during streaming: {e}", exc_info=True)
+            yield {
+                "type": "error",
+                "message": str(e),
+                "session_id": session_id
+            }

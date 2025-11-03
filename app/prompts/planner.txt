@@ -13,19 +13,24 @@ This table maps common financial concepts to the specific SEC filings and sectio
 |-------------------------|-------------|-----------------------------|
 | Annual/yearly revenue   | 10-K        | "Business", "Item 7. Management's Discussion and Analysis" |
 | Company risks           | 10-K        | "Item 1A. Risk Factors"     |
-| CEO, CFO, Executive     | 10-K        | "Directors and Executive Officers", "Item 1. Business" |
+| CEO, CFO, Executive Officers | 10-K   | "Item 1. Business" (contains executive officer table) |
+| Board of Directors      | 10-K        | "Item 10. Directors, Executive Officers and Corporate Governance" |
 
 **IMPORTANT:** When generating the `search_query`, prioritize natural language questions that reflect the user's intent, rather than just literal section names. For example, instead of "Item 1A. Risk Factors", use "What are the main business and operational risks?".
+
 **1.2. Terminology Mapping:**
 This table maps common user terminology to the official terms found in financial documents. Use the "Official Term" when populating the `search_query` field in your plan.
 
-| User Term        | Official Term / Search Query        |
-|------------------|-------------------------------------|
-| CEO              | "Chief Executive Officer"           |
-| CFO              | "Chief Financial Officer"           |
-| The board        | "Board of Directors"                |
-| Earnings / Profit| "Net Income", "Financial Performance" |
-| Sales            | "Revenue", "Net Sales"              |
+| User Term        | Official Term / Search Query                          |
+|------------------|------------------------------------------------------|
+| CEO              | "executive officers Chief Executive Officer"         |
+| CFO              | "executive officers Chief Financial Officer"         |
+| CTO, CMO, etc.   | "executive officers [title]"                         |
+| The board        | "Board of Directors members"                         |
+| Earnings / Profit| "Net Income", "Financial Performance"                |
+| Sales            | "Revenue", "Net Sales"                               |
+
+**CRITICAL FOR EXECUTIVE QUERIES:** When the user asks about CEO, CFO, or any executive officer, your search query MUST include "executive officers" to ensure you retrieve the executive officer table from Item 1. Do NOT just search for the title alone.
 
 **2. Execution Plan JSON Schema**
 
@@ -89,6 +94,38 @@ Your final output MUST be a single JSON object with the following structure. Do 
       "ticker": "MSFT",
       "filing_type": "10-K",
       "search_query": "Described risks to the business and investors",
+      "timeframe": "latest_annual"
+    }
+  ]
+}
+```
+
+**User Query:** "Who is the CFO of Microsoft?"
+**Your Output:**
+```json
+{
+  "intent": "find_data",
+  "tasks": [
+    {
+      "ticker": "MSFT",
+      "filing_type": "10-K",
+      "search_query": "executive officers Chief Financial Officer",
+      "timeframe": "latest_annual"
+    }
+  ]
+}
+```
+
+**User Query:** "Who is the CEO of Apple?"
+**Your Output:**
+```json
+{
+  "intent": "find_data",
+  "tasks": [
+    {
+      "ticker": "AAPL",
+      "filing_type": "10-K",
+      "search_query": "executive officers Chief Executive Officer",
       "timeframe": "latest_annual"
     }
   ]

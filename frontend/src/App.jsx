@@ -5,7 +5,7 @@ import { Button } from './components/Button';
 import { Input } from './components/Input';
 import { ChatMessage } from './components/ChatMessage';
 import { DebugPanel } from './components/DebugPanel';
-import { chatWithAgent } from './lib/api'; // Import the new API function
+import { chatWithAgent, chatWithAgentStreaming } from './lib/api'; // Import API functions
 import { cn } from './lib/utils';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -181,40 +181,106 @@ function App() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const queryText = input;
     setInput('');
     setIsLoading(true);
 
+    // Create placeholder for streaming assistant message
+    const assistantMessageId = Date.now();
+    const assistantMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isStreaming: true,
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+
     try {
-      // Call the new v2 chat endpoint
-      const response = await chatWithAgent(input, sessionId);
+      let accumulatedContent = '';
+      
+      await chatWithAgentStreaming(queryText, sessionId, {
+        // Handle each token as it arrives
+        onToken: (content) => {
+          accumulatedContent += content;
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: accumulatedContent }
+                : msg
+            )
+          );
+        },
 
-      // Store session_id from backend response (for conversation continuity)
-      if (response.session_id) {
-        localStorage.setItem('finance_agent_session_id', response.session_id);
-        setSessionId(response.session_id);
-        console.log('💾 Session ID updated:', response.session_id);
-      }
+        // Handle tool execution start
+        onToolStart: (toolName) => {
+          addLog('INFO', `🔧 Tool started: ${toolName}`);
+        },
 
-      const assistantMessage = {
-        role: 'assistant',
-        content: response.answer,
-        timestamp: new Date(),
-        sessionId: response.session_id, // Store session_id in message for debugging
-      };
+        // Handle tool execution end
+        onToolEnd: (toolName) => {
+          addLog('INFO', `✅ Tool completed: ${toolName}`);
+        },
 
-      setMessages((prev) => [...prev, assistantMessage]);
+        // Handle completion
+        onComplete: (newSessionId, fullAnswer) => {
+          // Store session_id from backend
+          if (newSessionId) {
+            localStorage.setItem('finance_agent_session_id', newSessionId);
+            setSessionId(newSessionId);
+            console.log('💾 Session ID updated:', newSessionId);
+          }
+
+          // Mark streaming as complete
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, isStreaming: false, sessionId: newSessionId }
+                : msg
+            )
+          );
+
+          setIsLoading(false);
+          inputRef.current?.focus();
+        },
+
+        // Handle errors
+        onError: (error) => {
+          console.error('Streaming error:', error);
+          addLog('ERROR', `Error: ${error.message}`);
+
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    content: msg.content || `Sorry, I encountered an error: ${error.message}. Please try again.`,
+                    isStreaming: false,
+                  }
+                : msg
+            )
+          );
+
+          setIsLoading(false);
+          inputRef.current?.focus();
+        },
+      });
     } catch (error) {
-      console.error('Error querying agent:', error);
-      addLog('ERROR', `Error processing query: ${error.message}`);
+      console.error('Error in streaming:', error);
+      addLog('ERROR', `Error: ${error.message}`);
 
-      const errorMessage = {
-        role: 'assistant',
-        content: `Sorry, I encountered an error: ${error.response?.data?.detail || error.message}. Please make sure the API server is running and try again.`,
-        timestamp: new Date(),
-      };
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? {
+                ...msg,
+                content: `Sorry, I encountered an error: ${error.message}. Please make sure the API server is running and try again.`,
+                isStreaming: false,
+              }
+            : msg
+        )
+      );
 
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
       setIsLoading(false);
       inputRef.current?.focus();
     }

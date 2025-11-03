@@ -60,14 +60,14 @@ MODELS_TO_TEST = [
     },
     {
         "name": "Mixtral:8x7b (All)",
-        "supervisor": "mixtral:8x7b-instruct",
-        "planner": "mixtral:8x7b-instruct",
-        "synthesizer": "mixtral:8x7b-instruct"
+        "supervisor": "mixtral:8x7b",
+        "planner": "mixtral:8x7b",
+        "synthesizer": "mixtral:8x7b"
     },
     {
         "name": "Specialized (Qwen72b + Mixtral + Llama8b)",
         "supervisor": "qwen2.5:72b",
-        "planner": "mixtral:8x7b-instruct",
+        "planner": "mixtral:8x7b",
         "synthesizer": "llama3.1"
     },
     {

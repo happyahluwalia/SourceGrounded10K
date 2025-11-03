@@ -1,70 +1,79 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
-import { Send, Settings, Terminal, Loader2, TrendingUp, MessageSquarePlus } from 'lucide-react';
+import { Send, Settings, Terminal, Loader2, TrendingUp } from 'lucide-react';
 import { Button } from './components/Button';
-import { Input } from './components/Input';
 import { ChatMessage } from './components/ChatMessage';
-import { DebugPanel } from './components/DebugPanel';
+import { Input } from './components/Input';
 import { ProgressCard } from './components/ProgressCard';
 import { RotatingMessage } from './components/RotatingMessage';
-import { chatWithAgent, chatWithAgentStreaming } from './lib/api'; // Import API functions
-import { cn } from './lib/utils';
+import { Sidebar } from './components/Sidebar';
+import { DebugPanel } from './components/DebugPanel';
+import { chatWithAgentStreaming } from './lib/api';
 import { getRotatingMessages, STEP_INSIGHTS } from './lib/content';
+import { useConversations } from './hooks/useConversations';
+import { cn } from './lib/utils';
+import { Bot, Bug } from 'lucide-react';
+import './index.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function App() {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Hello! I\'m your AI financial analyst. Ask me questions about supported companies. For example: "What were Apple\'s revenues last year?" or "Who is the CFO of Microsoft?"',
-      timestamp: new Date(),
-    },
-  ]);
+  // Conversation management
+  const {
+    conversations,
+    activeConversationId,
+    activeConversation,
+    createConversation,
+    updateConversationMessages,
+    updateConversationSessionId,
+    deleteConversation,
+    selectConversation
+  } = useConversations();
+
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [progressSteps, setProgressSteps] = useState({
-    planning: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.planning },
-    fetching: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.fetching },
-    synthesis: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.synthesis }
-  });
-  const [showProgress, setShowProgress] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(new Set());
+  const [conversationProgress, setConversationProgress] = useState(new Map());
   const [rotatingMessages] = useState(getRotatingMessages());
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const eventSourceRef = useRef(null);
 
-  // Initialize session ID from localStorage or create new one
-  useEffect(() => {
-    try {
-      const storedSessionId = localStorage.getItem('finance_agent_session_id');
-      if (storedSessionId) {
-        console.log('📝 Loaded existing session:', storedSessionId);
-        setSessionId(storedSessionId);
-      } else {
-        const newSessionId = uuidv4();
-        console.log('🆕 Created new session:', newSessionId);
-        try {
-          localStorage.setItem('finance_agent_session_id', newSessionId);
-          setSessionId(newSessionId);
-        } catch (storageError) {
-          console.error('Failed to save session to localStorage:', storageError);
-          // Still set session for current page load
-          setSessionId(newSessionId);
-          addLog('WARN', 'Session will not persist across refreshes (localStorage unavailable)');
-        }
-      }
-    } catch (error) {
-      console.error('Error accessing localStorage:', error);
-      // Fallback: create session without persistence
-      const newSessionId = uuidv4();
-      setSessionId(newSessionId);
-      addLog('ERROR', 'localStorage unavailable - session will not persist');
+  // Get messages and sessionId from active conversation
+  const messages = activeConversation?.messages || [];
+  const sessionId = activeConversation?.session_id;
+  
+  // Check if active conversation is loading
+  const isLoading = loadingConversations.has(activeConversationId);
+  
+  // Get progress for active conversation
+  const defaultSteps = {
+    planning: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.planning },
+    fetching: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.fetching },
+    synthesis: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.synthesis }
+  };
+  const progressSteps = conversationProgress.get(activeConversationId) || defaultSteps;
+  const showProgress = conversationProgress.has(activeConversationId);
+
+  // Helper to update a specific message in a specific conversation
+  const updateMessageInConversation = (conversationId, messageId, updates) => {
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) {
+      console.error('❌ Conversation not found:', conversationId);
+      console.log('Available conversations:', conversations.map(c => c.id));
+      return;
     }
-  }, []);
+    
+    const updatedMessages = conversation.messages.map(msg =>
+      msg.id === messageId ? { ...msg, ...updates } : msg
+    );
+    
+    console.log(`🔄 Updating message ${messageId} in conversation ${conversationId}`);
+    console.log(`   Found ${updatedMessages.length} messages`);
+    
+    updateConversationMessages(conversationId, updatedMessages);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -150,87 +159,89 @@ function App() {
     ]);
   };
 
-  const startNewConversation = () => {
-    if (confirm('Start a new conversation? Current context will be lost.')) {
-      // Clear session from localStorage
-      localStorage.removeItem('finance_agent_session_id');
-      
-      // Generate new session ID
-      const newSessionId = uuidv4();
-      localStorage.setItem('finance_agent_session_id', newSessionId);
-      setSessionId(newSessionId);
-      
-      // Clear messages except welcome message
-      setMessages([
-        {
-          role: 'assistant',
-          content: 'Hello! I\'m your AI financial analyst. Ask me questions about supported companies. For example: "What were Apple\'s revenues last year?" or "Who is the CFO of Microsoft?"',
-          timestamp: new Date(),
-        },
-      ]);
-      
-      console.log('🆕 Started new conversation:', newSessionId);
-      addLog('INFO', `Started new conversation: ${newSessionId}`);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !activeConversation) return;
 
-    // Wait for session to be initialized
-    if (!sessionId) {
-      console.warn('⚠️ Session not initialized yet, please wait...');
-      return;
+    // CRITICAL: Capture conversation ID FIRST before any state changes
+    const queryConversationId = activeConversationId;
+    const queryText = input;
+    
+    console.log('🚀 Starting query for conversation:', queryConversationId);
+
+    // Generate session_id if this is the first message in the conversation
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      currentSessionId = uuidv4();
+      updateConversationSessionId(queryConversationId, currentSessionId);
+      console.log('🆕 Generated session ID:', currentSessionId, 'for conversation:', queryConversationId);
     }
 
     const userMessage = {
       role: 'user',
       content: input,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
-
-    setMessages((prev) => [...prev, userMessage]);
-    const queryText = input;
-    setInput('');
-    setIsLoading(true);
-
-    // Reset progress steps
-    setProgressSteps({
-      planning: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.planning },
-      fetching: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.fetching },
-      synthesis: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.synthesis }
-    });
-    setShowProgress(true);
-
+    
+    // Get messages from the specific conversation
+    const currentConversation = conversations.find(c => c.id === queryConversationId);
+    const conversationMessages = currentConversation?.messages || [];
+    
     // Create placeholder for streaming assistant message
     const assistantMessageId = Date.now();
     const assistantMessage = {
       id: assistantMessageId,
       role: 'assistant',
       content: '',
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       isStreaming: true,
     };
-    setMessages((prev) => [...prev, assistantMessage]);
+    
+    // Add BOTH user and assistant messages together to avoid race condition
+    const messagesWithBoth = [...conversationMessages, userMessage, assistantMessage];
+    updateConversationMessages(queryConversationId, messagesWithBoth);
+    
+    console.log('📨 Added user + assistant messages to conversation, total messages:', messagesWithBoth.length);
+    
+    setInput('');
+    setLoadingConversations(prev => new Set(prev).add(queryConversationId));
+
+    // Reset progress steps for this conversation
+    setConversationProgress(prev => {
+      const next = new Map(prev);
+      next.set(queryConversationId, {
+        planning: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.planning },
+        fetching: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.fetching },
+        synthesis: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.synthesis }
+      });
+      return next;
+    });
 
     // Track step start times for duration calculation
     const stepStartTimes = {};
+    
+    // Create a local updater that works with our captured messages array
+    // This avoids reading stale state from the conversations hook
+    let currentMessages = messagesWithBoth;
+    const updateLocalMessage = (messageId, updates) => {
+      currentMessages = currentMessages.map(msg =>
+        msg.id === messageId ? { ...msg, ...updates } : msg
+      );
+      updateConversationMessages(queryConversationId, currentMessages);
+      console.log(`🔄 Updated message, total messages now: ${currentMessages.length}`);
+    };
 
     try {
       let accumulatedContent = '';
       
-      await chatWithAgentStreaming(queryText, sessionId, {
+      await chatWithAgentStreaming(queryText, currentSessionId, {
         // Handle each token as it arrives
         onToken: (content) => {
           accumulatedContent += content;
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: accumulatedContent }
-                : msg
-            )
-          );
+          console.log(`📝 Token for conversation ${queryConversationId}, message ${assistantMessageId}`);
+          updateLocalMessage(assistantMessageId, { 
+            content: accumulatedContent 
+          });
         },
 
         // Handle step start
@@ -245,30 +256,45 @@ function App() {
             const prevStep = stepOrder[currentIndex - 1];
             if (stepStartTimes[prevStep]) {
               const duration = (Date.now() - stepStartTimes[prevStep]) / 1000;
-              setProgressSteps((prev) => ({
-                ...prev,
-                [prevStep]: { ...prev[prevStep], status: 'completed', duration }
-              }));
+              setConversationProgress(prev => {
+                const next = new Map(prev);
+                const steps = next.get(queryConversationId) || defaultSteps;
+                next.set(queryConversationId, {
+                  ...steps,
+                  [prevStep]: { ...steps[prevStep], status: 'completed', duration }
+                });
+                return next;
+              });
             }
           }
           
           // Mark current step as in progress
-          setProgressSteps((prev) => ({
-            ...prev,
-            [step]: { ...prev[step], status: 'in_progress' }
-          }));
+          setConversationProgress(prev => {
+            const next = new Map(prev);
+            const steps = next.get(queryConversationId) || defaultSteps;
+            next.set(queryConversationId, {
+              ...steps,
+              [step]: { ...steps[step], status: 'in_progress' }
+            });
+            return next;
+          });
           addLog('INFO', `▶️ Step started: ${step}`);
         },
 
         // Handle plan complete
         onPlanComplete: (plan) => {
-          setProgressSteps((prev) => ({
-            ...prev,
-            planning: { 
-              ...prev.planning,
-              metadata: { plan }
-            }
-          }));
+          setConversationProgress(prev => {
+            const next = new Map(prev);
+            const steps = next.get(queryConversationId) || defaultSteps;
+            next.set(queryConversationId, {
+              ...steps,
+              planning: { 
+                ...steps.planning,
+                metadata: { plan }
+              }
+            });
+            return next;
+          });
           addLog('INFO', `📋 Plan created: ${JSON.stringify(plan)}`);
         },
 
@@ -282,34 +308,67 @@ function App() {
           addLog('INFO', `✅ Tool completed: ${toolName}`);
         },
 
+        // Handle sources ready (early, before streaming answer)
+        onSourcesReady: (sources) => {
+          console.log('📚 Sources ready for conversation:', queryConversationId);
+          console.log('   Sources count:', sources?.length || 0);
+          
+          // Extract ticker from first source and update message immediately
+          const ticker = sources && sources.length > 0 ? sources[0].ticker : null;
+          if (ticker) {
+            updateLocalMessage(assistantMessageId, { 
+              ticker: ticker,
+              sources: sources
+            });
+            console.log('🏷️ Ticker badge updated early:', ticker);
+          }
+        },
+
         // Handle completion
         onComplete: (newSessionId, fullAnswer, sources) => {
+          console.log('✅ Complete for conversation:', queryConversationId);
+          console.log('   Message ID:', assistantMessageId);
+          console.log('   Sources:', sources?.length || 0);
+          console.log('   Answer length:', fullAnswer?.length || 0);
+          
           // Mark synthesis step as completed
           if (stepStartTimes.synthesis) {
             const duration = (Date.now() - stepStartTimes.synthesis) / 1000;
-            setProgressSteps((prev) => ({
-              ...prev,
-              synthesis: { ...prev.synthesis, status: 'completed', duration }
-            }));
+            setConversationProgress(prev => {
+              const next = new Map(prev);
+              const steps = next.get(queryConversationId) || defaultSteps;
+              next.set(queryConversationId, {
+                ...steps,
+                synthesis: { ...steps.synthesis, status: 'completed', duration }
+              });
+              return next;
+            });
           }
           
-          // Store session_id from backend
+          // Store session_id in conversation
           if (newSessionId) {
-            localStorage.setItem('finance_agent_session_id', newSessionId);
-            setSessionId(newSessionId);
+            updateConversationSessionId(queryConversationId, newSessionId);
             console.log('💾 Session ID updated:', newSessionId);
           }
 
+          // Extract ticker from sources (use first source's ticker)
+          const ticker = sources && sources.length > 0 ? sources[0].ticker : null;
+          
           // Mark streaming as complete and add sources
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, isStreaming: false, sessionId: newSessionId, sources: sources || [] }
-                : msg
-            )
-          );
+          updateLocalMessage(assistantMessageId, { 
+            isStreaming: false, 
+            sessionId: newSessionId, 
+            sources: sources || [],
+            ticker: ticker
+          });
+          
+          console.log('✅ Message updated in conversation');
 
-          setIsLoading(false);
+          setLoadingConversations(prev => {
+            const next = new Set(prev);
+            next.delete(queryConversationId);
+            return next;
+          });
           inputRef.current?.focus();
         },
 
@@ -318,47 +377,60 @@ function App() {
           console.error('Streaming error:', error);
           addLog('ERROR', `Error: ${error.message}`);
 
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? {
-                    ...msg,
-                    content: msg.content || `Sorry, I encountered an error: ${error.message}. Please try again.`,
-                    isStreaming: false,
-                  }
-                : msg
-            )
-          );
+          const currentContent = currentMessages.find(m => m.id === assistantMessageId)?.content || '';
+          
+          updateLocalMessage(assistantMessageId, {
+            content: currentContent || `Sorry, I encountered an error: ${error.message}. Please try again.`,
+            isStreaming: false
+          });
 
-          setIsLoading(false);
-          inputRef.current?.focus();
+          setLoadingConversations(prev => {
+            const next = new Set(prev);
+            next.delete(queryConversationId);
+            return next;
+          });
         },
       });
     } catch (error) {
       console.error('Error in streaming:', error);
       addLog('ERROR', `Error: ${error.message}`);
 
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMessageId
-            ? {
-                ...msg,
-                content: `Sorry, I encountered an error: ${error.message}. Please make sure the API server is running and try again.`,
-                isStreaming: false,
-              }
-            : msg
-        )
-      );
+      const currentContent = currentMessages.find(m => m.id === assistantMessageId)?.content || '';
+      
+      updateLocalMessage(assistantMessageId, {
+        content: currentContent || `Sorry, I encountered an error: ${error.message}. Please try again.`,
+        isStreaming: false
+      });
 
-      setIsLoading(false);
-      inputRef.current?.focus();
+      setLoadingConversations(prev => {
+        const next = new Set(prev);
+        next.delete(queryConversationId);
+        return next;
+      });
     }
+  };
+
+  // Handle new conversation
+  const handleNewConversation = () => {
+    createConversation();
+    setInput('');
+    // Progress will be set when first query is made
   };
 
   return (
     <div className="flex h-screen bg-background">
+      {/* Sidebar */}
+      <Sidebar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onSelectConversation={selectConversation}
+        onNewConversation={handleNewConversation}
+        onDeleteConversation={deleteConversation}
+        loadingConversations={loadingConversations}
+      />
+
       {/* Main Chat Area */}
-      <div className={cn('flex-1 flex flex-col transition-all duration-300', showDebug ? 'mr-0 md:mr-[50%] lg:mr-[40%]' : '')}>
+      <div className={cn('flex-1 flex flex-col transition-all duration-300 ml-0 md:ml-64', showDebug ? 'mr-0 md:mr-[50%] lg:mr-[40%]' : '')}>
         {/* Header */}
         <header className="border-b border-border bg-card px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -370,18 +442,9 @@ function App() {
             {sessionId && (
               <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground mr-2">
                 <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-                <span>Active conversation</span>
+                <span>Active connection</span>
               </div>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={startNewConversation}
-              className="gap-2"
-            >
-              <MessageSquarePlus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Chat</span>
-            </Button>
             <Button
               variant={showDebug ? 'default' : 'outline'}
               size="sm"
@@ -410,8 +473,8 @@ function App() {
                   onCollapse={() => setShowProgress(false)}
                 />
                 
-                {/* Rotating Message during synthesis */}
-                {isLoading && progressSteps.synthesis.status === 'in_progress' && (
+                {/* Rotating Message during loading */}
+                {isLoading && (
                   <RotatingMessage
                     messages={rotatingMessages}
                     interval={5000}
@@ -443,11 +506,11 @@ function App() {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={!sessionId ? "Initializing session..." : "Ask about a supported company... (e.g., What is Apple\'s revenue?)"}
+                placeholder={!activeConversation ? "Initializing..." : "Ask about a supported company... (e.g., What is Apple's revenue?)"}
                 className="flex-1"
-                disabled={isLoading || !sessionId}
+                disabled={isLoading || !activeConversation}
               />
-              <Button type="submit" disabled={isLoading || !input.trim() || !sessionId} size="icon">
+              <Button type="submit" disabled={isLoading || !input.trim() || !activeConversation} size="icon">
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </Button>
             </form>

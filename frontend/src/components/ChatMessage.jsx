@@ -16,7 +16,14 @@ export function ChatMessage({ message }) {
       return (
         <>
           {message.content}
-          {message.isStreaming && (
+          {message.isStreaming && !message.content && (
+            <div className="flex gap-1 items-center">
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          )}
+          {message.isStreaming && message.content && (
             <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse" />
           )}
         </>
@@ -147,9 +154,9 @@ export function ChatMessage({ message }) {
         </div>
 
         <div className="prose prose-sm max-w-none dark:prose-invert">
-          <p className="whitespace-pre-wrap text-foreground text-base leading-relaxed">
+          <div className="whitespace-pre-wrap text-foreground text-base leading-relaxed">
             {renderContentWithCitations()}
-          </p>
+          </div>
         </div>
 
         {message.metadata && (

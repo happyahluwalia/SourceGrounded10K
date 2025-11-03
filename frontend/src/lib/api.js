@@ -28,6 +28,7 @@ export const chatWithAgent = async (query, sessionId) => {
  * @param {Function} callbacks.onPlanComplete - Called when plan is ready: (plan) => void
  * @param {Function} callbacks.onToolStart - Called when tool starts: (toolName) => void
  * @param {Function} callbacks.onToolEnd - Called when tool ends: (toolName) => void
+ * @param {Function} callbacks.onSourcesReady - Called when sources available: (sources) => void
  * @param {Function} callbacks.onComplete - Called on completion: (sessionId, fullAnswer) => void
  * @param {Function} callbacks.onError - Called on error: (error) => void
  * @returns {Promise<void>}
@@ -39,6 +40,7 @@ export const chatWithAgentStreaming = async (query, sessionId, callbacks) => {
     onPlanComplete = () => {},
     onToolStart = () => {},
     onToolEnd = () => {},
+    onSourcesReady = () => {},
     onComplete = () => {},
     onError = () => {}
   } = callbacks;
@@ -102,6 +104,10 @@ export const chatWithAgentStreaming = async (query, sessionId, callbacks) => {
               
               case 'tool_end':
                 onToolEnd(event.tool);
+                break;
+              
+              case 'sources_ready':
+                onSourcesReady(event.sources);
                 break;
               
               case 'complete':

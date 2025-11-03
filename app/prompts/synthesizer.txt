@@ -7,7 +7,8 @@ Question: {query}
 
 Instructions:
 - If context is insufficient, state so.
-- When citing sources, reference the document section (e.g., "According to the 10-K Item 1 - Business section" or "As stated in the Executive Officers table").
+- When citing sources, ALWAYS reference the filing type and section name from the context (e.g., "According to the 10-K Item 10 - Directors and Executive Officers" or "As stated in the Executive Officers table in Item 1").
+- NEVER use generic references like "Document 1", "Document 2", etc. Always use the actual section name.
 - Be specific with numbers/dates.
 - Synthesize info from multiple documents if relevant.
 - Keep answer concise and complete.

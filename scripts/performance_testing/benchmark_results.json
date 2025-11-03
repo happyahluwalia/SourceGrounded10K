@@ -1,0 +1,1230 @@
+cat ~/benchmark_results.json 
+[
+  {
+    "config_name": "Current (llama3.1:8b)",
+    "models": {
+      "supervisor": "llama3.1",
+      "planner": "llama3.1",
+      "synthesizer": "llama3.1"
+    },
+    "run_id": "20251103_044940",
+    "timestamp": "2025-11-03T04:49:40.205664",
+    "queries": [
+      {
+        "query": "Who is the CFO of Apple?",
+        "category": "simple_factual",
+        "difficulty": "easy",
+        "response_time_seconds": 22.76,
+        "answer_length_chars": 765,
+        "answer_preview": "According to all five documents, the Chief Financial Officer (CFO) of Apple is Luca Maestri. This information is consistent across all documents, specifically:\n\n* Document 1: \"LUCA MAESTRI | Senior Vi...",
+        "full_answer": "According to all five documents, the Chief Financial Officer (CFO) of Apple is Luca Maestri. This information is consistent across all documents, specifically:\n\n* Document 1: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n* Document 2: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n* Document 3: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n* Document 4: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n* Document 5: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n\nTherefore, as of November 1, 2024, Luca Maestri is the CFO of Apple.",
+        "accuracy_score": 0.6666666666666666,
+        "expected_keywords": [
+          "Kevan Parekh",
+          "Chief Financial Officer",
+          "CFO"
+        ],
+        "found_keywords": [
+          "Chief Financial Officer",
+          "CFO"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were Apple's total revenues last fiscal year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 40.0,
+        "answer_length_chars": 2138,
+        "answer_preview": "According to Document 2, the Company's proportion of net sales by disaggregated revenue source was generally consistent for each reportable segment in Note 13, \u201cSegment Information and Geographic Data...",
+        "full_answer": "According to Document 2, the Company's proportion of net sales by disaggregated revenue source was generally consistent for each reportable segment in Note 13, \u201cSegment Information and Geographic Data\u201d for 2024. However, it does not provide a specific total revenue figure for Apple last fiscal year.\n\nHowever, we can find this information in Document 5. According to Document 5, the Company's net income for the year ended September 27, 2025 was $112,010 million (Document 5). Since the question asks for total revenues last fiscal year, which is 2024, we need to look at Document 2 again.\n\nAccording to Document 2, as of September 28, 2024 and September 30, 2023, the Company had total deferred revenue of $12.8 billion and $12.1 billion, respectively (Document 2). However, this information does not provide a specific total revenue figure for Apple last fiscal year.\n\nHowever, we can find this information in Document 5 is not relevant to our answer since it's about 2025. We need to look at the other documents again.\n\nAccording to Document 4, the Company's net income for the year ended September 28, 2024 was $93,736 million (Document 4). However, this information does not provide a specific total revenue figure for Apple last fiscal year.\n\nHowever, we can find this information in Document 2. According to Document 2, $7.5 billion of revenue recognized in 2022 that was included in deferred revenue as of September 25, 2021 (Document 2). This is not relevant to our answer since it's about 2022.\n\nHowever, we can find this information in Document 4 and Document 5 are not relevant to our answer. We need to look at the other documents again.\n\nAccording to Document 2, as of September 28, 2024, the Company expects 64% of total deferred revenue to be realized in less than a year, 25% within one-to-two years, 9% within two-to-three years and 2% in greater than three years (Document 2). This information does not provide a specific total revenue figure for Apple last fiscal year.\n\nHowever, we can find this information in Document 4. According to Document 4, the Company's net income for the year ended September 28, 2024 was $",
+        "accuracy_score": 0.6666666666666666,
+        "expected_keywords": [
+          "revenue",
+          "416",
+          "billion"
+        ],
+        "found_keywords": [
+          "revenue",
+          "billion"
+        ],
+        "success": true
+      },
+      {
+        "query": "What are the main risk factors for investing in Amazon?",
+        "category": "complex_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 28.64,
+        "answer_length_chars": 1592,
+        "answer_preview": "The main risk factors for investing in Amazon are outlined in Item\u00a01A of Part I \u2014 \u201cRisk Factors\u201d (Document 3). According to this section, the company faces a number of open investigations based on cla...",
+        "full_answer": "The main risk factors for investing in Amazon are outlined in Item\u00a01A of Part I \u2014 \u201cRisk Factors\u201d (Document 3). According to this section, the company faces a number of open investigations based on claims that aspects of its operations infringe competition or consumer protection rules. Additionally, Amazon's results are inherently unpredictable and may be materially affected by many factors, such as fluctuations in foreign exchange rates, changes in global economic and geopolitical conditions, customer demand and spending, inflation, interest rates, regional labor market constraints, world events, the rate of growth of the internet, online commerce, cloud services, and new and emerging technologies (Document 2).\n\nFurthermore, Amazon's operations are subject to a large number of jurisdictions regulating its activities, which can lead to evolving and expanding regulations that may impact the company's business (Document 3). This uncertainty is reflected in the company's forward-looking statements, which are subject to substantial uncertainty and may differ materially from actual results (Document 1).\n\nAccording to Document 2, Amazon provided guidance on February\u00a06, 2025, but noted that its results are inherently unpredictable and may be materially affected by many factors. This suggests that investors should be cautious when considering the company's future prospects.\n\nOverall, the main risk factors for investing in Amazon include regulatory risks, operational uncertainties, and market-related risks, which can impact the company's financial performance and stock price.",
+        "accuracy_score": 1.0,
+        "expected_keywords": [
+          "risk",
+          "competition",
+          "regulatory",
+          "operational"
+        ],
+        "found_keywords": [
+          "risk",
+          "competition",
+          "regulatory",
+          "operational"
+        ],
+        "success": true
+      },
+      {
+        "query": "How much did Microsoft spend on research and development last year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 16.87,
+        "answer_length_chars": 307,
+        "answer_preview": "According to Document 5, Microsoft's research and development expenses for the last fiscal year were $32,488 million. This is an increase of 10% compared to the previous year (Document 1). As a percen...",
+        "full_answer": "According to Document 5, Microsoft's research and development expenses for the last fiscal year were $32,488 million. This is an increase of 10% compared to the previous year (Document 1). As a percentage of revenue, research and development expenses remained at 12% (Documents 1 and 2).\n\nSource: Document 5",
+        "accuracy_score": 0.5,
+        "expected_keywords": [
+          "research",
+          "development",
+          "R&D",
+          "billion"
+        ],
+        "found_keywords": [
+          "research",
+          "development"
+        ],
+        "success": true
+      },
+      {
+        "query": "What is Microsoft's business strategy for cloud computing?",
+        "category": "strategic_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 28.43,
+        "answer_length_chars": 1391,
+        "answer_preview": "Based on the provided SEC filing context, Microsoft's cloud computing business strategy is focused on several key areas:\n\n* Building and running cloud-based services that utilize ubiquitous computing ...",
+        "full_answer": "Based on the provided SEC filing context, Microsoft's cloud computing business strategy is focused on several key areas:\n\n* Building and running cloud-based services that utilize ubiquitous computing to unleash new experiences and opportunities for businesses and individuals (According to Document 3).\n* Applying AI and ambient intelligence to drive insights, revolutionize many types of work and business processes, and provide substantive productivity gains using Microsoft 365 Copilot and agents (According to Document 3).\n* Leveraging Windows to fuel the cloud business, grow the share of the PC market, and drive increased engagement with services like Microsoft Edge, Bing, Copilot, Microsoft Teams, Microsoft 365 Consumer, Xbox Game Pass, and more (According to Document 3).\n\nIn terms of specific highlights from fiscal year 2025 compared to fiscal year 2024, there is no mention of cloud computing business strategy in the provided context. However, it does highlight that Microsoft's most significant expenses are related to supporting and investing in its cloud-based services, including datacenter operations (According to Document 1).\n\nOverall, Microsoft's cloud computing business strategy appears to be centered around leveraging AI and ambient intelligence to drive innovation and growth, while also focusing on sustainability and reducing the company's environmental impact.",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "cloud",
+          "Azure",
+          "strategy",
+          "growth"
+        ],
+        "found_keywords": [
+          "cloud",
+          "strategy",
+          "growth"
+        ],
+        "success": true
+      },
+      {
+        "query": "Compare Apple's gross margin to Microsoft's gross margin",
+        "category": "comparative_analysis",
+        "difficulty": "hard",
+        "response_time_seconds": 46.51,
+        "answer_length_chars": 1371,
+        "answer_preview": "Based on the provided SEC filings, here's a comparison of Apple and Microsoft gross margins:\n\n**Apple Gross Margins**\n\n* Total gross margin (2025): $195,201 (Document 1)\n* Total gross margin percentag...",
+        "full_answer": "Based on the provided SEC filings, here's a comparison of Apple and Microsoft gross margins:\n\n**Apple Gross Margins**\n\n* Total gross margin (2025): $195,201 (Document 1)\n* Total gross margin percentage (2025): 46.9% (Document 1)\n* Products gross margin percentage (2025): 36.8% (Document 1)\n\n**Microsoft Gross Margins**\n\n* Gross margin (2025): $193,893 (Document 10)\n* Gross margin percentage (2025): Not explicitly stated in Document 10; however, it can be inferred that the gross margin percentage decreased slightly due to Intelligent Cloud and increased due to More Personal Computing. The exact percentage is not provided.\n* Microsoft Cloud gross margin percentage (2025): 69% (Document 10)\n\n**Comparison**\n\nWhile both companies have similar total gross margins in 2025 ($195,201 for Apple and $193,893 for Microsoft), their product/service mix differs significantly. Apple's products gross margin percentage is higher than its services gross margin percentage, whereas Microsoft's cloud business has a lower gross margin percentage (69%) compared to Apple's overall gross margin percentage (46.9%).\n\n**Insufficient Context**\n\nThe context provided does not allow for a direct comparison of the two companies' gross margins over time or across different product/service categories.\n\nSources:\n\n* Document 1: AAPL 10-K (2025-09-27)\n* Document 10: MSFT 10-K (2025-06-30)",
+        "accuracy_score": 1.0,
+        "expected_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "found_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were the key highlights from Pfizer's latest 10-K?",
+        "category": "summarization",
+        "difficulty": "medium",
+        "response_time_seconds": 33.42,
+        "answer_length_chars": 1329,
+        "answer_preview": "Based on the provided SEC filing context, here are the key highlights from Pfizer's latest 10-K:\n\n1. **New Accounting Guidance**: According to Document 1, Pfizer will adopt new accounting guidance in ...",
+        "full_answer": "Based on the provided SEC filing context, here are the key highlights from Pfizer's latest 10-K:\n\n1. **New Accounting Guidance**: According to Document 1, Pfizer will adopt new accounting guidance in 2027 for annual reports and 2028 for interim reports, which will result in increased disclosures in the notes to their financial statements.\n2. **Segment Reporting**: As stated in Document 5, Pfizer manages its commercial operations through three operating segments: Biopharma, PC1, and Pfizer Ignite, with Biopharma being the only reportable segment.\n3. **Dividend Policy**: According to Document 3, Pfizer's Board of Directors (BOD) declared a first-quarter dividend of $0.43 per share on December 12, 2024, payable on March 7, 2025. This will be their 345th consecutive quarterly dividend.\n4. **Share Repurchases**: As mentioned in Document 3, Pfizer had no repurchases in 2024 and had a remaining share-purchase authorization of $3.3 billion as of December 31, 2024.\n5. **Segment Financials**: The selected statement of operations information provided in Document 4 shows that Biopharma generated total revenues of $62,400 million and earnings of $28,139 million for the year ended December 31, 2024.\n\nThese highlights provide a snapshot of Pfizer's financial performance and policies as reported in their latest 10-K filing.",
+        "accuracy_score": 0.25,
+        "expected_keywords": [
+          "revenue",
+          "product",
+          "pipeline",
+          "clinical"
+        ],
+        "found_keywords": [
+          "revenue"
+        ],
+        "success": true
+      },
+      {
+        "query": "Who are the members of Apple's board of directors?",
+        "category": "list_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 26.32,
+        "answer_length_chars": 655,
+        "answer_preview": "Based on the provided SEC filing context, the Apple board of directors members are:\n\n* Timothy D. Cook - Chief Executive Officer and Director (Principal Executive Officer)\n* Luca Maestri - Senior Vice...",
+        "full_answer": "Based on the provided SEC filing context, the Apple board of directors members are:\n\n* Timothy D. Cook - Chief Executive Officer and Director (Principal Executive Officer)\n* Luca Maestri - Senior Vice President, Chief Financial Officer (Principal Financial Officer) (as of 2024-09-28)\n* Chris Kondo - Senior Director of Corporate Accounting (Principal Accounting Officer)\n* Wanda Austin - Director\n* Alex Gorsky - Director\n* Andrea Jung - Director\n* Arthur D. Levinson - Director and Chair of the Board\n\nNote that Luca Maestri was replaced by Kevan Parekh as Chief Financial Officer in 2025, as seen in Document 4 (2025-09-27) and Document 5 (2025-09-27).",
+        "accuracy_score": 0.6666666666666666,
+        "expected_keywords": [
+          "director",
+          "board",
+          "Tim Cook"
+        ],
+        "found_keywords": [
+          "director",
+          "board"
+        ],
+        "success": true
+      },
+      {
+        "query": "What is Amazon's policy on stock-based compensation?",
+        "category": "policy_extraction",
+        "difficulty": "medium",
+        "response_time_seconds": 33.91,
+        "answer_length_chars": 1543,
+        "answer_preview": "Amazon's stock-based compensation policy involves granting restricted stock units (RSUs) to employees, which vest over a service period of generally two to five years. The fair value of RSUs is determ...",
+        "full_answer": "Amazon's stock-based compensation policy involves granting restricted stock units (RSUs) to employees, which vest over a service period of generally two to five years. The fair value of RSUs is determined based on the number of shares granted and the quoted price of Amazon's common stock at the date of grant.\n\nAccording to Document 2, \"Employees vest in restricted stock unit awards over the corresponding service term, generally between two and five years.\" (Source: Document 2)\n\nThe policy also uses the accelerated method for recognizing stock-based compensation expense, which is described in Document 1 as follows:\n\n\"Compensation cost for all equity-classified stock awards expected to vest is measured at fair value on the date of grant and recognized over the service period. The fair value of restricted stock units is determined based on the number of shares granted and the quoted price of our common stock. Such value is recognized as expense over the service period, net of estimated forfeitures, using the accelerated method.\" (Source: Document 1)\n\nThe policy also aims to align employee compensation with shareholders' interests, as stated in Document 3:\n\n\"We utilize restricted stock units as our primary vehicle for equity compensation because we believe this compensation model aligns the long-term interests of our shareholders and employees.\" (Source: Document 3)\n\nIn terms of numbers, according to Document 4, Amazon had a total of $22.011 billion in stock-based compensation expense for the year ended December 31, 2024.",
+        "accuracy_score": 1.0,
+        "expected_keywords": [
+          "stock",
+          "compensation",
+          "equity",
+          "RSU"
+        ],
+        "found_keywords": [
+          "stock",
+          "compensation",
+          "equity",
+          "RSU"
+        ],
+        "success": true
+      },
+      {
+        "query": "Explain Amazon's revenue recognition policy for AWS services",
+        "category": "technical_accounting",
+        "difficulty": "hard",
+        "response_time_seconds": 25.4,
+        "answer_length_chars": 915,
+        "answer_preview": "According to Document 3, Amazon's revenue recognition policy for AWS services is as follows:\n\n* Revenue is allocated to services using stand-alone selling prices (Source: Document 1).\n* Revenue is pri...",
+        "full_answer": "According to Document 3, Amazon's revenue recognition policy for AWS services is as follows:\n\n* Revenue is allocated to services using stand-alone selling prices (Source: Document 1).\n* Revenue is primarily recognized when the customer uses these services, based on the quantity of services rendered, such as compute or storage capacity delivered on-demand (Source: Document 1).\n* Certain services, including compute and database, are also offered as a fixed quantity over a specified term, for which revenue is recognized ratably (Source: Document 1).\n\nAdditionally, according to Document 3, the total unearned revenue related to AWS as of December 31, 2024 was $14.2 billion, and the commitments not yet recognized in customer contracts for future services were approximately $177 billion.\n\nIt's worth noting that the weighted average remaining life of these long-term contracts is 4.1 years (Source: Document 3).",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services",
+          "accounting"
+        ],
+        "found_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services"
+        ],
+        "success": true
+      }
+    ],
+    "aggregate_metrics": {
+      "total_queries": 10,
+      "successful_queries": 10,
+      "failed_queries": 0,
+      "avg_response_time": 30.23,
+      "min_response_time": 16.87,
+      "max_response_time": 46.51,
+      "avg_accuracy_score": 0.725,
+      "avg_answer_length": 1201.0
+    }
+  },
+  {
+    "config_name": "Qwen2.5:72b (All)",
+    "models": {
+      "supervisor": "qwen2.5:72b",
+      "planner": "qwen2.5:72b",
+      "synthesizer": "qwen2.5:72b"
+    },
+    "run_id": "20251103_044940",
+    "timestamp": "2025-11-03T04:55:02.543043",
+    "queries": [
+      {
+        "query": "Who is the CFO of Apple?",
+        "category": "simple_factual",
+        "difficulty": "easy",
+        "response_time_seconds": 424.76,
+        "answer_length_chars": 226,
+        "answer_preview": "The CFO of Apple is Luca Maestri. This information is consistent across multiple documents, including Document 1, Document 2, Document 3, and Document 4, all of which are sections from the 10-K filing...",
+        "full_answer": "The CFO of Apple is Luca Maestri. This information is consistent across multiple documents, including Document 1, Document 2, Document 3, and Document 4, all of which are sections from the 10-K filing dated September 28, 2024.",
+        "accuracy_score": 0.3333333333333333,
+        "expected_keywords": [
+          "Kevan Parekh",
+          "Chief Financial Officer",
+          "CFO"
+        ],
+        "found_keywords": [
+          "CFO"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were Apple's total revenues last fiscal year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 408.05,
+        "answer_length_chars": 319,
+        "answer_preview": "The provided context does not include the total revenues for Apple's last fiscal year. The information is insufficient to provide a specific figure for total revenue. According to Document 1, the fisc...",
+        "full_answer": "The provided context does not include the total revenues for Apple's last fiscal year. The information is insufficient to provide a specific figure for total revenue. According to Document 1, the fiscal year ended on September 28, 2024, but no total revenue figures are mentioned in the given sections of the documents.",
+        "accuracy_score": 0.3333333333333333,
+        "expected_keywords": [
+          "revenue",
+          "416",
+          "billion"
+        ],
+        "found_keywords": [
+          "revenue"
+        ],
+        "success": true
+      },
+      {
+        "query": "What are the main risk factors for investing in Amazon?",
+        "category": "complex_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 717.34,
+        "answer_length_chars": 1513,
+        "answer_preview": "The main risk factors for investing in Amazon, as detailed in the provided SEC filings, include:\n\n1. **Commercial Agreements, Strategic Alliances, and Business Relationships**: These expose Amazon to ...",
+        "full_answer": "The main risk factors for investing in Amazon, as detailed in the provided SEC filings, include:\n\n1. **Commercial Agreements, Strategic Alliances, and Business Relationships**: These expose Amazon to various risks that could impact its operations and financial performance (According to Document 1).\n\n2. **Global Economic and Geopolitical Conditions**: Unforeseen global economic and geopolitical developments can amplify existing risks and create new ones, affecting both Amazon and its customers, including third-party sellers (According to Documents 2 and 4).\n\n3. **International Sales and Operations**:\n   - Local economic and political conditions.\n   - Government regulation and restrictive governmental actions, such as trade protection measures, custom duties, tariffs, and restrictions on foreign ownership.\n   - Restrictions on sales or distribution of certain products or services, and uncertainty regarding liability for products, services, and content due to less internet-friendly legal systems, lack of legal precedent, and varying regulations (According to Document 3).\n\n4. **Unforeseen Circumstances and Events**: These can significantly differ from management\u2019s expectations and have a material adverse effect on Amazon's business, growth, reputation, financial condition, operating results, cash flows, liquidity, and stock price (According to Documents 2, 4, and 5).\n\nThese risk factors are described in greater detail in the \"Risk Factors\" section of the 10-K filing (According to Document 5).",
+        "accuracy_score": 0.25,
+        "expected_keywords": [
+          "risk",
+          "competition",
+          "regulatory",
+          "operational"
+        ],
+        "found_keywords": [
+          "risk"
+        ],
+        "success": true
+      },
+      {
+        "query": "How much did Microsoft spend on research and development last year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 399.26,
+        "answer_length_chars": 230,
+        "answer_preview": "Microsoft spent $32,488 million on research and development in the fiscal year ending June 30, 2025. According to Document 1, this represents a 10% increase from the previous fiscal year, where the ex...",
+        "full_answer": "Microsoft spent $32,488 million on research and development in the fiscal year ending June 30, 2025. According to Document 1, this represents a 10% increase from the previous fiscal year, where the expenditure was $29,510 million.",
+        "accuracy_score": 0.5,
+        "expected_keywords": [
+          "research",
+          "development",
+          "R&D",
+          "billion"
+        ],
+        "found_keywords": [
+          "research",
+          "development"
+        ],
+        "success": true
+      },
+      {
+        "query": "What is Microsoft's business strategy for cloud computing?",
+        "category": "strategic_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 633.32,
+        "answer_length_chars": 1358,
+        "answer_preview": "Microsoft's business strategy for cloud computing involves significant investment in developing and deploying cloud-based services that cater to both consumers and business customers. The company is f...",
+        "full_answer": "Microsoft's business strategy for cloud computing involves significant investment in developing and deploying cloud-based services that cater to both consumers and business customers. The company is focused on expanding its cloud offerings across a spectrum of computing devices, with an emphasis on integrating artificial intelligence (AI) capabilities into these services. This includes infusing generative AI into consumer and commercial products to stay competitive in the rapidly evolving market. Microsoft also emphasizes the importance of being responsive to technological changes, regulatory developments, and public scrutiny while bearing substantial development and operational costs to build robust cloud infrastructure.\n\nAccording to Document 1 and Document 2 (both from the same filing), Microsoft is committed to competing effectively by continuously innovating and adapting to new business models in the cloud computing space. Additionally, as highlighted in Document 3 and Document 4, the company generates significant revenue through a wide range of cloud-based solutions, which are supported by substantial investments in datacenter operations and other critical infrastructure.\n\nThese strategies are part of Microsoft's broader mission to empower every person and organization on the planet to achieve more, as stated in Documents 3 and 4.",
+        "accuracy_score": 0.5,
+        "expected_keywords": [
+          "cloud",
+          "Azure",
+          "strategy",
+          "growth"
+        ],
+        "found_keywords": [
+          "cloud",
+          "strategy"
+        ],
+        "success": true
+      },
+      {
+        "query": "Compare Apple's gross margin to Microsoft's gross margin",
+        "category": "comparative_analysis",
+        "difficulty": "hard",
+        "response_time_seconds": 765.37,
+        "answer_length_chars": 835,
+        "answer_preview": "Apple's total gross margin for fiscal year 2025 was $195,201 million, with a gross margin percentage of 46.9% (Document 1). Microsoft's gross margin for the same period was $193,893 million, with a gr...",
+        "full_answer": "Apple's total gross margin for fiscal year 2025 was $195,201 million, with a gross margin percentage of 46.9% (Document 1). Microsoft's gross margin for the same period was $193,893 million, with a gross margin percentage of 69% for its Microsoft Cloud business (Document 10).\n\nApple's gross margin percentage increased from 46.2% in 2024 to 46.9% in 2025, driven by both products and services segments (Document 1). Microsoft's overall gross margin percentage decreased slightly due to the impact of scaling its AI infrastructure, particularly in the Intelligent Cloud segment (Document 10).\n\nIn summary, while Apple's total gross margin is slightly higher in absolute terms ($195,201 million vs. $193,893 million), Microsoft has a significantly higher gross margin percentage (69% for its cloud business vs. 46.9% overall for Apple).",
+        "accuracy_score": 1.0,
+        "expected_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "found_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were the key highlights from Pfizer's latest 10-K?",
+        "category": "summarization",
+        "difficulty": "medium",
+        "response_time_seconds": 1108.8,
+        "answer_length_chars": 1839,
+        "answer_preview": "Pfizer's latest 10-K filing highlights several key points:\n\n1. **Dividends**:\n   - Pfizer declared a first-quarter dividend of $0.43 per share, payable on March 7, 2025, to shareholders of record as o...",
+        "full_answer": "Pfizer's latest 10-K filing highlights several key points:\n\n1. **Dividends**:\n   - Pfizer declared a first-quarter dividend of $0.43 per share, payable on March 7, 2025, to shareholders of record as of January 24, 2025. This marks the company's 345th consecutive quarterly dividend. The Board of Directors (BOD) remains committed to supporting future annual dividend increases, barring significant unforeseen events. (According to Document 2)\n\n2. **Common Stock Purchases**:\n   - As of December 31, 2024, Pfizer had a remaining share-purchase authorization of $3.3 billion, with no repurchases made in 2024. (According to Document 2)\n\n3. **Performance and Peer Comparison**:\n   - Over the past five years, Pfizer's stock performance has been volatile. From an initial investment of $100 on December 31, 2019, the value fluctuated as follows: $103.4 in 2020, $172.5 in 2021, $154.5 in 2022, $90.8 in 2023, and $88.8 in 2024. This performance is compared to a peer group of major pharmaceutical companies, which saw an increase from $100 to $177.4 over the same period. (According to Document 3)\n\n4. **Accounting Standards**:\n   - Pfizer will adopt new accounting standards that require enhanced income tax disclosures starting in 2025 and disaggregated expense disclosures starting in 2027 for annual reports and 2028 for interim reports. These changes are expected to increase the transparency of financial statements. (According to Document 4)\n\n5. **Haleon Investment**:\n   - The final carrying value of Pfizer's equity-method investment in Haleon was reclassified to Short-term investments and is now accounted for as an equity investment with a readily determinable fair value. As of September 30, 2024, Haleon reported total assets of $45,385 million and total net equity of $22,406 million. (According to Document 5)\n\nThese highlights",
+        "accuracy_score": 0.0,
+        "expected_keywords": [
+          "revenue",
+          "product",
+          "pipeline",
+          "clinical"
+        ],
+        "found_keywords": [],
+        "success": true
+      },
+      {
+        "query": "Who are the members of Apple's board of directors?",
+        "category": "list_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 601.27,
+        "answer_length_chars": 440,
+        "answer_preview": "The members of Apple's board of directors as of the provided SEC filings are:\n\n- Wanda Austin (Director)\n- Alex Gorsky (Director)\n- Andrea Jung (Director)\n- Arthur D. Levinson (Director and Chair of t...",
+        "full_answer": "The members of Apple's board of directors as of the provided SEC filings are:\n\n- Wanda Austin (Director)\n- Alex Gorsky (Director)\n- Andrea Jung (Director)\n- Arthur D. Levinson (Director and Chair of the Board)\n\nThese names are consistent across multiple documents:\n- Document 1 (2024-09-28, November 1, 2024)\n- Document 3 (2024-09-28, November 1, 2024)\n- Document 4 (2024-09-28, November 1, 2024)\n- Document 5 (2025-09-27, October 31, 2025)",
+        "accuracy_score": 0.6666666666666666,
+        "expected_keywords": [
+          "director",
+          "board",
+          "Tim Cook"
+        ],
+        "found_keywords": [
+          "director",
+          "board"
+        ],
+        "success": true
+      },
+      {
+        "query": "What is Amazon's policy on stock-based compensation?",
+        "category": "policy_extraction",
+        "difficulty": "medium",
+        "response_time_seconds": 1176.01,
+        "answer_length_chars": 2164,
+        "answer_preview": "Amazon's policy on stock-based compensation includes the following key points:\n\n1. **Measurement of Compensation Cost**: The company measures the compensation cost for all equity-classified stock awar...",
+        "full_answer": "Amazon's policy on stock-based compensation includes the following key points:\n\n1. **Measurement of Compensation Cost**: The company measures the compensation cost for all equity-classified stock awards at fair value on the date of grant and recognizes this cost over the service period (Document 1).\n\n2. **Fair Value Determination**: The fair value of restricted stock units is determined based on the number of shares granted and the quoted price of Amazon's common stock. This value is recognized as expense over the service period, net of estimated forfeitures, using the accelerated method (Document 1).\n\n3. **Vesting Periods**: Employees vest in restricted stock unit awards over a service term generally between two and five years. The majority of these awards are granted at the date of hire or in Q2 as part of the annual compensation review, with vesting primarily occurring semi-annually in Q2 and Q4 (Document 2).\n\n4. **Stock Award Activity**: Amazon reports detailed stock-based compensation expense across various segments, including cost of sales, fulfillment, technology and infrastructure, sales and marketing, and general and administrative expenses. For the years ended December 31, 2022, 2023, and 2024, the total stock-based compensation expense was $19,621 million, $24,023 million, and $22,011 million, respectively (Document 2).\n\n5. **Tax Benefits**: The related tax benefits for stock-based compensation were $4.3 billion, $5.4 billion, and $5.0 billion for the years ended December 31, 2022, 2023, and 2024, respectively (Document 5).\n\n6. **Shareholder Dilution Management**: Amazon seeks to efficiently manage shareholder dilution while maintaining flexibility to issue shares for strategic purposes. They use restricted stock units as the primary vehicle for equity compensation to align the long-term interests of shareholders and employees (Document 3).\n\n7. **Outstanding Restricted Stock Units**: As of December 31, 2024, Amazon had 283.1 million outstanding restricted stock units with a weighted average grant-date fair value of $145. The scheduled vesting for these units is as follows: 146.0 million in 2025, 88.5 million in 2026",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "stock",
+          "compensation",
+          "equity",
+          "RSU"
+        ],
+        "found_keywords": [
+          "stock",
+          "compensation",
+          "equity"
+        ],
+        "success": true
+      },
+      {
+        "query": "Explain Amazon's revenue recognition policy for AWS services",
+        "category": "technical_accounting",
+        "difficulty": "hard",
+        "response_time_seconds": 695.03,
+        "answer_length_chars": 1315,
+        "answer_preview": "Amazon's revenue recognition policy for AWS services, as detailed in the provided SEC filings, is structured based on the nature of the services provided:\n\n1. **On-Demand Services**: Revenue for compu...",
+        "full_answer": "Amazon's revenue recognition policy for AWS services, as detailed in the provided SEC filings, is structured based on the nature of the services provided:\n\n1. **On-Demand Services**: Revenue for compute, storage, database, and other on-demand services is recognized when the customer uses these services. The amount recognized is based on the quantity of services rendered, such as the compute or storage capacity delivered (Document 1).\n\n2. **Fixed Quantity Over a Specified Term**: For certain AWS services, including compute and database, that are offered as a fixed quantity over a specified term, revenue is recognized ratably over the contract period (Document 1).\n\n3. **Sales Commissions**: Sales commissions paid in connection with contracts that exceed one year are capitalized and amortized over the contract term (Document 1).\n\n4. **Unearned Revenue**: As of December 31, 2024, Amazon had $24.6 billion in total unearned revenue, which includes performance obligations primarily related to AWS. For long-term contracts exceeding one year, the commitments not yet recognized were approximately $177 billion, with a weighted average remaining life of 4.1 years (Document 2).\n\nThese policies ensure that revenue is recognized in a manner that aligns with the delivery and usage of AWS services by customers.",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services",
+          "accounting"
+        ],
+        "found_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services"
+        ],
+        "success": true
+      }
+    ],
+    "aggregate_metrics": {
+      "total_queries": 10,
+      "successful_queries": 10,
+      "failed_queries": 0,
+      "avg_response_time": 692.92,
+      "min_response_time": 399.26,
+      "max_response_time": 1176.01,
+      "avg_accuracy_score": 0.508,
+      "avg_answer_length": 1024.0
+    }
+  },
+  {
+    "config_name": "Qwen2.5:32b (All)",
+    "models": {
+      "supervisor": "qwen2.5:32b",
+      "planner": "qwen2.5:32b",
+      "synthesizer": "qwen2.5:32b"
+    },
+    "run_id": "20251103_044940",
+    "timestamp": "2025-11-03T06:50:51.821902",
+    "queries": [
+      {
+        "query": "Who is the CFO of Apple?",
+        "category": "simple_factual",
+        "difficulty": "easy",
+        "response_time_seconds": 141.29,
+        "answer_length_chars": 168,
+        "answer_preview": "According to Documents 1 through 5, Luca Maestri is the Senior Vice President and Chief Financial Officer (Principal Financial Officer) of Apple as of November 1, 2024.",
+        "full_answer": "According to Documents 1 through 5, Luca Maestri is the Senior Vice President and Chief Financial Officer (Principal Financial Officer) of Apple as of November 1, 2024.",
+        "accuracy_score": 0.3333333333333333,
+        "expected_keywords": [
+          "Kevan Parekh",
+          "Chief Financial Officer",
+          "CFO"
+        ],
+        "found_keywords": [
+          "Chief Financial Officer"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were Apple's total revenues last fiscal year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 171.98,
+        "answer_length_chars": 569,
+        "answer_preview": "The provided SEC filings do not contain a direct statement of Apple's total revenues for the last fiscal year. The context includes details on deferred revenue, net income, and comprehensive income bu...",
+        "full_answer": "The provided SEC filings do not contain a direct statement of Apple's total revenues for the last fiscal year. The context includes details on deferred revenue, net income, and comprehensive income but does not specify the total revenue figure. Therefore, based solely on the given documents, it is not possible to determine Apple\u2019s total revenues for the last fiscal year.\n\nAccording to Document 1 and other provided documents, specific financial metrics like net income are mentioned (e.g., $93,736 million in 2024), but a direct reference to total revenue is absent.",
+        "accuracy_score": 0.3333333333333333,
+        "expected_keywords": [
+          "revenue",
+          "416",
+          "billion"
+        ],
+        "found_keywords": [
+          "revenue"
+        ],
+        "success": true
+      },
+      {
+        "query": "What are the main risk factors for investing in Amazon?",
+        "category": "complex_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 193.45,
+        "answer_length_chars": 1058,
+        "answer_preview": "Based on the provided SEC filings for Amazon's 2024 annual report, several key risk factors are highlighted:\n\n1. **Commercial Agreements and Strategic Alliances**: Risks associated with business relat...",
+        "full_answer": "Based on the provided SEC filings for Amazon's 2024 annual report, several key risk factors are highlighted:\n\n1. **Commercial Agreements and Strategic Alliances**: Risks associated with business relationships can impact operations negatively (Document 1).\n\n2. **Global Economic and Geopolitical Conditions**: These conditions, along with unforeseen circumstances, can amplify many of the risks discussed in the filings (Documents 2 & 4).\n\n3. **International Sales and Operations**: Amazon faces various international risks including local economic and political conditions, government regulations, trade protection measures, restrictions on sales or distribution, and uncertainty regarding liability for products and services (Document 3).\n\n4. **Uncertainty of Risks**: The risk factors discussed do not cover all potential risks; there are also unknown factors that could affect operations (Document 5).\n\nThese points highlight the complexity and breadth of risks Amazon faces as a global company, impacting its financial condition and operational outcomes.",
+        "accuracy_score": 0.5,
+        "expected_keywords": [
+          "risk",
+          "competition",
+          "regulatory",
+          "operational"
+        ],
+        "found_keywords": [
+          "risk",
+          "operational"
+        ],
+        "success": true
+      },
+      {
+        "query": "How much did Microsoft spend on research and development last year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 127.57,
+        "answer_length_chars": 109,
+        "answer_preview": "According to Document 1, Microsoft spent $29,510 million on research and development in the fiscal year 2024.",
+        "full_answer": "According to Document 1, Microsoft spent $29,510 million on research and development in the fiscal year 2024.",
+        "accuracy_score": 0.5,
+        "expected_keywords": [
+          "research",
+          "development",
+          "R&D",
+          "billion"
+        ],
+        "found_keywords": [
+          "research",
+          "development"
+        ],
+        "success": true
+      },
+      {
+        "query": "What is Microsoft's business strategy for cloud computing?",
+        "category": "strategic_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 210.68,
+        "answer_length_chars": 1213,
+        "answer_preview": "Based on the provided SEC filings, Microsoft's business strategy for cloud computing involves several key components:\n\n1. **Resilience and Continuity**: Emphasizing the resilience of their systems and...",
+        "full_answer": "Based on the provided SEC filings, Microsoft's business strategy for cloud computing involves several key components:\n\n1. **Resilience and Continuity**: Emphasizing the resilience of their systems and strength in business continuity management plans to mitigate potential negative consequences from prolonged service outages (Document 1 & Document 2).\n\n2. **Competitive Investment**: Investing heavily in developing and deploying cloud-based strategies and services for both consumers and businesses, adapting to evolving pricing and delivery models (Document 3 & Document 4).\n\n3. **AI Integration**: Infusing generative AI capabilities into their offerings across consumer and commercial sectors, recognizing the competitive and rapidly evolving nature of the AI market (Document 3 & Document 4).\n\n4. **Platform-Agnostic Services**: Making cloud-based services platform-agnostic to be available on a wide range of devices and ecosystems, including those of competitors, with an aim to attract users and generate revenue (Document 5).\n\nThese strategies are aimed at ensuring that Microsoft remains competitive in the cloud computing market while also adapting to technological changes and regulatory developments.",
+        "accuracy_score": 0.5,
+        "expected_keywords": [
+          "cloud",
+          "Azure",
+          "strategy",
+          "growth"
+        ],
+        "found_keywords": [
+          "cloud",
+          "strategy"
+        ],
+        "success": true
+      },
+      {
+        "query": "Compare Apple's gross margin to Microsoft's gross margin",
+        "category": "comparative_analysis",
+        "difficulty": "hard",
+        "response_time_seconds": 239.88,
+        "answer_length_chars": 707,
+        "answer_preview": "The provided SEC filings contain detailed gross margin information for Apple but do not provide comparable data for Microsoft's overall gross margin percentage. According to Document 1, Apple\u2019s total ...",
+        "full_answer": "The provided SEC filings contain detailed gross margin information for Apple but do not provide comparable data for Microsoft's overall gross margin percentage. According to Document 1, Apple\u2019s total gross margin percentages were 46.9%, 46.2%, and 44.1% in fiscal years 2025, 2024, and 2023 respectively. However, the Microsoft filings (Documents 6-10) do not provide a direct comparison of their overall gross margin percentage for the same periods. Therefore, it is not possible to compare Apple's gross margin directly with Microsoft\u2019s based on the provided context.\n\nSources:\n- According to Document 1.\n- Information about Microsoft in Documents 6-10 does not include an overall gross margin percentage.",
+        "accuracy_score": 1.0,
+        "expected_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "found_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were the key highlights from Pfizer's latest 10-K?",
+        "category": "summarization",
+        "difficulty": "medium",
+        "response_time_seconds": 319.47,
+        "answer_length_chars": 1368,
+        "answer_preview": "Based on the provided SEC filings for Pfizer's latest 10-K as of December 31, 2024:\n\n1. **Financial Performance**: Total revenues were $63,627 million in 2024, a decrease from $59,553 million in 2023 ...",
+        "full_answer": "Based on the provided SEC filings for Pfizer's latest 10-K as of December 31, 2024:\n\n1. **Financial Performance**: Total revenues were $63,627 million in 2024, a decrease from $59,553 million in 2023 and $101,175 million in 2022 (Document 5).\n\n2. **Biopharma Segment Performance**: The Biopharma segment reported revenues of $62,400 million for the year ended December 31, 2024, up from $58,237 million in 2023 and significantly down from $99,826 million in 2022 (Document 3).\n\n3. **Asset Management**: Total assets were valued at $213 billion as of December 31, 2024, a decrease from $227 billion the previous year (Document 3).\n\n4. **Tax Matters**: Pfizer effectively settled the audit of its federal income tax returns for years 2016-2018 during the third quarter of 2024. Tax years 2019-2024 are open but not under audit, and all other tax years are closed (Document 4).\n\n5. **Accounting Standards**: Pfizer is preparing to adopt new accounting standards that will enhance income tax disclosures starting in 2025 for annual reports and require disaggregated expense disclosures from 2027 onwards for annual reports and 2028 for interim reports, with early adoption permitted (Document 2).\n\nThese highlights provide a snapshot of Pfizer's financial performance, asset management, tax status, and upcoming accounting standards as reported in their latest SEC filing.",
+        "accuracy_score": 0.25,
+        "expected_keywords": [
+          "revenue",
+          "product",
+          "pipeline",
+          "clinical"
+        ],
+        "found_keywords": [
+          "revenue"
+        ],
+        "success": true
+      },
+      {
+        "query": "Who are the members of Apple's board of directors?",
+        "category": "list_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 68.99,
+        "answer_length_chars": 30,
+        "answer_preview": "Could not process the request.",
+        "full_answer": "Could not process the request.",
+        "accuracy_score": 0.0,
+        "expected_keywords": [
+          "director",
+          "board",
+          "Tim Cook"
+        ],
+        "found_keywords": [],
+        "success": true
+      },
+      {
+        "query": "What is Amazon's policy on stock-based compensation?",
+        "category": "policy_extraction",
+        "difficulty": "medium",
+        "response_time_seconds": 296.76,
+        "answer_length_chars": 1470,
+        "answer_preview": "According to the provided SEC filings, Amazon's policy on stock-based compensation primarily involves the use of restricted stock units (RSUs) as a key component of employee equity compensation. The R...",
+        "full_answer": "According to the provided SEC filings, Amazon's policy on stock-based compensation primarily involves the use of restricted stock units (RSUs) as a key component of employee equity compensation. The RSU awards are granted at the date of hire or in Q2 annually during the compensation review and vest over service periods generally ranging from two to five years. Vesting typically occurs semi-annually in Q2 and Q4.\n\nThe fair value of these RSUs is determined based on the number of shares granted and the quoted price of Amazon's common stock at the date of grant, with this value recognized as expense over the service period net of estimated forfeitures using an accelerated method. As of December 31, 2024, there was $16.2 billion of unrecognized compensation cost related to unvested RSUs, expected to be expensed on an accelerated basis within the next twelve months.\n\nAmazon believes this model aligns long-term interests between employees and shareholders while efficiently managing shareholder dilution (Document 3). The company also maintains a stock repurchase program but did not execute any repurchases in 2023 or 2024, leaving $6.1 billion remaining under the program as of December 31, 2024 (Document 2).\n\nThe total stock-based compensation expense for Amazon was $19.621 billion in 2022, $24.023 billion in 2023, and $22.011 billion in 2024, with related tax benefits of $4.3 billion, $5.4 billion, and $5.0 billion for the respective years (Document 4).",
+        "accuracy_score": 1.0,
+        "expected_keywords": [
+          "stock",
+          "compensation",
+          "equity",
+          "RSU"
+        ],
+        "found_keywords": [
+          "stock",
+          "compensation",
+          "equity",
+          "RSU"
+        ],
+        "success": true
+      },
+      {
+        "query": "Explain Amazon's revenue recognition policy for AWS services",
+        "category": "technical_accounting",
+        "difficulty": "hard",
+        "response_time_seconds": 209.13,
+        "answer_length_chars": 964,
+        "answer_preview": "According to Document 1, Amazon's revenue recognition policy for AWS services involves allocating revenue based on stand-alone selling prices. Revenue is primarily recognized when the customer uses th...",
+        "full_answer": "According to Document 1, Amazon's revenue recognition policy for AWS services involves allocating revenue based on stand-alone selling prices. Revenue is primarily recognized when the customer uses these services, such as compute or storage capacity delivered on-demand. For certain services like compute and database that are offered with a fixed quantity over a specified term, revenue is recognized ratably. Additionally, sales commissions paid in connection with contracts exceeding one year are capitalized and amortized over the contract term.\n\nAccording to Document 2, Amazon had total unearned revenue of $24.6 billion as of December 31, 2024, with a significant portion related to AWS performance obligations for future services not yet recognized in financial statements amounting to approximately $177 billion as of the same date.\n\nThese policies and figures provide insight into how Amazon manages its revenue recognition specifically for AWS services.",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services",
+          "accounting"
+        ],
+        "found_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services"
+        ],
+        "success": true
+      }
+    ],
+    "aggregate_metrics": {
+      "total_queries": 10,
+      "successful_queries": 10,
+      "failed_queries": 0,
+      "avg_response_time": 197.92,
+      "min_response_time": 68.99,
+      "max_response_time": 319.47,
+      "avg_accuracy_score": 0.517,
+      "avg_answer_length": 766.0
+    }
+  },
+  {
+    "config_name": "Mixtral:8x7b (All)",
+    "models": {
+      "supervisor": "mixtral:8x7b",
+      "planner": "mixtral:8x7b",
+      "synthesizer": "mixtral:8x7b"
+    },
+    "run_id": "20251103_044940",
+    "timestamp": "2025-11-03T07:24:11.093964",
+    "queries": [
+      {
+        "query": "Who is the CFO of Apple?",
+        "category": "simple_factual",
+        "difficulty": "easy",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "What were Apple's total revenues last fiscal year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "What are the main risk factors for investing in Amazon?",
+        "category": "complex_analysis",
+        "difficulty": "medium",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "How much did Microsoft spend on research and development last year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "What is Microsoft's business strategy for cloud computing?",
+        "category": "strategic_analysis",
+        "difficulty": "medium",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "Compare Apple's gross margin to Microsoft's gross margin",
+        "category": "comparative_analysis",
+        "difficulty": "hard",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "What were the key highlights from Pfizer's latest 10-K?",
+        "category": "summarization",
+        "difficulty": "medium",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "Who are the members of Apple's board of directors?",
+        "category": "list_extraction",
+        "difficulty": "easy",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "What is Amazon's policy on stock-based compensation?",
+        "category": "policy_extraction",
+        "difficulty": "medium",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      },
+      {
+        "query": "Explain Amazon's revenue recognition policy for AWS services",
+        "category": "technical_accounting",
+        "difficulty": "hard",
+        "error": "Failed to process query: registry.ollama.ai/library/mixtral:8x7b does not support tools (status code: 400)",
+        "success": false
+      }
+    ]
+  },
+  {
+    "config_name": "Specialized (Qwen72b + Mixtral + Llama8b)",
+    "models": {
+      "supervisor": "qwen2.5:72b",
+      "planner": "mixtral:8x7b",
+      "synthesizer": "llama3.1"
+    },
+    "run_id": "20251103_044940",
+    "timestamp": "2025-11-03T07:24:31.958458",
+    "queries": [
+      {
+        "query": "Who is the CFO of Apple?",
+        "category": "simple_factual",
+        "difficulty": "easy",
+        "response_time_seconds": 172.32,
+        "answer_length_chars": 80,
+        "answer_preview": "I was unable to create a plan to answer your question. Please try rephrasing it.",
+        "full_answer": "I was unable to create a plan to answer your question. Please try rephrasing it.",
+        "accuracy_score": 0.0,
+        "expected_keywords": [
+          "Kevan Parekh",
+          "Chief Financial Officer",
+          "CFO"
+        ],
+        "found_keywords": [],
+        "success": true
+      },
+      {
+        "query": "What were Apple's total revenues last fiscal year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 234.81,
+        "answer_length_chars": 973,
+        "answer_preview": "Unfortunately, the provided SEC filing context does not explicitly mention Apple's total revenues for last fiscal year. However, we can infer some information about revenue recognition and deferred re...",
+        "full_answer": "Unfortunately, the provided SEC filing context does not explicitly mention Apple's total revenues for last fiscal year. However, we can infer some information about revenue recognition and deferred revenue.\n\nAccording to Document 2 (Section: Item 8), as of September 28, 2024, Apple had total deferred revenue of $12.8 billion. The Company expects 64% of this amount to be realized in less than a year, which implies that the remaining 36% will be recognized as revenue in future periods.\n\nWe can also see from Document 2 (Section: Item 8) that $7.5 billion of revenue was recognized in 2022 and included in deferred revenue as of September 25, 2021.\n\nHowever, to determine Apple's total revenues for last fiscal year, we would need more specific information about the Company's revenue recognition policies or actual revenue figures for the relevant period.\n\nTherefore, based on the provided context, I must state that it is insufficient to answer the question accurately.",
+        "accuracy_score": 0.6666666666666666,
+        "expected_keywords": [
+          "revenue",
+          "416",
+          "billion"
+        ],
+        "found_keywords": [
+          "revenue",
+          "billion"
+        ],
+        "success": true
+      },
+      {
+        "query": "What are the main risk factors for investing in Amazon?",
+        "category": "complex_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 202.39,
+        "answer_length_chars": 1771,
+        "answer_preview": "Based on the provided SEC filings, the main risk factors for investing in Amazon include:\n\n1. **Global economic and geopolitical conditions**: These conditions may give rise to or amplify many of the ...",
+        "full_answer": "Based on the provided SEC filings, the main risk factors for investing in Amazon include:\n\n1. **Global economic and geopolitical conditions**: These conditions may give rise to or amplify many of the risks discussed below (Document 2).\n2. **Commercial agreements, strategic alliances, and other business relationships**: These arrangements expose Amazon to various risks, including those related to its customers, third-party sellers, and suppliers (Document 1).\n3. **International sales and operations**: Amazon's international activities are subject to local economic and political conditions, government regulation, trade protection measures, nationalization, and restrictions on foreign ownership (Document 3).\n4. **Uncertainty regarding liability for products, services, and content**: This includes uncertainty due to less internet-friendly legal systems, local laws, lack of legal precedent, and varying rules, regulations, and practices (Document 3).\n\nThese risk factors may have a material adverse effect on Amazon's business, growth, reputation, prospects, financial condition, operating results, cash flows, liquidity, and stock price.\n\nSources:\n\n* Document 1: Our Commercial Agreements, Strategic Alliances, and Other Business Relationships Expose Us to Risks\n* Document 2: Global economic and geopolitical conditions and additional or unforeseen circumstances, developments, or events may give rise to or amplify many of the risks discussed below.\n* Document 3: In addition to risks described elsewhere in this section, our international sales and operations are subject to a number of risks...\n* Document 5: Please carefully consider the following discussion of significant factors, events, and uncertainties that make an investment in our securities risky.",
+        "accuracy_score": 0.25,
+        "expected_keywords": [
+          "risk",
+          "competition",
+          "regulatory",
+          "operational"
+        ],
+        "found_keywords": [
+          "risk"
+        ],
+        "success": true
+      },
+      {
+        "query": "How much did Microsoft spend on research and development last year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 194.88,
+        "answer_length_chars": 358,
+        "answer_preview": "According to Document 1 and Document 2, Microsoft spent $32,488 million on research and development in the year ended June 30, 2025. This represents a 10% increase from the previous year's spending of...",
+        "full_answer": "According to Document 1 and Document 2, Microsoft spent $32,488 million on research and development in the year ended June 30, 2025. This represents a 10% increase from the previous year's spending of $29,510 million (Document 1). As a percentage of revenue, R&D expenses remained stable at 12% for both years (Document 1).\n\nSource: Document 1 and Document 2",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "research",
+          "development",
+          "R&D",
+          "billion"
+        ],
+        "found_keywords": [
+          "research",
+          "development",
+          "R&D"
+        ],
+        "success": true
+      },
+      {
+        "query": "What is Microsoft's business strategy for cloud computing?",
+        "category": "strategic_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 172.37,
+        "answer_length_chars": 80,
+        "answer_preview": "I was unable to create a plan to answer your question. Please try rephrasing it.",
+        "full_answer": "I was unable to create a plan to answer your question. Please try rephrasing it.",
+        "accuracy_score": 0.0,
+        "expected_keywords": [
+          "cloud",
+          "Azure",
+          "strategy",
+          "growth"
+        ],
+        "found_keywords": [],
+        "success": true
+      },
+      {
+        "query": "Compare Apple's gross margin to Microsoft's gross margin",
+        "category": "comparative_analysis",
+        "difficulty": "hard",
+        "response_time_seconds": 267.94,
+        "answer_length_chars": 1269,
+        "answer_preview": "Based on the provided SEC filings, we can compare Apple's gross margin to Microsoft's gross margin as follows:\n\n**Apple's Gross Margin**\n\n* In 2025, Apple's total gross margin was $195.2 billion (Docu...",
+        "full_answer": "Based on the provided SEC filings, we can compare Apple's gross margin to Microsoft's gross margin as follows:\n\n**Apple's Gross Margin**\n\n* In 2025, Apple's total gross margin was $195.2 billion (Document 1).\n* In 2024, Apple's total gross margin was $180.7 billion (Document 1).\n* Apple's gross margin percentage increased from 44.1% in 2023 to 46.9% in 2025 (Document 1).\n\n**Microsoft's Gross Margin**\n\n* In 2025, Microsoft's gross margin was $193.9 billion (Document 6).\n* In 2024, Microsoft's gross margin was $171.0 billion (Document 6).\n* Microsoft's gross margin percentage increased by 13% in 2025 compared to 2024, but decreased slightly due to Intelligent Cloud segment (Document 6).\n\n**Comparison**\n\n* Apple's total gross margin in 2025 ($195.2 billion) is higher than Microsoft's total gross margin in 2025 ($193.9 billion).\n* However, Microsoft's gross margin percentage increased by a larger amount (13%) compared to Apple's increase from 44.1% to 46.9%.\n\nAccording to Document 6, Microsoft's gross margin percentage decreased slightly due to Intelligent Cloud segment, while Apple's gross margin percentage increased from 44.1% in 2023 to 46.9% in 2025.\n\nSources:\n\n* Document 1: Apple's 10-K filing for 2025\n* Document 6: Microsoft's 10-K filing for 2025",
+        "accuracy_score": 1.0,
+        "expected_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "found_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were the key highlights from Pfizer's latest 10-K?",
+        "category": "summarization",
+        "difficulty": "medium",
+        "response_time_seconds": 216.63,
+        "answer_length_chars": 1611,
+        "answer_preview": "Based on the provided SEC filing context, here are the key highlights from Pfizer's latest 10-K:\n\n**Tax Matters**\n\n* The U.S. is one of Pfizer's major tax jurisdictions, and they are regularly audited...",
+        "full_answer": "Based on the provided SEC filing context, here are the key highlights from Pfizer's latest 10-K:\n\n**Tax Matters**\n\n* The U.S. is one of Pfizer's major tax jurisdictions, and they are regularly audited by the IRS (Document 2).\n* In 2024, Pfizer effectively settled the audit of their federal income tax returns for years 2016-2018 (Document 2).\n* Tax years 2019-2024 are open but not under audit, while all other tax years are closed (Document 2).\n\n**Income Taxes Payable**\n\n* As of December 31, 2024, gross accrued interest totaled $636 million, reflecting a decrease of $56 million as a result of cash payments (Document 3).\n* In 2024, Pfizer recorded a net increase in interest of $91 million, while in 2023 they recorded a net increase in interest of $64 million (Document 3).\n\n**Effective Tax Rate**\n\n* The jurisdictional mix of earnings and the U.S. tax implications of foreign operations are significant components of Pfizer's effective tax rate each year (Document 4).\n* The impact of changes in uncertain tax positions not included in the reconciling item called \"Tax settlements and resolution of certain tax positions\" can result in either an increase or decrease to Pfizer's effective tax rate (Document 4).\n\n**Income from Continuing Operations**\n\n* In 2024, income from continuing operations before provision/(benefit) for taxes on income was $8.023 billion, with international income increasing by $3.191 billion compared to 2023 (Document 5).\n* The increase in international income is primarily attributable to lower cost of sales, restructuring charges, and asset impairment charges (Document 5).",
+        "accuracy_score": 0.0,
+        "expected_keywords": [
+          "revenue",
+          "product",
+          "pipeline",
+          "clinical"
+        ],
+        "found_keywords": [],
+        "success": true
+      },
+      {
+        "query": "Who are the members of Apple's board of directors?",
+        "category": "list_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 275.2,
+        "answer_length_chars": 80,
+        "answer_preview": "I was unable to create a plan to answer your question. Please try rephrasing it.",
+        "full_answer": "I was unable to create a plan to answer your question. Please try rephrasing it.",
+        "accuracy_score": 0.0,
+        "expected_keywords": [
+          "director",
+          "board",
+          "Tim Cook"
+        ],
+        "found_keywords": [],
+        "success": true
+      },
+      {
+        "query": "What is Amazon's policy on stock-based compensation?",
+        "category": "policy_extraction",
+        "difficulty": "medium",
+        "response_time_seconds": 177.27,
+        "answer_length_chars": 80,
+        "answer_preview": "I was unable to create a plan to answer your question. Please try rephrasing it.",
+        "full_answer": "I was unable to create a plan to answer your question. Please try rephrasing it.",
+        "accuracy_score": 0.0,
+        "expected_keywords": [
+          "stock",
+          "compensation",
+          "equity",
+          "RSU"
+        ],
+        "found_keywords": [],
+        "success": true
+      },
+      {
+        "query": "Explain Amazon's revenue recognition policy for AWS services",
+        "category": "technical_accounting",
+        "difficulty": "hard",
+        "response_time_seconds": 191.11,
+        "answer_length_chars": 1052,
+        "answer_preview": "Amazon's revenue recognition policy for AWS services is as follows:\n\n* Revenue is allocated to services using stand-alone selling prices (Source: Document 1).\n* Revenue is primarily recognized when th...",
+        "full_answer": "Amazon's revenue recognition policy for AWS services is as follows:\n\n* Revenue is allocated to services using stand-alone selling prices (Source: Document 1).\n* Revenue is primarily recognized when the customer uses these services, based on the quantity of services rendered, such as compute or storage capacity delivered on-demand (Source: Document 1).\n* Certain services, including compute and database, are also offered as a fixed quantity over a specified term, for which revenue is recognized ratably (Source: Document 1).\n\nAdditionally, according to Document 5, Amazon has performance obligations associated with commitments in customer contracts for future AWS services that have not yet been recognized in their financial statements. As of December 31, 2024, these commitments were approximately $177 billion, with a weighted average remaining life of 4.1 years.\n\nIt's worth noting that the amount and timing of revenue recognition is largely driven by customer usage, which can extend beyond the original contractual term (Source: Document 5).",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services",
+          "accounting"
+        ],
+        "found_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services"
+        ],
+        "success": true
+      }
+    ],
+    "aggregate_metrics": {
+      "total_queries": 10,
+      "successful_queries": 10,
+      "failed_queries": 0,
+      "avg_response_time": 210.49,
+      "min_response_time": 172.32,
+      "max_response_time": 275.2,
+      "avg_accuracy_score": 0.342,
+      "avg_answer_length": 735.0
+    }
+  },
+  {
+    "config_name": "Fast (Qwen32b + Llama8b)",
+    "models": {
+      "supervisor": "qwen2.5:32b",
+      "planner": "qwen2.5:32b",
+      "synthesizer": "llama3.1"
+    },
+    "run_id": "20251103_044940",
+    "timestamp": "2025-11-03T07:59:56.947140",
+    "queries": [
+      {
+        "query": "Who is the CFO of Apple?",
+        "category": "simple_factual",
+        "difficulty": "easy",
+        "response_time_seconds": 113.55,
+        "answer_length_chars": 740,
+        "answer_preview": "According to all five documents, the Chief Financial Officer (CFO) of Apple is Luca Maestri. This information is consistent across all documents, specifically:\n\n* Document 1: \"LUCA MAESTRI | Senior Vi...",
+        "full_answer": "According to all five documents, the Chief Financial Officer (CFO) of Apple is Luca Maestri. This information is consistent across all documents, specifically:\n\n* Document 1: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n* Document 2: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n* Document 3: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n* Document 4: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n* Document 5: \"LUCA MAESTRI | Senior Vice President, Chief Financial Officer(Principal Financial Officer)\"\n\nSource: All five documents (Documents 1-5).",
+        "accuracy_score": 0.6666666666666666,
+        "expected_keywords": [
+          "Kevan Parekh",
+          "Chief Financial Officer",
+          "CFO"
+        ],
+        "found_keywords": [
+          "Chief Financial Officer",
+          "CFO"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were Apple's total revenues last fiscal year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 106.06,
+        "answer_length_chars": 985,
+        "answer_preview": "Unfortunately, the provided SEC filing context does not explicitly mention Apple's total revenues for last fiscal year. However, we can infer some information about revenue recognition and deferred re...",
+        "full_answer": "Unfortunately, the provided SEC filing context does not explicitly mention Apple's total revenues for last fiscal year. However, we can infer some information about revenue recognition and deferred revenue.\n\nAccording to Document 2 (Section: Item 8), as of September 28, 2024, Apple had total deferred revenue of $12.8 billion. The Company expects 64% of this amount to be realized in less than a year, which implies that the remaining 36% will be recognized as revenue in future periods.\n\nWe can also see from Document 2 (Section: Item 8) that $7.5 billion of revenue was recognized in 2022 and included in deferred revenue as of September 25, 2021.\n\nHowever, to determine Apple's total revenues for last fiscal year, we need more specific information about the Company's revenue recognition policies or actual revenue figures. Unfortunately, this context is insufficient to provide a direct answer.\n\nIf you have any additional documents or information, I may be able to help further.",
+        "accuracy_score": 0.6666666666666666,
+        "expected_keywords": [
+          "revenue",
+          "416",
+          "billion"
+        ],
+        "found_keywords": [
+          "revenue",
+          "billion"
+        ],
+        "success": true
+      },
+      {
+        "query": "What are the main risk factors for investing in Amazon?",
+        "category": "complex_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 104.05,
+        "answer_length_chars": 1187,
+        "answer_preview": "Based on the provided SEC filing context, the main risk factors for investing in Amazon are:\n\n1. **Global economic and geopolitical conditions**: These conditions may give rise to or amplify many of t...",
+        "full_answer": "Based on the provided SEC filing context, the main risk factors for investing in Amazon are:\n\n1. **Global economic and geopolitical conditions**: These conditions may give rise to or amplify many of the risks discussed below (Document 2).\n2. **Commercial Agreements, Strategic Alliances, and Other Business Relationships**: These agreements expose Amazon to risks, including potential losses due to non-performance by partners or changes in market conditions (Document 1).\n3. **International sales and operations**: Amazon's international sales and operations are subject to various risks, including:\n\t* Local economic and political conditions\n\t* Government regulation and restrictive actions\n\t* Restrictions on sales or distribution of certain products or services\n\t* Uncertainty regarding liability for products, services, and content (Document 3).\n4. **Unforeseen circumstances, developments, or events**: These may give rise to or amplify many of the risks discussed above (Documents 2 and 4).\n\nThese risk factors could have a material adverse effect on Amazon's business, growth, reputation, prospects, financial condition, operating results, cash flows, liquidity, and stock price.",
+        "accuracy_score": 0.25,
+        "expected_keywords": [
+          "risk",
+          "competition",
+          "regulatory",
+          "operational"
+        ],
+        "found_keywords": [
+          "risk"
+        ],
+        "success": true
+      },
+      {
+        "query": "How much did Microsoft spend on research and development last year?",
+        "category": "numerical_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 100.19,
+        "answer_length_chars": 359,
+        "answer_preview": "According to Document 1 and Document 2, Microsoft spent $32,488 million on research and development in the fiscal year ended June 30, 2025. This represents a 10% increase from the previous year's spen...",
+        "full_answer": "According to Document 1 and Document 2, Microsoft spent $32,488 million on research and development in the fiscal year ended June 30, 2025. This represents a 10% increase from the previous year's spending of $29,510 million (Document 1). As a percentage of revenue, R&D expenses remained at 12% for both years (Document 1).\n\nSource: Document 1 and Document 2.",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "research",
+          "development",
+          "R&D",
+          "billion"
+        ],
+        "found_keywords": [
+          "research",
+          "development",
+          "R&D"
+        ],
+        "success": true
+      },
+      {
+        "query": "What is Microsoft's business strategy for cloud computing?",
+        "category": "strategic_analysis",
+        "difficulty": "medium",
+        "response_time_seconds": 101.27,
+        "answer_length_chars": 1074,
+        "answer_preview": "Based on the provided SEC filing context, Microsoft's business strategy for cloud computing involves:\n\n* Providing customers with more services and solutions in the cloud (Document 1, Document 2)\n* Ma...",
+        "full_answer": "Based on the provided SEC filing context, Microsoft's business strategy for cloud computing involves:\n\n* Providing customers with more services and solutions in the cloud (Document 1, Document 2)\n* Making its suite of cloud-based services platform-agnostic, available on a wide range of devices and ecosystems, including those of competitors (Document 5)\n* Investing in artificial intelligence (AI) across the entire company and infusing generative AI capabilities into consumer and commercial offerings (Document 3, Document 4)\n\nAccording to Document 3 and Document 4, Microsoft is also investing significant resources in developing and deploying cloud-based strategies and services for consumers and business customers. The pricing and delivery models are evolving, and new competitors continue to enter the market.\n\nIt's worth noting that while the company has a clear strategy, there is some uncertainty about its effectiveness, as stated in Document 5: \"It is uncertain whether our strategies will continue to attract users or generate the revenue required to succeed.\"",
+        "accuracy_score": 0.5,
+        "expected_keywords": [
+          "cloud",
+          "Azure",
+          "strategy",
+          "growth"
+        ],
+        "found_keywords": [
+          "cloud",
+          "strategy"
+        ],
+        "success": true
+      },
+      {
+        "query": "Compare Apple's gross margin to Microsoft's gross margin",
+        "category": "comparative_analysis",
+        "difficulty": "hard",
+        "response_time_seconds": 139.56,
+        "answer_length_chars": 1103,
+        "answer_preview": "Based on the provided SEC filing context, we can compare Apple's gross margin to Microsoft's gross margin as follows:\n\n**Apple's Gross Margin**\n\n* In 2025, Apple's total gross margin was $195.2 billio...",
+        "full_answer": "Based on the provided SEC filing context, we can compare Apple's gross margin to Microsoft's gross margin as follows:\n\n**Apple's Gross Margin**\n\n* In 2025, Apple's total gross margin was $195.2 billion (Document 1).\n* In 2024, Apple's total gross margin was $180.7 billion (Document 1).\n* Apple's gross margin percentage increased from 44.1% in 2023 to 46.9% in 2025 (Document 1).\n\n**Microsoft's Gross Margin**\n\n* In 2025, Microsoft's gross margin was $193.9 billion (Document 10).\n* In 2024, Microsoft's gross margin was $171.0 billion (Document 10).\n* Microsoft's gross margin percentage decreased slightly in 2025 due to Intelligent Cloud, offset by More Personal Computing (Document 10).\n\n**Comparison**\n\nWhile both companies experienced an increase in gross margin dollars from 2024 to 2025, Apple's gross margin percentage increased more significantly than Microsoft's. In 2025, Apple's gross margin percentage was 46.9%, while Microsoft's gross margin percentage decreased slightly due to Intelligent Cloud.\n\nAccording to Document 1 and Document 10, the context is sufficient for this comparison.",
+        "accuracy_score": 1.0,
+        "expected_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "found_keywords": [
+          "gross margin",
+          "Apple",
+          "Microsoft",
+          "percent",
+          "%"
+        ],
+        "success": true
+      },
+      {
+        "query": "What were the key highlights from Pfizer's latest 10-K?",
+        "category": "summarization",
+        "difficulty": "medium",
+        "response_time_seconds": 117.93,
+        "answer_length_chars": 1421,
+        "answer_preview": "Based on the provided SEC filing context, here are the key highlights from Pfizer's latest 10-K:\n\n**New Accounting Standards**\n\n* In December 2023, the FASB issued final guidance to improve income tax...",
+        "full_answer": "Based on the provided SEC filing context, here are the key highlights from Pfizer's latest 10-K:\n\n**New Accounting Standards**\n\n* In December 2023, the FASB issued final guidance to improve income tax disclosures, effective for annual reports in 2025 (Document 2).\n* In November 2024, the FASB issued final guidance requiring disaggregated disclosures of certain categories of expenses on the face of the income statement, effective for annual reports in 2027 and interim reports in 2028 (Document 2).\n\n**Segment Information**\n\n* Pfizer manages its assets on a total company basis, not by operating segment, due to shared or commingled assets (Document 3).\n* The company has two reportable segments: Biopharma and Other business activities (Document 3).\n* In 2024, Biopharma generated $62.4 billion in revenues, while Other business activities generated $1.23 billion (Document 3).\n\n**Tax Matters**\n\n* Pfizer is subject to audits by the IRS and has open audit years in the U.S. for tax years 2019-2024 (Document 4).\n* The company has accrued taxes payable of $636 million as of December 31, 2024 (Document 4).\n\n**Revenues by Geography**\n\n* In 2024, Pfizer's total revenues were $63.6 billion, with $38.7 billion generated in the U.S. and $24.1 billion generated internationally (Document 5).\n* The Biopharma segment generated $62.4 billion in revenues in 2024, while Pfizer CentreOne generated $1.15 billion (Document 5).",
+        "accuracy_score": 0.25,
+        "expected_keywords": [
+          "revenue",
+          "product",
+          "pipeline",
+          "clinical"
+        ],
+        "found_keywords": [
+          "revenue"
+        ],
+        "success": true
+      },
+      {
+        "query": "Who are the members of Apple's board of directors?",
+        "category": "list_extraction",
+        "difficulty": "easy",
+        "response_time_seconds": 76.13,
+        "answer_length_chars": 30,
+        "answer_preview": "Could not process the request.",
+        "full_answer": "Could not process the request.",
+        "accuracy_score": 0.0,
+        "expected_keywords": [
+          "director",
+          "board",
+          "Tim Cook"
+        ],
+        "found_keywords": [],
+        "success": true
+      },
+      {
+        "query": "What is Amazon's policy on stock-based compensation?",
+        "category": "policy_extraction",
+        "difficulty": "medium",
+        "response_time_seconds": 96.69,
+        "answer_length_chars": 1151,
+        "answer_preview": "Amazon's policy on stock-based compensation is to utilize restricted stock units as the primary vehicle for equity compensation. This model aligns the long-term interests of shareholders and employees...",
+        "full_answer": "Amazon's policy on stock-based compensation is to utilize restricted stock units as the primary vehicle for equity compensation. This model aligns the long-term interests of shareholders and employees (Document 3). The fair value of restricted stock units is determined based on the number of shares granted and the quoted price of Amazon's common stock, and this value is recognized as expense over the service period, net of estimated forfeitures, using the accelerated method (Document 1).\n\nAccording to Document 4, the total stock-based compensation expense for 2022, 2023, and 2024 was $19.621 billion, $24.023 billion, and $22.011 billion, respectively.\n\nThe company also seeks to efficiently manage shareholder dilution while maintaining flexibility to issue shares for strategic purposes (Document 3). As of December 31, 2024, there was $16.2 billion of net unrecognized compensation cost related to unvested stock-based compensation arrangements, with a remaining weighted-average recognition period of 1.0 year (Document 5).\n\nCommon stock available for future issuance to employees is 1.5 billion shares as of December 31, 2024 (Document 5).",
+        "accuracy_score": 0.75,
+        "expected_keywords": [
+          "stock",
+          "compensation",
+          "equity",
+          "RSU"
+        ],
+        "found_keywords": [
+          "stock",
+          "compensation",
+          "equity"
+        ],
+        "success": true
+      },
+      {
+        "query": "Explain Amazon's revenue recognition policy for AWS services",
+        "category": "technical_accounting",
+        "difficulty": "hard",
+        "response_time_seconds": 99.67,
+        "answer_length_chars": 784,
+        "answer_preview": "Amazon recognizes revenue for AWS services when the customer uses these services, based on the quantity of services rendered. Specifically:\n\n* Revenue is allocated to services using stand-alone sellin...",
+        "full_answer": "Amazon recognizes revenue for AWS services when the customer uses these services, based on the quantity of services rendered. Specifically:\n\n* Revenue is allocated to services using stand-alone selling prices (Source: Document 1).\n* For compute and storage services, revenue is recognized as customers use these services, based on the quantity delivered (e.g., compute or storage capacity) (Source: Document 1).\n* Certain AWS services, including compute and database, are offered as a fixed quantity over a specified term. In these cases, revenue is recognized ratably over the contract term (Source: Document 1).\n\nAdditionally, Amazon capitalizes sales commissions paid in connection with contracts that exceed one year and amortizes them over the contract term (Source: Document 1).",
+        "accuracy_score": 0.5,
+        "expected_keywords": [
+          "revenue recognition",
+          "AWS",
+          "services",
+          "accounting"
+        ],
+        "found_keywords": [
+          "AWS",
+          "services"
+        ],
+        "success": true
+      }
+    ],
+    "aggregate_metrics": {
+      "total_queries": 10,
+      "successful_queries": 10,
+      "failed_queries": 0,
+      "avg_response_time": 105.51,
+      "min_response_time": 76.13,
+      "max_response_time": 139.56,
+      "avg_accuracy_score": 0.533,
+      "avg_answer_length": 883.0
+    }
+  }

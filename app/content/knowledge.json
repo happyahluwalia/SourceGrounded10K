@@ -55,6 +55,22 @@
   },
   "learnings": [
     {
+      "category": "model_selection",
+      "title": "Bigger models ≠ better performance",
+      "problem": "Assumed 72B parameter model would outperform 8B model for financial analysis",
+      "solution": "Benchmarked 6 configurations: llama3.1:8b won on speed (30s) AND accuracy (72.5%)",
+      "impact": "Qwen72b was 23x slower (693s) with 30% worse accuracy (50.8%). Task-fit matters more than size.",
+      "date": "2024-11-03"
+    },
+    {
+      "category": "model_selection",
+      "title": "Homogeneous models beat specialized mixes",
+      "problem": "Tried mixing qwen72b (supervisor) + mixtral (planner) + llama8b (synthesizer) for 'best of each'",
+      "solution": "Tested specialized mix vs homogeneous configs",
+      "impact": "Mixed config had worst accuracy (34.2%) vs llama3.1 homogeneous (72.5%). Stick with one model.",
+      "date": "2024-11-03"
+    },
+    {
       "category": "query_optimization",
       "title": "Executive queries need context",
       "problem": "Searching 'Chief Financial Officer' alone retrieved Item 10 (wrong section about audit committee)",
@@ -115,6 +131,21 @@
       "category": "reliability",
       "content": "🔄 Retry logic handles 95% of transient failures",
       "detail": "Exponential backoff and graceful degradation keep the system running even when services hiccup"
+    },
+    {
+      "category": "model_optimization",
+      "content": "🎯 Task-fit beats raw parameters",
+      "detail": "llama3.1:8b (30s, 72.5% accuracy) outperformed qwen2.5:72b (693s, 50.8% accuracy) by 23x on speed with 30% better accuracy"
+    },
+    {
+      "category": "user_experience",
+      "content": "⏱️ 30 seconds is the UX threshold",
+      "detail": "Users accept <30s wait times. Beyond 60s, abandonment rates spike. Only llama3.1 met this requirement."
+    },
+    {
+      "category": "consistency",
+      "content": "📊 Low variance > occasional speed",
+      "detail": "llama3.1 has 8.7s std dev vs qwen72b's 247s. Predictable 30s beats 'sometimes 20s, sometimes 120s'"
     }
   ]
 }

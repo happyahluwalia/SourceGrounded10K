@@ -289,4 +289,20 @@ def answer_filing_question(query: str) -> str:
         logger.info(f"- {step}: {duration:.1f}s")
     logger.info("="*80 + "\n")
 
-    return final_answer
+    # Return JSON with answer and sources for frontend
+    import json
+    result = {
+        "answer": final_answer,
+        "sources": [
+            {
+                "section": chunk.get("section", "Unknown"),
+                "text": chunk.get("text", ""),
+                "score": chunk.get("score", 0.0),
+                "ticker": chunk.get("ticker", ""),
+                "filing_type": chunk.get("filing_type", ""),
+                "report_date": chunk.get("report_date", "")
+            }
+            for chunk in context_chunks[:5]  # Top 5 sources
+        ]
+    }
+    return json.dumps(result)

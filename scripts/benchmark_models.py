@@ -60,14 +60,14 @@ MODELS_TO_TEST = [
     },
     {
         "name": "Mixtral:8x7b (All)",
-        "supervisor": "mixtral:8x7b-instruct",
-        "planner": "mixtral:8x7b-instruct",
-        "synthesizer": "mixtral:8x7b-instruct"
+        "supervisor": "mixtral:8x7b",
+        "planner": "mixtral:8x7b",
+        "synthesizer": "mixtral:8x7b"
     },
     {
         "name": "Specialized (Qwen72b + Mixtral + Llama8b)",
         "supervisor": "qwen2.5:72b",
-        "planner": "mixtral:8x7b-instruct",
+        "planner": "mixtral:8x7b",
         "synthesizer": "llama3.1"
     },
     {
@@ -470,6 +470,11 @@ async def main():
     logger.info(f"Total tests: {len(configs_to_test) * len(queries_to_test)}")
     logger.info(f"Output file: {args.output}")
     logger.info(f"{'='*80}\n")
+    
+    # Initialize checkpointer once at startup
+    logger.info("Initializing checkpointer...")
+    await SupervisorAgent.initialize_checkpointer()
+    logger.info("Checkpointer initialized successfully\n")
     
     # Run benchmarks
     run_id = datetime.now().strftime('%Y%m%d_%H%M%S')

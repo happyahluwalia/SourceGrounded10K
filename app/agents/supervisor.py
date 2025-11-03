@@ -356,6 +356,14 @@ class SupervisorAgent:
                             answer_text = str(tool_output)
                             sources = []  # No sources available
                         
+                        # Send sources as soon as available (before streaming answer)
+                        if sources:
+                            yield {
+                                "type": "sources_ready",
+                                "sources": sources,
+                                "session_id": session_id
+                            }
+                        
                         # Stream the answer character by character for visual effect
                         for char in answer_text:
                             accumulated_answer += char

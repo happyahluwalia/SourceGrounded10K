@@ -308,6 +308,22 @@ function App() {
           addLog('INFO', `✅ Tool completed: ${toolName}`);
         },
 
+        // Handle sources ready (early, before streaming answer)
+        onSourcesReady: (sources) => {
+          console.log('📚 Sources ready for conversation:', queryConversationId);
+          console.log('   Sources count:', sources?.length || 0);
+          
+          // Extract ticker from first source and update message immediately
+          const ticker = sources && sources.length > 0 ? sources[0].ticker : null;
+          if (ticker) {
+            updateLocalMessage(assistantMessageId, { 
+              ticker: ticker,
+              sources: sources
+            });
+            console.log('🏷️ Ticker badge updated early:', ticker);
+          }
+        },
+
         // Handle completion
         onComplete: (newSessionId, fullAnswer, sources) => {
           console.log('✅ Complete for conversation:', queryConversationId);
@@ -335,11 +351,15 @@ function App() {
             console.log('💾 Session ID updated:', newSessionId);
           }
 
+          // Extract ticker from sources (use first source's ticker)
+          const ticker = sources && sources.length > 0 ? sources[0].ticker : null;
+          
           // Mark streaming as complete and add sources
           updateLocalMessage(assistantMessageId, { 
             isStreaming: false, 
             sessionId: newSessionId, 
-            sources: sources || [] 
+            sources: sources || [],
+            ticker: ticker
           });
           
           console.log('✅ Message updated in conversation');
@@ -453,8 +473,8 @@ function App() {
                   onCollapse={() => setShowProgress(false)}
                 />
                 
-                {/* Rotating Message during synthesis */}
-                {isLoading && progressSteps.synthesis.status === 'in_progress' && (
+                {/* Rotating Message during loading */}
+                {isLoading && (
                   <RotatingMessage
                     messages={rotatingMessages}
                     interval={5000}

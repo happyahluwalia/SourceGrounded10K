@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
-import { Send, Settings, Terminal, Loader2, TrendingUp, MessageSquarePlus } from 'lucide-react';
+import { Send, Settings, Terminal, Loader2, TrendingUp } from 'lucide-react';
 import { Button } from './components/Button';
 import { ChatMessage } from './components/ChatMessage';
 import { Input } from './components/Input';
@@ -157,30 +157,6 @@ function App() {
         message,
       },
     ]);
-  };
-
-  const startNewConversation = () => {
-    if (confirm('Start a new conversation? Current context will be lost.')) {
-      // Clear session from localStorage
-      localStorage.removeItem('finance_agent_session_id');
-      
-      // Generate new session ID
-      const newSessionId = uuidv4();
-      localStorage.setItem('finance_agent_session_id', newSessionId);
-      setSessionId(newSessionId);
-      
-      // Clear messages except welcome message
-      setMessages([
-        {
-          role: 'assistant',
-          content: 'Hello! I\'m your AI financial analyst. Ask me questions about supported companies. For example: "What were Apple\'s revenues last year?" or "Who is the CFO of Microsoft?"',
-          timestamp: new Date(),
-        },
-      ]);
-      
-      console.log('🆕 Started new conversation:', newSessionId);
-      addLog('INFO', `Started new conversation: ${newSessionId}`);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -446,18 +422,9 @@ function App() {
             {sessionId && (
               <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground mr-2">
                 <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-                <span>Active conversation</span>
+                <span>Active connection</span>
               </div>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={startNewConversation}
-              className="gap-2"
-            >
-              <MessageSquarePlus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Chat</span>
-            </Button>
             <Button
               variant={showDebug ? 'default' : 'outline'}
               size="sm"

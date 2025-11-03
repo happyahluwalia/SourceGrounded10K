@@ -270,6 +270,8 @@ class SupervisorAgent:
             graph = self.graph_builder.compile(checkpointer=checkpointer)
             
             accumulated_answer = ""
+            current_step = None
+            step_start_time = None
             
             # Stream events from graph execution
             async for event in graph.astream_events(
@@ -278,22 +280,39 @@ class SupervisorAgent:
                 version="v2"
             ):
                 event_type = event.get("event")
+                event_name = event.get("name", "")
                 
-                # Stream LLM tokens (from any ChatOllama call)
-                if event_type == "on_chat_model_stream":
-                    chunk = event.get("data", {}).get("chunk")
-                    if chunk and hasattr(chunk, "content") and chunk.content:
-                        accumulated_answer += chunk.content
+                # Detect planning step (first LLM call is supervisor deciding which tool to use)
+                if event_type == "on_chat_model_start":
+                    import time
+                    if current_step is None:
+                        current_step = "planning"
+                        step_start_time = time.time()
                         yield {
-                            "type": "token",
-                            "content": chunk.content,
+                            "type": "step_start",
+                            "step": "planning",
                             "session_id": session_id
                         }
+                
+                # Don't stream LLM tokens - the tool returns complete answer
+                # Streaming individual tokens would require refactoring the tool
                 
                 # Tool execution started
                 elif event_type == "on_tool_start":
                     tool_name = event.get("name", "unknown")
                     logger.info(f"🔧 Tool started: {tool_name}")
+                    
+                    # Emit fetching step when tool starts
+                    if current_step != "fetching":
+                        import time
+                        current_step = "fetching"
+                        step_start_time = time.time()
+                        yield {
+                            "type": "step_start",
+                            "step": "fetching",
+                            "session_id": session_id
+                        }
+                    
                     yield {
                         "type": "tool_start",
                         "tool": tool_name,
@@ -303,12 +322,37 @@ class SupervisorAgent:
                 # Tool execution completed
                 elif event_type == "on_tool_end":
                     tool_name = event.get("name", "unknown")
+                    tool_output = event.get("data", {}).get("output", "")
                     logger.info(f"✅ Tool completed: {tool_name}")
+                    
                     yield {
                         "type": "tool_end",
                         "tool": tool_name,
                         "session_id": session_id
                     }
+                    
+                    # Start synthesis step and stream tool output
+                    if current_step == "fetching" and tool_output:
+                        import time
+                        import asyncio
+                        current_step = "synthesis"
+                        step_start_time = time.time()
+                        yield {
+                            "type": "step_start",
+                            "step": "synthesis",
+                            "session_id": session_id
+                        }
+                        
+                        # Stream the tool output character by character for visual effect
+                        for char in str(tool_output):
+                            accumulated_answer += char
+                            yield {
+                                "type": "token",
+                                "content": char,
+                                "session_id": session_id
+                            }
+                            # Small delay for streaming effect
+                            await asyncio.sleep(0.01)
             
             # Send completion event with full answer
             logger.info(f"✓ Streaming complete for thread_id: {thread_id}")

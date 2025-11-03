@@ -24,6 +24,8 @@ export const chatWithAgent = async (query, sessionId) => {
  * @param {string} sessionId - Session ID for conversation continuity
  * @param {Object} callbacks - Event handlers
  * @param {Function} callbacks.onToken - Called for each token: (content) => void
+ * @param {Function} callbacks.onStepStart - Called when step starts: (step) => void
+ * @param {Function} callbacks.onPlanComplete - Called when plan is ready: (plan) => void
  * @param {Function} callbacks.onToolStart - Called when tool starts: (toolName) => void
  * @param {Function} callbacks.onToolEnd - Called when tool ends: (toolName) => void
  * @param {Function} callbacks.onComplete - Called on completion: (sessionId, fullAnswer) => void
@@ -33,6 +35,8 @@ export const chatWithAgent = async (query, sessionId) => {
 export const chatWithAgentStreaming = async (query, sessionId, callbacks) => {
   const {
     onToken = () => {},
+    onStepStart = () => {},
+    onPlanComplete = () => {},
     onToolStart = () => {},
     onToolEnd = () => {},
     onComplete = () => {},
@@ -82,6 +86,14 @@ export const chatWithAgentStreaming = async (query, sessionId, callbacks) => {
             switch (event.type) {
               case 'token':
                 onToken(event.content);
+                break;
+              
+              case 'step_start':
+                onStepStart(event.step);
+                break;
+              
+              case 'plan_complete':
+                onPlanComplete(event.plan);
                 break;
               
               case 'tool_start':

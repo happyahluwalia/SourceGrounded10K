@@ -23,10 +23,10 @@ export function ChatMessage({ message }) {
         </div>
 
         <div className="prose prose-sm max-w-none dark:prose-invert">
-          <p className="whitespace-pre-wrap text-foreground">
+          <p className="whitespace-pre-wrap text-foreground text-base leading-relaxed">
             {message.content}
             {message.isStreaming && (
-              <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
+              <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse" />
             )}
           </p>
         </div>

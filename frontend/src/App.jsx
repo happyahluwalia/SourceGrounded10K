@@ -5,8 +5,11 @@ import { Button } from './components/Button';
 import { Input } from './components/Input';
 import { ChatMessage } from './components/ChatMessage';
 import { DebugPanel } from './components/DebugPanel';
+import { ProgressCard } from './components/ProgressCard';
+import { RotatingMessage } from './components/RotatingMessage';
 import { chatWithAgent, chatWithAgentStreaming } from './lib/api'; // Import API functions
 import { cn } from './lib/utils';
+import { getRotatingMessages, STEP_INSIGHTS } from './lib/content';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -20,6 +23,13 @@ function App() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [progressSteps, setProgressSteps] = useState({
+    planning: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.planning },
+    fetching: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.fetching },
+    synthesis: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.synthesis }
+  });
+  const [showProgress, setShowProgress] = useState(false);
+  const [rotatingMessages] = useState(getRotatingMessages());
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
   const [sessionId, setSessionId] = useState(null);
@@ -185,6 +195,14 @@ function App() {
     setInput('');
     setIsLoading(true);
 
+    // Reset progress steps
+    setProgressSteps({
+      planning: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.planning },
+      fetching: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.fetching },
+      synthesis: { status: 'pending', duration: null, metadata: {}, insight: STEP_INSIGHTS.synthesis }
+    });
+    setShowProgress(true);
+
     // Create placeholder for streaming assistant message
     const assistantMessageId = Date.now();
     const assistantMessage = {
@@ -195,6 +213,9 @@ function App() {
       isStreaming: true,
     };
     setMessages((prev) => [...prev, assistantMessage]);
+
+    // Track step start times for duration calculation
+    const stepStartTimes = {};
 
     try {
       let accumulatedContent = '';
@@ -212,6 +233,45 @@ function App() {
           );
         },
 
+        // Handle step start
+        onStepStart: (step) => {
+          stepStartTimes[step] = Date.now();
+          
+          // Mark previous step as completed when new step starts
+          const stepOrder = ['planning', 'fetching', 'synthesis'];
+          const currentIndex = stepOrder.indexOf(step);
+          
+          if (currentIndex > 0) {
+            const prevStep = stepOrder[currentIndex - 1];
+            if (stepStartTimes[prevStep]) {
+              const duration = (Date.now() - stepStartTimes[prevStep]) / 1000;
+              setProgressSteps((prev) => ({
+                ...prev,
+                [prevStep]: { ...prev[prevStep], status: 'completed', duration }
+              }));
+            }
+          }
+          
+          // Mark current step as in progress
+          setProgressSteps((prev) => ({
+            ...prev,
+            [step]: { ...prev[step], status: 'in_progress' }
+          }));
+          addLog('INFO', `▶️ Step started: ${step}`);
+        },
+
+        // Handle plan complete
+        onPlanComplete: (plan) => {
+          setProgressSteps((prev) => ({
+            ...prev,
+            planning: { 
+              ...prev.planning,
+              metadata: { plan }
+            }
+          }));
+          addLog('INFO', `📋 Plan created: ${JSON.stringify(plan)}`);
+        },
+
         // Handle tool execution start
         onToolStart: (toolName) => {
           addLog('INFO', `🔧 Tool started: ${toolName}`);
@@ -224,6 +284,15 @@ function App() {
 
         // Handle completion
         onComplete: (newSessionId, fullAnswer) => {
+          // Mark synthesis step as completed
+          if (stepStartTimes.synthesis) {
+            const duration = (Date.now() - stepStartTimes.synthesis) / 1000;
+            setProgressSteps((prev) => ({
+              ...prev,
+              synthesis: { ...prev.synthesis, status: 'completed', duration }
+            }));
+          }
+          
           // Store session_id from backend
           if (newSessionId) {
             localStorage.setItem('finance_agent_session_id', newSessionId);
@@ -331,7 +400,28 @@ function App() {
             {messages.map((message, idx) => (
               <ChatMessage key={idx} message={message} />
             ))}
-            {isLoading && (
+            
+            {/* Progress Card */}
+            {showProgress && (
+              <div className="p-4">
+                <ProgressCard
+                  steps={progressSteps}
+                  isComplete={!isLoading}
+                  onCollapse={() => setShowProgress(false)}
+                />
+                
+                {/* Rotating Message during synthesis */}
+                {isLoading && progressSteps.synthesis.status === 'in_progress' && (
+                  <RotatingMessage
+                    messages={rotatingMessages}
+                    interval={5000}
+                    isActive={true}
+                  />
+                )}
+              </div>
+            )}
+            
+            {isLoading && !showProgress && (
               <div className="flex gap-3 p-4 bg-background">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />

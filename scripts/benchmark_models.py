@@ -471,6 +471,11 @@ async def main():
     logger.info(f"Output file: {args.output}")
     logger.info(f"{'='*80}\n")
     
+    # Initialize checkpointer once at startup
+    logger.info("Initializing checkpointer...")
+    await SupervisorAgent.initialize_checkpointer()
+    logger.info("Checkpointer initialized successfully\n")
+    
     # Run benchmarks
     run_id = datetime.now().strftime('%Y%m%d_%H%M%S')
     all_results = []

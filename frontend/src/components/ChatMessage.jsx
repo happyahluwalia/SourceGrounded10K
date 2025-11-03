@@ -16,7 +16,14 @@ export function ChatMessage({ message }) {
       return (
         <>
           {message.content}
-          {message.isStreaming && (
+          {message.isStreaming && !message.content && (
+            <div className="flex gap-1 items-center">
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          )}
+          {message.isStreaming && message.content && (
             <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse" />
           )}
         </>

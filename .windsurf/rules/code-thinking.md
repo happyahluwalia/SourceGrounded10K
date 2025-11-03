@@ -274,6 +274,9 @@ DEPLOYMENT RULES:
 ---
 
 ## Development Workflow
+ALWAYS use `ChatOllama` from LangChain for ALL LLM calls.**
+
+**NEVER use direct `ollama.Client` from the Ollama SDK.
 
 1. **Design**: Document agent responsibility and interface
 2. **Prompt**: Write and test prompt template independently

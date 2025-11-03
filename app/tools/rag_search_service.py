@@ -37,7 +37,7 @@ class RAGSearchTool:
     def __init__(
         self,
         vector_store: VectorStore,
-        llm_client = None,      # initially use Ollama Client
+        llm_client = None,      # ChatOllama instance (for consistency)
         model_name: str = None,
         db_storage = None,      # For checking if filing exists
         data_prep_tool = None   # For auto-downloading missing filings
@@ -48,7 +48,7 @@ class RAGSearchTool:
 
             Args:
                 vector_store : Vector Store instance for retrieval
-                llm_ client : Ollama client
+                llm_client : ChatOllama instance (optional)
                 model_name : LLM model to use
         
         """
@@ -60,13 +60,17 @@ class RAGSearchTool:
 
         if llm_client is None:
                 try:
-                    import ollama
-                    # Initialize client with explicit host from settings
-                    self.llm_client = ollama.Client(host=settings.ollama_base_url)
-                    logger.info(f"Initialized Ollama client at {settings.ollama_base_url} with model: {self.model_name}")
+                    from langchain_ollama import ChatOllama
+                    # Use ChatOllama for consistency (supports streaming)
+                    self.llm_client = ChatOllama(
+                        model=self.model_name,
+                        base_url=settings.ollama_base_url,
+                        temperature=0.1
+                    )
+                    logger.info(f"Initialized ChatOllama at {settings.ollama_base_url} with model: {self.model_name}")
                 except ImportError:
                     self.llm_client = None
-                    raise ImportError("Please install ollama to use Ollama client")
+                    raise ImportError("Please install langchain-ollama")
         else:
             self.llm_client = llm_client
         
@@ -173,7 +177,7 @@ class RAGSearchTool:
 
     def generate(self, prompt:str, max_tokens: int = None) -> str:
         """
-            Generate answer using LLM
+            Generate answer using LLM (ChatOllama for consistency)
 
             Args:
                 prompt: Complete prompt with context
@@ -184,7 +188,7 @@ class RAGSearchTool:
         """
         if self.llm_client is None:
             logger.error("LLM client not initialized")
-            return "Error: LLM client not initialized. Please install Ollama"
+            return "Error: LLM client not initialized. Please install langchain-ollama"
         
         try:
             # Use settings if not provided
@@ -192,16 +196,24 @@ class RAGSearchTool:
             
             logger.info(f" Generating answer with {self.model_name}...")
 
-            # Call Ollama
-            response = self.llm_client.generate(
-                model = self.model_name,
-                prompt = prompt,
-                options = {
-                    "num_predict": max_tokens,
-                    "temperature": 0.1,          # Low temperature for factual answers
-                }
-            )
-            answer = response['response'].strip()
+            # Use ChatOllama invoke (consistent with rest of codebase)
+            from langchain_core.messages import HumanMessage
+            from langchain_ollama import ChatOllama
+            
+            # Create LLM instance with correct parameters
+            # ChatOllama doesn't support bind() for num_predict, need to pass in constructor
+            if max_tokens:
+                llm = ChatOllama(
+                    model=self.model_name,
+                    base_url=settings.ollama_base_url,
+                    temperature=0.1,
+                    num_predict=max_tokens
+                )
+            else:
+                llm = self.llm_client
+            
+            response = llm.invoke([HumanMessage(content=prompt)])
+            answer = response.content.strip()
             logger.info(f"Generated answer ({len(answer)} chars)")
 
             return answer

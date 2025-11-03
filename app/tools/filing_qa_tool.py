@@ -108,6 +108,7 @@ def preprocess_query_with_ticker(query: str) -> str:
 def get_plan(query: str) -> dict:
     """
     Generates a structured JSON plan from a user query using an LLM.
+    Uses ChatOllama for consistency with the rest of the codebase.
     """
     # print("\n" + "-"*80)
     # print("Step 1: Generating execution plan... [Model Call]")
@@ -119,18 +120,23 @@ def get_plan(query: str) -> dict:
         print(f"ERROR: Prompt file not found at {prompt_path}")
         return None
 
-    ollama_client = ollama.Client(host=settings.ollama_base_url)
+    # Use ChatOllama for consistency (supports streaming)
+    from langchain_ollama import ChatOllama
+    from langchain_core.messages import SystemMessage, HumanMessage
+    
+    llm = ChatOllama(
+        model=settings.planner_model,
+        base_url=settings.ollama_base_url,
+        temperature=0.0
+    )
 
     try:
-        response = ollama_client.chat(
-            model=settings.planner_model, 
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": query}
-            ],
-            options={"temperature": 0.0}
-        )
-        response_content = response['message']['content']
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=query)
+        ]
+        response = llm.invoke(messages)
+        response_content = response.content
         
         try:
             json_start_index = response_content.find('{')

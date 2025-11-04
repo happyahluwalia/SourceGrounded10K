@@ -329,7 +329,19 @@ function App() {
           console.log('✅ Complete for conversation:', queryConversationId);
           console.log('   Message ID:', assistantMessageId);
           console.log('   Sources:', sources?.length || 0);
-          console.log('   Answer length:', fullAnswer?.length || 0);
+          console.log('   Answer type:', typeof fullAnswer);
+          
+          // Parse structured answer if it's a string (from JSON)
+          let parsedAnswer = fullAnswer;
+          if (typeof fullAnswer === 'string') {
+            try {
+              parsedAnswer = JSON.parse(fullAnswer);
+              console.log('✅ Parsed structured answer:', parsedAnswer);
+            } catch (e) {
+              console.log('⚠️ Answer is plain text, not JSON');
+              // Keep as plain text for legacy format
+            }
+          }
           
           // Mark synthesis step as completed
           if (stepStartTimes.synthesis) {
@@ -355,7 +367,9 @@ function App() {
           const ticker = sources && sources.length > 0 ? sources[0].ticker : null;
           
           // Mark streaming as complete and add sources
+          // Use parsedAnswer which could be structured object or plain text
           updateLocalMessage(assistantMessageId, { 
+            content: parsedAnswer,  // This will be object for new format, string for legacy
             isStreaming: false, 
             sessionId: newSessionId, 
             sources: sources || [],

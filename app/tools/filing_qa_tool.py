@@ -31,6 +31,128 @@ from app.services.ticker_service import get_ticker_service # Needed for comprehe
 UNSUPPORTED_COMPANY_MSG = "UNSUPPORTED_COMPANY"
 
 # ============================================================================
+# RESPONSE FORMATTER - Converts structured LLM output to UI-ready format
+# ============================================================================
+
+def format_answer_for_ui(synthesis_result: dict, sources: list) -> dict:
+    """
+    Convert structured LLM output into UI-ready format.
+    Follows principle: LLM provides semantic data, code handles presentation.
+    
+    Args:
+        synthesis_result: Parsed JSON from synthesizer with sections
+        sources: List of source chunks
+    
+    Returns:
+        UI-ready format with components and props
+    """
+    answer_data = synthesis_result.get("answer", {})
+    sections_raw = answer_data.get("sections", [])
+    
+    # Convert each section to UI component format
+    formatted_sections = []
+    for section in sections_raw:
+        section_type = section.get("type", "paragraph")
+        
+        if section_type == "paragraph":
+            formatted_sections.append(_format_paragraph(section, sources))
+        elif section_type == "table":
+            formatted_sections.append(_format_table(section, sources))
+        elif section_type == "key_findings":
+            formatted_sections.append(_format_key_findings(section, sources))
+        elif section_type == "comparison_summary":
+            formatted_sections.append(_format_comparison_summary(section, sources))
+        else:
+            logger.warning(f"Unknown section type: {section_type}, treating as paragraph")
+            formatted_sections.append(_format_paragraph(section, sources))
+    
+    return {
+        "sections": formatted_sections,
+        "metadata": {
+            "companies": synthesis_result.get("companies", {}),
+            "comparison": synthesis_result.get("comparison", {}),
+            "confidence": synthesis_result.get("confidence", "medium"),
+            "missing_data": synthesis_result.get("missing_data", [])
+        },
+        "visualization": {
+            "type": synthesis_result.get("visualization_hint", "none")
+        }
+    }
+
+def _format_paragraph(section: dict, sources: list) -> dict:
+    """Format paragraph section with inline citations."""
+    return {
+        "component": "Paragraph",
+        "props": {
+            "text": section.get("content", ""),
+            "citations": _build_citations(section.get("citations", []), sources)
+        }
+    }
+
+def _format_table(section: dict, sources: list) -> dict:
+    """Format comparison table section."""
+    data = section.get("data", {})
+    return {
+        "component": "Table",
+        "props": {
+            "title": section.get("content", "Comparison"),
+            "headers": data.get("headers", []),
+            "rows": data.get("rows", []),
+            "citations": _build_citations(section.get("citations", []), sources)
+        }
+    }
+
+def _format_key_findings(section: dict, sources: list) -> dict:
+    """Format key findings as a list."""
+    content = section.get("content", "")
+    items = [content] if isinstance(content, str) else content
+    return {
+        "component": "KeyFindings",
+        "props": {
+            "items": items,
+            "citations": _build_citations(section.get("citations", []), sources)
+        }
+    }
+
+def _format_comparison_summary(section: dict, sources: list) -> dict:
+    """Format comparison summary section."""
+    return {
+        "component": "ComparisonSummary",
+        "props": {
+            "text": section.get("content", ""),
+            "citations": _build_citations(section.get("citations", []), sources)
+        }
+    }
+
+def _build_citations(citation_indices: list, sources: list) -> list:
+    """
+    Build citation objects with hyperlinks from source indices.
+    
+    Args:
+        citation_indices: List of 0-based indices into sources array
+        sources: List of source chunks
+    
+    Returns:
+        List of citation objects with text, url, ticker, etc.
+    """
+    citations = []
+    for idx in citation_indices:
+        if 0 <= idx < len(sources):
+            source = sources[idx]
+            citations.append({
+                "id": idx,
+                "text": f"{source.get('filing_type', 'Filing')} {source.get('section', '')}".strip(),
+                "url": f"#source-{idx}",
+                "ticker": source.get("ticker", ""),
+                "filing_type": source.get("filing_type", ""),
+                "section": source.get("section", ""),
+                "report_date": source.get("report_date", "")
+            })
+        else:
+            logger.warning(f"Citation index {idx} out of range (sources: {len(sources)})")
+    return citations
+
+# ============================================================================
 # 0. QUERY PRE-PROCESSING
 # ============================================================================
 
@@ -161,9 +283,21 @@ def get_plan(query: str) -> dict:
 # 2. EXECUTOR AGENT
 # ============================================================================
 
-def execute_plan(plan: dict) -> list:
+def execute_plan(plan: dict) -> dict:
     """
     Executes the structured plan using deterministic tools.
+    
+    Returns:
+        dict: Results organized by company ticker
+        {
+            "AAPL": [chunk1, chunk2, ...],  # 5 chunks per company
+            "MSFT": [chunk1, chunk2, ...]
+        }
+        
+    Note: Changed from returning list to dict to maintain per-company
+          separation for multi-company comparisons. This ensures equal
+          data retrieval (5 chunks per company) instead of pooling all
+          chunks together (which caused unbalanced comparisons).
     """
     # print("\n" + "-"*80)
     # print("Step 2: Executing plan... [Deterministic Function Call]")
@@ -172,10 +306,11 @@ def execute_plan(plan: dict) -> list:
     vector_store = VectorStore()
     data_prep = DataPrepTool(db_storage=db_storage, vector_store=vector_store)
     
-    all_chunks = []
+    results_by_company = {}  # Maintain per-company separation
+    
     if not plan or 'tasks' not in plan:
-        print("ERROR: Invalid plan provided.")
-        return []
+        logger.error("ERROR: Invalid plan provided.")
+        return {}
 
     for i, task in enumerate(plan['tasks']):
         # print(f"  - Executing Task {i+1}/{len(plan['tasks'])}: {task.get('search_query', 'N/A')} for {task.get('ticker', 'N/A')}")
@@ -183,14 +318,14 @@ def execute_plan(plan: dict) -> list:
         ticker = task.get('ticker')
         filing_type = task.get('filing_type')
         if not ticker or not filing_type:
-            print(f"    > ERROR: Task is missing ticker or filing_type.")
+            logger.error(f"    > ERROR: Task is missing ticker or filing_type.")
             continue
 
         # print(f"    > Checking/processing filing: {ticker} {filing_type}...")
         prep_result = data_prep.get_or_process_filing(ticker, filing_type)
         
         if prep_result['status'] not in ['exists', 'success']:
-            print(f"    > ERROR: Failed to prepare filing. Status: {prep_result.get('status')}")
+            logger.error(f"    > ERROR: Failed to prepare filing. Status: {prep_result.get('status')}")
             continue
         
         # print(f"    > Filing is ready. Status: {prep_result['status']}")
@@ -200,35 +335,126 @@ def execute_plan(plan: dict) -> list:
             query=task['search_query'],
             ticker=task['ticker'],
             filing_type=task['filing_type']
+            # Uses settings.top_k as default (configured in .env)
         )
-        # print(f"    > Found {len(chunks)} relevant chunks.")
-        all_chunks.extend(chunks)
-
-    unique_chunks = list({chunk['id']: chunk for chunk in all_chunks}.values())
-    # print(f"\nSUCCESS: Execution complete. Found {len(unique_chunks)} unique chunks in total.")
-    return unique_chunks
+        # print(f"    > Found {len(chunks)} relevant chunks for {ticker}.")
+        
+        # Store chunks by company ticker
+        if ticker not in results_by_company:
+            results_by_company[ticker] = []
+        
+        results_by_company[ticker].extend(chunks)
+    
+    # Deduplicate per company and limit to top 5
+    for ticker in results_by_company:
+        unique_chunks = list({chunk['id']: chunk for chunk in results_by_company[ticker]}.values())
+        results_by_company[ticker] = unique_chunks[:5]  # Top 5 per company
+        logger.info(f"    > Company {ticker}: {len(results_by_company[ticker])} unique chunks")
+    
+    total_chunks = sum(len(chunks) for chunks in results_by_company.values())
+    logger.info(f"\nSUCCESS: Execution complete. Found {total_chunks} unique chunks across {len(results_by_company)} companies.")
+    
+    return results_by_company
 
 # ============================================================================
 # 3. SYNTHESIZER
 # ============================================================================
 
-def synthesize_answer(query: str, chunks: list) -> str:
+def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
     """
     Generates a final answer from the retrieved context chunks.
+    
+    Args:
+        query: User's question
+        chunks_by_company: Dict of chunks organized by ticker
+                          {"AAPL": [chunks], "MSFT": [chunks]}
+    
+    Returns:
+        dict: Parsed response with 'answer' and 'structured' data
+        {
+            "answer": str,  # Plain text answer for display
+            "structured": dict  # Structured data (companies, comparison, etc.)
+        }
     """
     # print("\n" + "-"*80)
     # print("Step 3: Synthesizing final answer... [Model Call]")
 
-    if not chunks:
-        return "I could not find any relevant information to answer your question."
+    if not chunks_by_company:
+        return {
+            "answer": "I could not find any relevant information to answer your question.",
+            "structured": {}
+        }
 
     rag_tool = RAGSearchTool(vector_store=None)
-    context = rag_tool.build_context(chunks)
-    prompt = rag_tool.build_prompt(query, context)
-    answer = rag_tool.generate(prompt)
     
-    # print("SUCCESS: Answer synthesized.")
-    return answer
+    # Build context maintaining company separation
+    # chunks_by_company is a dict: {"AAPL": [chunks], "MSFT": [chunks]}
+    context_parts = []
+    for ticker, chunks in chunks_by_company.items():
+        if chunks:
+            context_parts.append(f"\n{'='*80}")
+            context_parts.append(f"Context for {ticker}:")
+            context_parts.append('='*80)
+            context_parts.append(rag_tool.build_context(chunks))
+    context = "\n".join(context_parts)
+    
+    prompt = rag_tool.build_prompt(query, context)
+    raw_answer = rag_tool.generate(prompt)
+    
+    # Parse JSON response from LLM
+    import json
+    import re
+    
+    try:
+        # Try to extract JSON from response (may have markdown code blocks)
+        json_match = re.search(r'```(?:json)?\s*({.*?})\s*```', raw_answer, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(1)
+        else:
+            # Try to find raw JSON object
+            json_match = re.search(r'{.*}', raw_answer, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+            else:
+                raise ValueError("No JSON found in response")
+        
+        parsed_result = json.loads(json_str)
+        logger.info("✓ Successfully parsed JSON response from synthesizer")
+        
+        # Ensure answer is a string and structured data is properly formatted
+        answer = parsed_result.get("answer", raw_answer)
+        if isinstance(answer, dict):
+            # If answer is already a dict, use it as is
+            answer_content = answer
+        else:
+            # If answer is a string, create a simple paragraph section
+            answer_content = {
+                "sections": [{
+                    "type": "paragraph",
+                    "content": str(answer),
+                    "citations": []
+                }]
+            }
+            
+        return {
+            "answer": answer_content,
+            "structured": {
+                "companies": parsed_result.get("companies", {}),
+                "comparison": parsed_result.get("comparison", {}),
+                "confidence": parsed_result.get("confidence", "medium"),
+                "missing_data": parsed_result.get("missing_data", [])
+            }
+        }
+        
+    except (json.JSONDecodeError, ValueError) as e:
+        # Fallback: return plain text answer
+        logger.warning(f"Failed to parse JSON from synthesizer: {e}. Using plain text.")
+        logger.debug(f"Raw answer: {raw_answer[:200]}...")
+        
+        return {
+            "answer": raw_answer,
+            "structured": {}
+        }
 
 
 @tool
@@ -268,14 +494,14 @@ def answer_filing_question(query: str) -> str:
     if not plan:
         return "I was unable to create a plan to answer your question. Please try rephrasing it."
 
-    # Step 2: Execute the plan to get context
+    # Step 2: Execute the plan to get context (returns dict by company)
     exec_start_time = time.time()
-    context_chunks = execute_plan(plan)
+    chunks_by_company = execute_plan(plan)
     timings['2. Execution (Deterministic)'] = time.time() - exec_start_time
     
     # Step 3: Synthesize the final answer
     synth_start_time = time.time()
-    final_answer = synthesize_answer(query, context_chunks)
+    final_answer = synthesize_answer(query, chunks_by_company)
     timings['3. Synthesis (Model Call)'] = time.time() - synth_start_time
     
     total_time = time.time() - total_start_time
@@ -289,20 +515,39 @@ def answer_filing_question(query: str) -> str:
         logger.info(f"- {step}: {duration:.1f}s")
     logger.info("="*80 + "\n")
 
-    # Return JSON with answer and sources for frontend
-    import json
+    # Extract sources from all companies (flatten dict to list)
+    all_chunks = []
+    for ticker, chunks in chunks_by_company.items():
+        all_chunks.extend(chunks)
+    
+    # Ensure final_answer is properly structured
+    if isinstance(final_answer, str):
+        try:
+            # Try to parse if it's a JSON string
+            final_answer = json.loads(final_answer)
+        except (json.JSONDecodeError, TypeError):
+            # If not JSON, create a simple structured answer
+            final_answer = {
+                "sections": [{
+                    "type": "paragraph",
+                    "content": final_answer,
+                    "citations": []
+                }]
+            }
+    
+    # Return structured result with answer and sources for frontend
     result = {
         "answer": final_answer,
         "sources": [
             {
                 "section": chunk.get("section", "Unknown"),
                 "text": chunk.get("text", ""),
-                "score": chunk.get("score", 0.0),
-                "ticker": chunk.get("ticker", ""),
-                "filing_type": chunk.get("filing_type", ""),
-                "report_date": chunk.get("report_date", "")
+                "score": float(chunk.get("score", 0.0)),
+                "ticker": str(chunk.get("ticker", "")),
+                "filing_type": str(chunk.get("filing_type", "")),
+                "report_date": str(chunk.get("report_date", ""))
             }
-            for chunk in context_chunks[:5]  # Top 5 sources
+            for chunk in all_chunks  # All sources from all companies
         ]
     }
-    return json.dumps(result)
+    return result

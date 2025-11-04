@@ -5,12 +5,125 @@ Context:
 
 Question: {query}
 
-Instructions:
-- If context is insufficient, state so.
-- When citing sources, ALWAYS reference the filing type and section name from the context (e.g., "According to the 10-K Item 10 - Directors and Executive Officers" or "As stated in the Executive Officers table in Item 1").
-- NEVER use generic references like "Document 1", "Document 2", etc. Always use the actual section name.
-- Be specific with numbers/dates.
-- Synthesize info from multiple documents if relevant.
-- Keep answer concise and complete.
+CRITICAL: You MUST return your answer as a valid JSON object. Do not include any text before or after the JSON.
 
-Answer:
+Your response will be used to generate a rich UI. Provide STRUCTURED DATA, not formatted text.
+The backend will handle all formatting (tables, hyperlinks, bold text, etc.).
+
+JSON Schema:
+{{
+  "answer": {{
+    "sections": [
+      {{
+        "type": "paragraph|table|key_findings|comparison_summary",
+        "content": "Plain text without formatting. Be specific with numbers and dates.",
+        "data": {{}}  // For tables: {{"headers": [...], "rows": [[...]]}}
+        "citations": [0, 1, 2]  // Indices of source documents used (0-based)
+      }}
+    ]
+  }},
+  "companies": {{
+    "TICKER": {{
+      "key_findings": ["Finding 1", "Finding 2"],
+      "metrics": {{
+        "metric_name": {{"value": 391.0, "unit": "billion", "formatted": "$391.0B"}}
+      }},
+      "context_source": "10-K Item 7, Item 1A"
+    }}
+  }},
+  "comparison": {{
+    "summary": "Plain text explaining key differences",
+    "winner": "TICKER or null",
+    "metric": "revenue_growth or null",
+    "differences": [
+      {{"aspect": "growth_driver", "description": "Microsoft: cloud, Apple: hardware"}}
+    ]
+  }},
+  "visualization_hint": "table|bar_chart|none - suggest best visualization",
+  "confidence": "high|medium|low",
+  "missing_data": ["List missing data points"]
+}}
+
+Section Types:
+- "paragraph": Standard text answer with citations
+- "table": Comparison data (provide headers and rows in "data" field)
+- "key_findings": Bullet-point style findings
+- "comparison_summary": Summary of differences between companies
+
+Citation Rules:
+- Use 0-based indices to reference source documents
+- Document 0 = first document in context, Document 1 = second, etc.
+- Backend will convert these to hyperlinks with filing names
+
+Instructions:
+- NO formatting in text (no bold, no markdown, no HTML)
+- Use numbers, not strings for metrics (391.0, not "$391.0B")
+- Provide structured data that code can format consistently
+- For comparisons, ALWAYS include a table section with comparison data
+- Keep text concise and factual
+
+Example for single company query:
+{{
+  "answer": {{
+    "sections": [
+      {{
+        "type": "paragraph",
+        "content": "Total net sales for fiscal 2024 were $391.0 billion, representing a 2% increase from $383.3 billion in 2023.",
+        "citations": [0]
+      }},
+      {{
+        "type": "key_findings",
+        "content": "iPhone sales increased 6% to $201.2 billion.",
+        "citations": [0]
+      }}
+    ]
+  }},
+  "companies": {{
+    "AAPL": {{
+      "key_findings": ["Total revenue $391.0B (+2% YoY)", "iPhone revenue $201.2B (+6% YoY)"],
+      "metrics": {{"revenue_2024": "$391.0B", "revenue_2023": "$383.3B", "growth_rate": "2%"}},
+      "context_source": "10-K Item 7 Management's Discussion and Analysis"
+    }}
+  }},
+  "comparison": {{
+    "summary": null,
+    "winner": null,
+    "metric": null
+  }},
+  "confidence": "high",
+  "missing_data": []
+}}
+
+Example for comparison query:
+{{
+  "answer": {{
+    "sections": [
+      {{
+        "type": "paragraph",
+        "content": "Apple's revenue grew 2% to $391.0B while Microsoft grew 16% to $245.1B. Microsoft's higher growth was driven by cloud services.",
+        "citations": [0, 1]
+      }}
+    ]
+  }},
+  "companies": {{
+    "AAPL": {{
+      "key_findings": ["Revenue $391.0B (+2%)", "iPhone sales up 6%", "Market saturation concerns"],
+      "metrics": {{"revenue": "$391.0B", "growth": "2%"}},
+      "context_source": "10-K Item 7 MD&A, Item 1A Risk Factors"
+    }},
+    "MSFT": {{
+      "key_findings": ["Revenue $245.1B (+16%)", "Azure growth 30%", "Cloud margin 71%"],
+      "metrics": {{"revenue": "$245.1B", "growth": "16%"}},
+      "context_source": "10-K Item 7 MD&A"
+    }}
+  }},
+  "comparison": {{
+    "summary": "Microsoft's 16% growth significantly outpaced Apple's 2% due to cloud adoption (Azure +30%) vs Apple's hardware market saturation.",
+    "winner": "MSFT",
+    "metric": "revenue_growth"
+  }},
+  "confidence": "high",
+  "missing_data": []
+}}
+
+Now generate your JSON response:

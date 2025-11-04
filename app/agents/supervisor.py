@@ -1,6 +1,7 @@
 from typing import Literal, Optional, Any
 from pathlib import Path
 import logging
+import json
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
@@ -210,7 +211,16 @@ class SupervisorAgent:
             final_answer = "Could not process the request."
             for msg in reversed(result['messages']):
                 if isinstance(msg, ToolMessage):
-                    final_answer = msg.content
+                    tool_response = msg.content
+                    # Try to parse JSON response from tools (especially filing_qa_tool)
+                    try:
+                        parsed_response = json.loads(tool_response)
+                        final_answer = parsed_response  # Return structured object
+                        logger.info("✓ Parsed structured response from tool")
+                    except (json.JSONDecodeError, TypeError):
+                        # If not JSON, use as plain text (backward compatibility)
+                        final_answer = tool_response
+                        logger.info("Using tool response as plain text")
                     break
             
             logger.info(f"✓ Query processed successfully for thread_id: {thread_id}")
@@ -348,13 +358,59 @@ class SupervisorAgent:
                         
                         # Try to parse JSON output (answer + sources)
                         try:
-                            result = json.loads(tool_output)
-                            answer_text = result.get("answer", tool_output)
-                            sources = result.get("sources", [])  # Store for complete event
+                            # First try to parse the tool_output as JSON
+                            if isinstance(tool_output, str):
+                                result = json.loads(tool_output)
+                            else:
+                                result = tool_output  # Already a dict
+                                
+                            # Extract answer and sources
+                            answer_content = result.get("answer", {})
+                            sources = result.get("sources", [])
+                            
+                            # Check if answer is structured (new format) or plain text (legacy)
+                            answer_content = result.get("answer", {})
+                            if isinstance(answer_content, dict) and "sections" in answer_content:
+                                # New structured format - use the structured answer directly
+                                accumulated_answer = answer_content
+                                
+                                # Brief pause for UI feedback that something is happening
+                                await asyncio.sleep(0.5)
+                                
+                                # Send a single token event to indicate streaming is happening
+                                yield {
+                                    "type": "token",
+                                    "content": "[Generating structured response...]",
+                                    "session_id": session_id
+                                }
+                            else:
+                                # Legacy plain text format - stream character by character
+                                answer_text = str(answer_content) if answer_content else str(result.get("answer", tool_output))
+                                accumulated_answer = ""
+                                
+                                for char in answer_text:
+                                    accumulated_answer += char
+                                    yield {
+                                        "type": "token",
+                                        "content": char,
+                                        "session_id": session_id
+                                    }
+                                    await asyncio.sleep(0.01)
+                                    
                         except json.JSONDecodeError:
-                            # Fallback if not JSON
+                            # Fallback if not JSON - treat as plain text
                             answer_text = str(tool_output)
-                            sources = []  # No sources available
+                            sources = []
+                            accumulated_answer = ""
+                            
+                            for char in answer_text:
+                                accumulated_answer += char
+                                yield {
+                                    "type": "token",
+                                    "content": char,
+                                    "session_id": session_id
+                                }
+                                await asyncio.sleep(0.01)
                         
                         # Send sources as soon as available (before streaming answer)
                         if sources:
@@ -363,23 +419,22 @@ class SupervisorAgent:
                                 "sources": sources,
                                 "session_id": session_id
                             }
-                        
-                        # Stream the answer character by character for visual effect
-                        for char in answer_text:
-                            accumulated_answer += char
-                            yield {
-                                "type": "token",
-                                "content": char,
-                                "session_id": session_id
-                            }
-                            # Small delay for streaming effect
-                            await asyncio.sleep(0.01)
             
             # Send completion event with full answer and sources
             logger.info(f"✓ Streaming complete for thread_id: {thread_id}")
+            
+            # Handle structured vs string answers correctly
+            if isinstance(accumulated_answer, dict):
+                # For structured answers, send the object directly 
+                # FastAPI will serialize it properly for JSON transmission
+                completion_answer = accumulated_answer
+            else:
+                # For string answers, keep as string
+                completion_answer = accumulated_answer
+                
             yield {
                 "type": "complete",
-                "answer": accumulated_answer,
+                "answer": completion_answer,
                 "sources": sources,
                 "session_id": session_id
             }

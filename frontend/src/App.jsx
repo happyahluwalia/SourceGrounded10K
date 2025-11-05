@@ -147,6 +147,36 @@ function App() {
     };
   }, [showDebug]);
 
+  // Load Ko-fi widget script
+  useEffect(() => {
+    const scriptId = 'kofi-widget-script';
+
+    // Prevent re-injection in Strict Mode by checking for the script tag's existence
+    if (document.getElementById(scriptId)) {
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId; // Add an ID to the script for the check
+    script.src = 'https://storage.ko-fi.com/cdn/scripts/overlay-widget.js';
+    script.async = true;
+    
+    script.onload = () => {
+      try {
+        kofiWidgetOverlay.draw('happyiness', {
+          'type': 'floating-chat',
+          'floating-chat.donateButton.text': 'Support me',
+          'floating-chat.donateButton.background-color': '#00b9fe',
+          'floating-chat.donateButton.text-color': '#fff'
+        });
+      } catch (e) {
+        console.error("Ko-fi widget error:", e);
+      }
+    };
+
+    document.body.appendChild(script);
+  }, []); // Empty dependency array ensures this runs only once
+
   const addLog = (level, message) => {
     setDebugLogs((prev) => [
       ...prev,

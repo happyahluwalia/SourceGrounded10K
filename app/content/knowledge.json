@@ -109,6 +109,33 @@
       "solution": "Implemented PostgreSQL-backed checkpointing with session IDs",
       "impact": "Users can now ask follow-up questions with full conversation context",
       "date": "2024-11-01"
+    },
+    {
+      "category": "architecture",
+      "title": "Data structure > Complex architecture",
+      "problem": "Multi-company comparisons had unbalanced data (4 AAPL chunks, 1 MSFT chunk). Planned to build parallel RAG agents (5-6 weeks)",
+      "solution": "Changed execute_plan() return type from list to dict to maintain per-company separation",
+      "impact": "Equal data retrieval (5 chunks per company), fixed in 1-2 days instead of 5-6 weeks. 95% less code than parallel agent approach.",
+      "date": "2024-11-04",
+      "lesson": "Test existing system before redesigning. Simple data structure changes often beat complex architectural additions."
+    },
+    {
+      "category": "prompt_engineering",
+      "title": "Natural text in → Structured data out",
+      "problem": "Considered sending context to LLM as JSON for better structure, but this adds 20-30% token overhead",
+      "solution": "Keep context as natural text (plain language), require JSON output from LLM for structured responses",
+      "impact": "Saves ~2,000 tokens per query (20-30% reduction). LLMs comprehend natural text better than JSON. Frontend gets structured data for rendering.",
+      "date": "2024-11-04",
+      "lesson": "Rule of thumb: Natural text in → Structured data out (when needed). Don't over-structure your prompts. LLMs are trained on narrative text, not JSON."
+    },
+    {
+      "category": "ui_architecture",
+      "title": "Structured data → Deterministic UI rendering",
+      "problem": "LLMs are unreliable at formatting (markdown, HTML, tables). Asking LLM to format output leads to inconsistent UI, wasted tokens, and hard-to-maintain code.",
+      "solution": "LLM outputs structured JSON sections (paragraph, table, key_findings). Backend formatter functions convert to UI components deterministically. Frontend renders components.",
+      "impact": "Consistent UI rendering, easier A/B testing, future-proof for charts/graphs, no formatting tokens wasted, separation of concerns (LLM=analysis, code=presentation).",
+      "date": "2024-11-04",
+      "lesson": "LLMs should focus on semantic data extraction, not presentation. Use deterministic code for formatting. Architecture: LLM → Structured JSON → Formatter functions → UI components."
     }
   ],
   "performance_tips": [

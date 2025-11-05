@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react'
-import { User, Bot, Clock, FileText } from 'lucide-react'
+import { User, Bot, Clock, FileText, TrendingUp, AlertCircle } from 'lucide-react'
 import { cn, formatTime } from '../lib/utils'
 import { Badge } from './Badge'
+import { Card } from './Card'
 
 export function ChatMessage({ message }) {
   const isUser = message.role === 'user'
@@ -10,7 +11,194 @@ export function ChatMessage({ message }) {
   const detailsRef = useRef(null)
   const sourceRefs = useRef([])
 
-  // Parse content and make citations clickable
+  const scrollToSource = (index) => {
+    // Open sources if closed
+    if (!sourcesOpen) {
+      setSourcesOpen(true)
+      // Wait for details to open before scrolling
+      setTimeout(() => {
+        sourceRefs.current[index]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest'
+        })
+      }, 100)
+    } else {
+      sourceRefs.current[index]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      })
+    }
+
+    setHighlightedSource(index)
+    // Remove highlight after 3 seconds
+    setTimeout(() => setHighlightedSource(null), 3000)
+  }
+
+  // Render citation badge
+  const CitationBadge = ({ citation, onClick }) => (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded border border-primary/20 transition-colors cursor-pointer"
+      title={`${citation.ticker} - ${citation.filing_type} ${citation.section}\nClick to view source`}
+    >
+      <FileText className="h-3 w-3" />
+      {citation.text}
+    </button>
+  )
+
+  // Render structured answer sections
+  const renderStructuredAnswer = (answer) => {
+    if (!answer || !answer.sections || answer.sections.length === 0) {
+      return (
+        <div className="whitespace-pre-wrap text-foreground text-base leading-relaxed">
+          {message.isStreaming && (
+            <div className="flex gap-1 items-center">
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-4">
+        {answer.sections.map((section, idx) => {
+          const { component, props } = section
+
+          switch (component) {
+            case 'Paragraph':
+              return (
+                <div key={idx} className="text-foreground text-base leading-relaxed">
+                  {props.text}
+                  {props.citations && props.citations.length > 0 && (
+                    <span className="ml-1">
+                      {props.citations.map((citation, citIdx) => (
+                        <CitationBadge
+                          key={citIdx}
+                          citation={citation}
+                          onClick={() => scrollToSource(citation.id)}
+                        />
+                      ))}
+                    </span>
+                  )}
+                </div>
+              )
+            
+            case 'Table':
+              return (
+                <Card key={idx} className="p-4">
+                  {props.title && (
+                    <h4 className="font-semibold text-sm mb-3">{props.title}</h4>
+                  )}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          {props.headers && props.headers.map((header, hIdx) => (
+                            <th key={hIdx} className="text-left p-2 font-semibold">
+                              {header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {props.rows && props.rows.map((row, rIdx) => (
+                          <tr key={rIdx} className="border-b last:border-0 hover:bg-muted/50">
+                            {row.map((cell, cIdx) => (
+                              <td key={cIdx} className="p-2">
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {props.citations && props.citations.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {props.citations.map((citation, citIdx) => (
+                        <CitationBadge
+                          key={citIdx}
+                          citation={citation}
+                          onClick={() => scrollToSource(citation.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )
+            
+            case 'KeyFindings':
+              return (
+                <Card key={idx} className="p-4 bg-primary/5 border-primary/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    <h4 className="font-semibold text-sm">Key Findings</h4>
+                  </div>
+                  <ul className="space-y-2 text-sm">
+                    {props.items && props.items.map((item, iIdx) => (
+                      <li key={iIdx} className="flex items-start gap-2">
+                        <span className="text-primary mt-1">•</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {props.citations && props.citations.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {props.citations.map((citation, citIdx) => (
+                        <CitationBadge
+                          key={citIdx}
+                          citation={citation}
+                          onClick={() => scrollToSource(citation.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )
+            
+            case 'ComparisonSummary':
+              return (
+                <Card key={idx} className="p-4 bg-secondary/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-secondary-foreground" />
+                    <h4 className="font-semibold text-sm">Summary</h4>
+                  </div>
+                  <p className="text-sm leading-relaxed">{props.text}</p>
+                  {props.citations && props.citations.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {props.citations.map((citation, citIdx) => (
+                        <CitationBadge
+                          key={citIdx}
+                          citation={citation}
+                          onClick={() => scrollToSource(citation.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )
+            
+            default:
+              console.warn(`Unknown component type: ${component}`)
+              return (
+                <div key={idx} className="text-foreground text-base leading-relaxed">
+                  {props.text || JSON.stringify(props)}
+                </div>
+              )
+          }
+        })}
+        
+        {message.isStreaming && (
+          <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse" />
+        )}
+      </div>
+    )
+  }
+
+  // Parse content and make citations clickable (legacy format)
   const renderContentWithCitations = () => {
     if (isUser || !message.sources || message.sources.length === 0) {
       return (
@@ -77,15 +265,7 @@ export function ChatMessage({ message }) {
       }
     }
 
-    const scrollToSource = (index) => {
-      setHighlightedSource(index)
-      sourceRefs.current[index]?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'nearest' 
-      })
-      // Remove highlight after 3 seconds
-      setTimeout(() => setHighlightedSource(null), 3000)
-    }
+
 
     // Split content and insert clickable citations
     const parts = []
@@ -154,9 +334,13 @@ export function ChatMessage({ message }) {
         </div>
 
         <div className="prose prose-sm max-w-none dark:prose-invert">
-          <div className="whitespace-pre-wrap text-foreground text-base leading-relaxed">
-            {renderContentWithCitations()}
-          </div>
+          {/* Check if content is structured format or legacy plain text */}
+          {typeof message.content === 'object' && message.content !== null
+            ? renderStructuredAnswer(message.content)
+            : <div className="whitespace-pre-wrap text-foreground text-base leading-relaxed">
+                {renderContentWithCitations()}
+              </div>
+          }
         </div>
 
         {message.metadata && (

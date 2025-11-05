@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
-import { Send, Settings, Terminal, Loader2, TrendingUp } from 'lucide-react';
+import { Send, Settings, Terminal, Loader2, TrendingUp, MessageSquarePlus } from 'lucide-react';
 import { Button } from './components/Button';
 import { ChatMessage } from './components/ChatMessage';
 import { Input } from './components/Input';
@@ -176,6 +176,11 @@ function App() {
 
     document.body.appendChild(script);
   }, []); // Empty dependency array ensures this runs only once
+
+  // Handle feedback button click
+  const handleFeedbackClick = () => {
+    window.open('https://docs.google.com/spreadsheets/d/16mGF47L0caGkPrHzmwEoC9YfZhqMmASl7SA2hDkSf6Y/edit?usp=sharing', '_blank', 'noopener,noreferrer');
+  };
 
   const addLog = (level, message) => {
     setDebugLogs((prev) => [
@@ -568,6 +573,16 @@ function App() {
 
       {/* Debug Panel */}
       <DebugPanel logs={debugLogs} isOpen={showDebug} onClose={() => setShowDebug(false)} />
+      
+      {/* Floating Feedback Button */}
+      <button
+        onClick={handleFeedbackClick}
+        className="fixed left-6 bottom-24 z-50 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
+        aria-label="Share Feedback"
+      >
+        <MessageSquarePlus className="h-5 w-5" />
+        <span className="font-medium text-sm">Feature Ideas?</span>
+      </button>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { User, Bot, Clock, FileText, TrendingUp, AlertCircle } from 'lucide-reac
 import { cn, formatTime } from '../lib/utils'
 import { Badge } from './Badge'
 import { Card } from './Card'
+import { BusinessContext } from './BusinessContext'
 
 export function ChatMessage({ message }) {
   const isUser = message.role === 'user'
@@ -48,7 +49,7 @@ export function ChatMessage({ message }) {
 
   // Render structured answer sections
   const renderStructuredAnswer = (answer) => {
-    if (!answer || !answer.sections || answer.sections.length === 0) {
+    if (!answer || (!answer.sections && !answer.metadata)) {
       return (
         <div className="whitespace-pre-wrap text-foreground text-base leading-relaxed">
           {message.isStreaming && (
@@ -62,9 +63,11 @@ export function ChatMessage({ message }) {
       )
     }
 
+    const companies = answer.metadata?.companies;
+
     return (
       <div className="space-y-4">
-        {answer.sections.map((section, idx) => {
+        {answer.sections && answer.sections.map((section, idx) => {
           const { component, props } = section
 
           switch (component) {
@@ -190,6 +193,18 @@ export function ChatMessage({ message }) {
               )
           }
         })}
+
+        {/* Render Business Context */}
+        {companies && Object.keys(companies).map(ticker => (
+          companies[ticker].business_context && (
+            <BusinessContext
+              key={ticker}
+              companyTicker={ticker}
+              context={companies[ticker].business_context}
+              onCitationClick={scrollToSource}
+            />
+          )
+        ))}
         
         {message.isStreaming && (
           <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse" />

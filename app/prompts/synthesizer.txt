@@ -28,7 +28,13 @@ JSON Schema:
       "metrics": {{
         "metric_name": {{"value": 391.0, "unit": "billion", "formatted": "$391.0B"}}
       }},
-      "context_source": "10-K Item 7, Item 1A"
+      "context_source": "10-K Item 7, Item 1A",
+      "business_context": {{
+      "growth_drivers": "iPhone demand in emerging markets, services revenue growth",
+      "headwinds": "Smartphone market saturation, competition from Android",
+      "explanation": "Low 2% growth reflects mature iPhone market offset by services expansion",
+      "citations": [0, 1]
+    }}
     }}
   }},
   "comparison": {{
@@ -58,6 +64,12 @@ Citation Rules:
 Instructions:
 - NO formatting in text (no bold, no markdown, no HTML)
 - Use numbers, not strings for metrics (391.0, not "$391.0B")
+- For each company, extract business_context explaining:
+  * What drove the metrics (growth_drivers)
+  * What held them back (headwinds)  
+  * Why these numbers matter (explanation)
+- Pull context from MD&A, Risk Factors, Business Description sections
+- Cite sources for context claims
 - Provide structured data that code can format consistently
 - For comparisons, ALWAYS include a table section with comparison data
 - Keep text concise and factual
@@ -82,7 +94,13 @@ Example for single company query:
     "AAPL": {{
       "key_findings": ["Total revenue $391.0B (+2% YoY)", "iPhone revenue $201.2B (+6% YoY)"],
       "metrics": {{"revenue_2024": "$391.0B", "revenue_2023": "$383.3B", "growth_rate": "2%"}},
-      "context_source": "10-K Item 7 Management's Discussion and Analysis"
+      "context_source": "10-K Item 7 Management's Discussion and Analysis",
+       "business_context": {{
+      "growth_drivers": "Services revenue expansion, emerging market iPhone sales",
+      "headwinds": "Smartphone market saturation, regulatory pressures in EU",
+      "explanation": "Modest 2% growth reflects mature iPhone market with limited pricing power",
+      "citations": [0]
+    }}
     }}
   }},
   "comparison": {{
@@ -109,12 +127,24 @@ Example for comparison query:
     "AAPL": {{
       "key_findings": ["Revenue $391.0B (+2%)", "iPhone sales up 6%", "Market saturation concerns"],
       "metrics": {{"revenue": "$391.0B", "growth": "2%"}},
-      "context_source": "10-K Item 7 MD&A, Item 1A Risk Factors"
+      "context_source": "10-K Item 7 MD&A, Item 1A Risk Factors",
+      "business_context": {{
+      "growth_drivers": "Services revenue expansion, emerging market iPhone sales",
+      "headwinds": "Smartphone market saturation, regulatory pressures in EU",
+      "explanation": "Modest 2% growth reflects mature iPhone market with limited pricing power",
+      "citations": [0]
+    }}
     }},
     "MSFT": {{
       "key_findings": ["Revenue $245.1B (+16%)", "Azure growth 30%", "Cloud margin 71%"],
       "metrics": {{"revenue": "$245.1B", "growth": "16%"}},
-      "context_source": "10-K Item 7 MD&A"
+      "context_source": "10-K Item 7 MD&A",
+      "business_context": {{
+      "growth_drivers": "Cloud services expansion, strong Windows PC sales",
+      "headwinds": "Regulatory pressures, supply chain disruptions",
+      "explanation": "Strong 16% growth reflects robust cloud adoption and PC sales",
+      "citations": [1]
+    }}
     }}
   }},
   "comparison": {{

@@ -66,16 +66,17 @@ def format_answer_for_ui(synthesis_result: dict, sources: list) -> dict:
             logger.warning(f"Unknown section type: {section_type}, treating as paragraph")
             formatted_sections.append(_format_paragraph(section, sources))
     
+    structured_data = synthesis_result.get("structured", {})
     return {
         "sections": formatted_sections,
         "metadata": {
-            "companies": synthesis_result.get("companies", {}),
-            "comparison": synthesis_result.get("comparison", {}),
-            "confidence": synthesis_result.get("confidence", "medium"),
-            "missing_data": synthesis_result.get("missing_data", [])
+            "companies": structured_data.get("companies", {}),
+            "comparison": structured_data.get("comparison", {}),
+            "confidence": structured_data.get("confidence", "medium"),
+            "missing_data": structured_data.get("missing_data", [])
         },
         "visualization": {
-            "type": synthesis_result.get("visualization_hint", "none")
+            "type": structured_data.get("visualization_hint", "none")
         }
     }
 

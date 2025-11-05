@@ -313,15 +313,16 @@ function App() {
           console.log('📚 Sources ready for conversation:', queryConversationId);
           console.log('   Sources count:', sources?.length || 0);
           
-          // Extract ticker from first source and update message immediately
           const ticker = sources && sources.length > 0 ? sources[0].ticker : null;
-          if (ticker) {
-            updateLocalMessage(assistantMessageId, { 
-              ticker: ticker,
-              sources: sources
-            });
-            console.log('🏷️ Ticker badge updated early:', ticker);
-          }
+          
+          // Just update the sources and ticker on the message,
+          // don't stop streaming or change content yet.
+          updateLocalMessage(assistantMessageId, {
+            sources: sources || [],
+            ticker: ticker
+          });
+          
+          console.log('🏷️ Ticker badge updated early:', ticker);
         },
 
         // Handle completion

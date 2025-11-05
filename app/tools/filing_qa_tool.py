@@ -452,7 +452,13 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
         logger.debug(f"Raw answer: {raw_answer[:200]}...")
         
         return {
-            "answer": raw_answer,
+            "answer": {
+                "sections": [{
+                    "type": "paragraph",
+                    "content": raw_answer,
+                    "citations": []
+                }]
+            },
             "structured": {}
         }
 
@@ -519,27 +525,17 @@ def answer_filing_question(query: str) -> str:
     all_chunks = []
     for ticker, chunks in chunks_by_company.items():
         all_chunks.extend(chunks)
-    
-    # Ensure final_answer is properly structured
-    if isinstance(final_answer, str):
-        try:
-            # Try to parse if it's a JSON string
-            final_answer = json.loads(final_answer)
-        except (json.JSONDecodeError, TypeError):
-            # If not JSON, create a simple structured answer
-            final_answer = {
-                "sections": [{
-                    "type": "paragraph",
-                    "content": final_answer,
-                    "citations": []
-                }]
-            }
-    
-    # Return structured result with answer and sources for frontend
+
+    # Format the structured answer for UI presentation
+    # The `final_answer` from `synthesize_answer` is already structured
+    ui_ready_answer = format_answer_for_ui(final_answer, all_chunks)
+
+    # Combine UI-ready answer and sources into a single payload
     result = {
-        "answer": final_answer,
+        "answer": ui_ready_answer,
         "sources": [
             {
+                "id": i,
                 "section": chunk.get("section", "Unknown"),
                 "text": chunk.get("text", ""),
                 "score": float(chunk.get("score", 0.0)),
@@ -547,7 +543,9 @@ def answer_filing_question(query: str) -> str:
                 "filing_type": str(chunk.get("filing_type", "")),
                 "report_date": str(chunk.get("report_date", ""))
             }
-            for chunk in all_chunks  # All sources from all companies
+            for i, chunk in enumerate(all_chunks)
         ]
     }
-    return result
+    
+    # Return as a JSON string, as expected by the agent framework
+    return json.dumps(result)

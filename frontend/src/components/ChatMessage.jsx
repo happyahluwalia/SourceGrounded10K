@@ -11,6 +11,29 @@ export function ChatMessage({ message }) {
   const detailsRef = useRef(null)
   const sourceRefs = useRef([])
 
+  const scrollToSource = (index) => {
+    // Open sources if closed
+    if (!sourcesOpen) {
+      setSourcesOpen(true)
+      // Wait for details to open before scrolling
+      setTimeout(() => {
+        sourceRefs.current[index]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest'
+        })
+      }, 100)
+    } else {
+      sourceRefs.current[index]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      })
+    }
+
+    setHighlightedSource(index)
+    // Remove highlight after 3 seconds
+    setTimeout(() => setHighlightedSource(null), 3000)
+  }
+
   // Render citation badge
   const CitationBadge = ({ citation, onClick }) => (
     <button
@@ -242,15 +265,7 @@ export function ChatMessage({ message }) {
       }
     }
 
-    const scrollToSource = (index) => {
-      setHighlightedSource(index)
-      sourceRefs.current[index]?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'nearest' 
-      })
-      // Remove highlight after 3 seconds
-      setTimeout(() => setHighlightedSource(null), 3000)
-    }
+
 
     // Split content and insert clickable citations
     const parts = []

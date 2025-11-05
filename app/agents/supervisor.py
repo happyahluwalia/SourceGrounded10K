@@ -368,19 +368,22 @@ class SupervisorAgent:
                             answer_content = result.get("answer", {})
                             sources = result.get("sources", [])
                             
-                            # Check if answer is structured (new format) or plain text (legacy)
+                            # Get the answer content and structured data
                             answer_content = result.get("answer", {})
+                            structured_data = result.get("structured", {})
+                            
+                            # Check if we have a structured answer with sections
                             if isinstance(answer_content, dict) and "sections" in answer_content:
-                                # New structured format - use the structured answer directly
-                                accumulated_answer = answer_content
+                                # The answer is already formatted by the tool, so we just use it directly.
+                                ui_formatted = answer_content
                                 
-                                # Brief pause for UI feedback that something is happening
-                                await asyncio.sleep(0.5)
+                                # Set the accumulated answer to the formatted UI structure
+                                accumulated_answer = ui_formatted
                                 
-                                # Send a single token event to indicate streaming is happening
+                                # Send the complete structured answer in one go
                                 yield {
-                                    "type": "token",
-                                    "content": "[Generating structured response...]",
+                                    "type": "complete_structured",
+                                    "content": ui_formatted,
                                     "session_id": session_id
                                 }
                             else:

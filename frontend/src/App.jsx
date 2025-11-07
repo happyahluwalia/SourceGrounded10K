@@ -182,6 +182,9 @@ function App() {
     window.open('https://docs.google.com/spreadsheets/d/16mGF47L0caGkPrHzmwEoC9YfZhqMmASl7SA2hDkSf6Y/edit?usp=sharing', '_blank', 'noopener,noreferrer');
   };
 
+  // State for feedback button hover/expand
+  const [feedbackExpanded, setFeedbackExpanded] = useState(false);
+
   const addLog = (level, message) => {
     setDebugLogs((prev) => [
       ...prev,
@@ -577,11 +580,25 @@ function App() {
       {/* Floating Feedback Button */}
       <button
         onClick={handleFeedbackClick}
-        className="fixed left-6 bottom-24 z-50 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
+        onMouseEnter={() => setFeedbackExpanded(true)}
+        onMouseLeave={() => setFeedbackExpanded(false)}
+        className="fixed left-4 md:left-6 bottom-20 md:bottom-24 z-50 flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
+        style={{
+          padding: feedbackExpanded ? '0.75rem 1rem' : '0.75rem',
+          width: feedbackExpanded ? 'auto' : '3rem',
+          height: '3rem'
+        }}
         aria-label="Share Feedback"
+        title="Share Feature Ideas"
       >
-        <MessageSquarePlus className="h-5 w-5" />
-        <span className="font-medium text-sm">Feature Ideas?</span>
+        <MessageSquarePlus className="h-5 w-5 flex-shrink-0" />
+        <span 
+          className={`font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ${
+            feedbackExpanded ? 'max-w-xs opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'
+          } hidden md:inline`}
+        >
+          Feature Ideas?
+        </span>
       </button>
     </div>
   );

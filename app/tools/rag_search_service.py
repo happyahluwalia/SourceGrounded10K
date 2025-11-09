@@ -227,7 +227,8 @@ class RAGSearchTool:
                     base_url=settings.ollama_base_url,
                     temperature=0.1,
                     num_predict=max_tokens,
-                    seed=unique_seed
+                    seed=unique_seed,
+                    num_ctx=8192  # Isolated context window per request
                 )
             else:
                 # Always create fresh instance with unique seed to prevent caching
@@ -235,7 +236,8 @@ class RAGSearchTool:
                     model=self.model_name,
                     base_url=settings.ollama_base_url,
                     temperature=0.1,
-                    seed=unique_seed
+                    seed=unique_seed,
+                    num_ctx=8192  # Isolated context window per request
                 )
             
             # Prompt is expected to be a tuple (system_prompt, user_prompt)
@@ -270,30 +272,10 @@ class RAGSearchTool:
                 return json.dumps(parsed, indent=2)
             except json.JSONDecodeError as e:
                 logger.warning(f"LLM response is not valid JSON: {e}")
-                # If not valid JSON, try to extract JSON from the response
-                try:
-                    # Look for JSON object/array in the response
-                    json_start = content.find('{')
-                    json_end = content.rfind('}') + 1
-                    if json_start >= 0 and json_end > json_start:
-                        json_str = content[json_start:json_end]
-                        parsed = json.loads(json_str)
-                        return json.dumps(parsed, indent=2)
-                except Exception as extract_error:
-                    logger.error(f"Failed to extract JSON from response: {extract_error}")
-                
-                # If we can't extract valid JSON, create a fallback response
-                return json.dumps({
-                    "answer": {
-                        "sections": [{
-                            "type": "paragraph",
-                            "content": raw_answer,
-                            "citations": []
-                        }]
-                    },
-                    "confidence": "low",
-                    "error": "Failed to generate valid JSON response"
-                })
+                # Return raw answer - let filing_qa_tool handle recovery
+                # It has better error handling for double-nested and malformed JSON
+                logger.info("Returning raw answer for filing_qa_tool to handle")
+                return raw_answer
                 
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")

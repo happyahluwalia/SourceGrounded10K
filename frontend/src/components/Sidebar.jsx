@@ -30,9 +30,13 @@ export function Sidebar({
     // Use first user message as title
     const firstUserMsg = conversation.messages.find(m => m.role === 'user')
     if (firstUserMsg) {
-      return firstUserMsg.content.length > 50 
-        ? firstUserMsg.content.substring(0, 50) + '...'
-        : firstUserMsg.content
+      // Ensure content is a string (defensive coding)
+      const content = typeof firstUserMsg.content === 'string' 
+        ? firstUserMsg.content 
+        : 'New Conversation';
+      return content.length > 50 
+        ? content.substring(0, 50) + '...'
+        : content
     }
     return 'New Conversation'
   }

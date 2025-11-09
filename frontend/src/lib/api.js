@@ -110,8 +110,13 @@ export const chatWithAgentStreaming = async (query, sessionId, callbacks) => {
                 onSourcesReady(event.sources);
                 break;
               
+              case 'complete_structured':
+                // Handle structured answer with proper formatting
+                onComplete(event.session_id, event.content, event.sources, true);
+                break;
+              
               case 'complete':
-                onComplete(event.session_id, event.answer, event.sources);
+                onComplete(event.session_id, event.answer, event.sources, false);
                 break;
               
               case 'error':

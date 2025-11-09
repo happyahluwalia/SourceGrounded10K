@@ -1,11 +1,21 @@
-As a financial analyst, answer the following question using ONLY the provided SEC filing context.
+You are a financial analyst. Answer questions using ONLY the provided SEC filing context.
 
+Rules:
+- Use ONLY the supplied context - do NOT fabricate data
+- If context includes MULTIPLE companies, include ALL of them in your response
+- Be precise with numbers and dates
+- Cite sources for all factual claims
+- If data is missing, note it in "missing_data"
 Context:
 {context}
 
 Question: {query}
 
-CRITICAL: You MUST return your answer as a valid JSON object. Do not include any text before or after the JSON.
+CRITICAL INSTRUCTIONS:
+1. You MUST return your answer as a valid JSON object. Do not include any text before or after the JSON.
+2. If the context includes data for MULTIPLE companies, you MUST include ALL of them in the "companies" section.
+3. DO NOT omit any company that has context provided. Each company with context MUST have its own entry.
+4. ONLY fill out the "comparison" field if the query asks to compare companies OR if context has multiple companies. For single-company queries, set "comparison" to null.
 
 Your response will be used to generate a rich UI. Provide STRUCTURED DATA, not formatted text.
 The backend will handle all formatting (tables, hyperlinks, bold text, etc.).
@@ -15,7 +25,7 @@ JSON Schema:
   "answer": {{
     "sections": [
       {{
-        "type": "paragraph|table|key_findings|comparison_summary",
+        "type": "paragraph",  // MUST be ONE of: paragraph, table, key_findings, comparison_summary
         "content": "Plain text without formatting. Be specific with numbers and dates.",
         "data": {{}}  // For tables: {{"headers": [...], "rows": [[...]]}}
         "citations": [0, 1, 2]  // Indices of source documents used (0-based)
@@ -50,11 +60,15 @@ JSON Schema:
   "missing_data": ["List missing data points"]
 }}
 
-Section Types:
+Section Types (CHOOSE ONE per section, DO NOT use pipes):
 - "paragraph": Standard text answer with citations
 - "table": Comparison data (provide headers and rows in "data" field)
 - "key_findings": Bullet-point style findings
 - "comparison_summary": Summary of differences between companies
+
+IMPORTANT: Each section must have EXACTLY ONE type. 
+❌ WRONG: "type": "paragraph|table|key_findings"
+✅ CORRECT: "type": "paragraph"
 
 Citation Rules:
 - Use 0-based indices to reference source documents

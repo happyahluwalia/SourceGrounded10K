@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
 import { Send, Settings, Terminal, Loader2, TrendingUp, MessageSquarePlus } from 'lucide-react';
 import { Button } from './components/Button';
@@ -41,7 +41,16 @@ function App() {
   const eventSourceRef = useRef(null);
 
   // Get messages and sessionId from active conversation
-  const messages = activeConversation?.messages || [];
+  // Force a new array reference to ensure React detects changes
+  const messagesRef = useRef(null);
+  const messages = useMemo(() => {
+    const msgs = activeConversation?.messages || [];
+    messagesRef.current = msgs;
+    
+    // Return a shallow copy to ensure a new reference every time
+    return [...msgs];
+  }, [activeConversation]);
+  
   const sessionId = activeConversation?.session_id;
   
   // Check if active conversation is loading
@@ -61,16 +70,12 @@ function App() {
     const conversation = conversations.find(c => c.id === conversationId);
     if (!conversation) {
       console.error('❌ Conversation not found:', conversationId);
-      console.log('Available conversations:', conversations.map(c => c.id));
       return;
     }
     
     const updatedMessages = conversation.messages.map(msg =>
       msg.id === messageId ? { ...msg, ...updates } : msg
     );
-    
-    console.log(`🔄 Updating message ${messageId} in conversation ${conversationId}`);
-    console.log(`   Found ${updatedMessages.length} messages`);
     
     updateConversationMessages(conversationId, updatedMessages);
   };
@@ -204,18 +209,20 @@ function App() {
     // CRITICAL: Capture conversation ID FIRST before any state changes
     const queryConversationId = activeConversationId;
     const queryText = input;
-    
-    console.log('🚀 Starting query for conversation:', queryConversationId);
 
     // Generate session_id if this is the first message in the conversation
     let currentSessionId = sessionId;
     if (!currentSessionId) {
       currentSessionId = uuidv4();
       updateConversationSessionId(queryConversationId, currentSessionId);
-      console.log('🆕 Generated session ID:', currentSessionId, 'for conversation:', queryConversationId);
+      console.log(`🆕 NEW SESSION: conversation=${queryConversationId.substring(0,8)}, session=${currentSessionId.substring(0,8)}, query="${queryText}"`);
+    } else {
+      console.log(`🔄 EXISTING SESSION: conversation=${queryConversationId.substring(0,8)}, session=${currentSessionId.substring(0,8)}, query="${queryText}"`);
     }
 
+    const userMessageId = Date.now();
     const userMessage = {
+      id: userMessageId,
       role: 'user',
       content: input,
       timestamp: new Date().toISOString(),
@@ -225,8 +232,8 @@ function App() {
     const currentConversation = conversations.find(c => c.id === queryConversationId);
     const conversationMessages = currentConversation?.messages || [];
     
-    // Create placeholder for streaming assistant message
-    const assistantMessageId = Date.now();
+    // Create placeholder for streaming assistant message (ensure different ID)
+    const assistantMessageId = userMessageId + 1;
     const assistantMessage = {
       id: assistantMessageId,
       role: 'assistant',
@@ -238,8 +245,6 @@ function App() {
     // Add BOTH user and assistant messages together to avoid race condition
     const messagesWithBoth = [...conversationMessages, userMessage, assistantMessage];
     updateConversationMessages(queryConversationId, messagesWithBoth);
-    
-    console.log('📨 Added user + assistant messages to conversation, total messages:', messagesWithBoth.length);
     
     setInput('');
     setLoadingConversations(prev => new Set(prev).add(queryConversationId));
@@ -266,7 +271,6 @@ function App() {
         msg.id === messageId ? { ...msg, ...updates } : msg
       );
       updateConversationMessages(queryConversationId, currentMessages);
-      console.log(`🔄 Updated message, total messages now: ${currentMessages.length}`);
     };
 
     try {
@@ -276,7 +280,6 @@ function App() {
         // Handle each token as it arrives
         onToken: (content) => {
           accumulatedContent += content;
-          console.log(`📝 Token for conversation ${queryConversationId}, message ${assistantMessageId}`);
           updateLocalMessage(assistantMessageId, { 
             content: accumulatedContent 
           });
@@ -348,37 +351,29 @@ function App() {
 
         // Handle sources ready (early, before streaming answer)
         onSourcesReady: (sources) => {
-          console.log('📚 Sources ready for conversation:', queryConversationId);
-          console.log('   Sources count:', sources?.length || 0);
-          
           const ticker = sources && sources.length > 0 ? sources[0].ticker : null;
           
-          // Just update the sources and ticker on the message,
-          // don't stop streaming or change content yet.
           updateLocalMessage(assistantMessageId, {
-            sources: sources || [],
+            sources: sources,
             ticker: ticker
           });
-          
-          console.log('🏷️ Ticker badge updated early:', ticker);
         },
 
         // Handle completion
-        onComplete: (newSessionId, fullAnswer, sources) => {
-          console.log('✅ Complete for conversation:', queryConversationId);
-          console.log('   Message ID:', assistantMessageId);
-          console.log('   Sources:', sources?.length || 0);
-          console.log('   Answer type:', typeof fullAnswer);
-          
-          // Parse structured answer if it's a string (from JSON)
+        onComplete: (newSessionId, fullAnswer, sources, isStructured = false) => {
           let parsedAnswer = fullAnswer;
-          if (typeof fullAnswer === 'string') {
-            try {
-              parsedAnswer = JSON.parse(fullAnswer);
-              console.log('✅ Parsed structured answer:', parsedAnswer);
-            } catch (e) {
-              console.log('⚠️ Answer is plain text, not JSON');
-              // Keep as plain text for legacy format
+          
+          if (isStructured) {
+            // This is a structured answer from complete_structured event
+            parsedAnswer = fullAnswer;
+          } else {
+            // Handle legacy format (string or JSON string)
+            if (typeof fullAnswer === 'string') {
+              try {
+                parsedAnswer = JSON.parse(fullAnswer);
+              } catch (e) {
+                // Keep as plain text for legacy format
+              }
             }
           }
           
@@ -399,7 +394,6 @@ function App() {
           // Store session_id in conversation
           if (newSessionId) {
             updateConversationSessionId(queryConversationId, newSessionId);
-            console.log('💾 Session ID updated:', newSessionId);
           }
 
           // Extract ticker from sources (use first source's ticker)
@@ -415,8 +409,6 @@ function App() {
             ticker: ticker
           });
           
-          console.log('✅ Message updated in conversation');
-
           setLoadingConversations(prev => {
             const next = new Set(prev);
             next.delete(queryConversationId);
@@ -513,8 +505,8 @@ function App() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto">
-            {messages.map((message, idx) => (
-              <ChatMessage key={idx} message={message} />
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
             ))}
             
             {/* Progress Card */}

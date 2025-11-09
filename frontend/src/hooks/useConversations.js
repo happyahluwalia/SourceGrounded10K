@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
 const STORAGE_KEY = 'finance_agent_conversations'
 const ACTIVE_CONVERSATION_KEY = 'finance_agent_active_conversation'
@@ -48,6 +48,7 @@ export function useConversations() {
       timestamp: new Date().toISOString(),
       messages: [
         {
+          id: 'welcome-message',
           role: 'assistant',
           content: 'Hello! I\'m your AI financial analyst. Ask me questions about supported companies.',
           timestamp: new Date().toISOString()
@@ -62,20 +63,20 @@ export function useConversations() {
     return newConversation
   }
 
-  // Get active conversation
-  const getActiveConversation = () => {
-    return conversations.find(c => c.id === activeConversationId)
-  }
+  // Get active conversation - memoized to update when conversations or activeConversationId changes
+  const activeConversation = useMemo(() => {
+    return conversations.find(c => c.id === activeConversationId);
+  }, [conversations, activeConversationId])
 
   // Update conversation messages
   const updateConversationMessages = (conversationId, messages) => {
-    setConversations(prev =>
+    setConversations(prev => 
       prev.map(c =>
         c.id === conversationId
           ? { ...c, messages, timestamp: new Date().toISOString() }
           : c
       )
-    )
+    );
   }
 
   // Update conversation session_id
@@ -123,7 +124,7 @@ export function useConversations() {
   return {
     conversations,
     activeConversationId,
-    activeConversation: getActiveConversation(),
+    activeConversation,
     createConversation,
     updateConversationMessages,
     updateConversationSessionId,

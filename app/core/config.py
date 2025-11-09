@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # RAG Settings
     top_k: int = 5  # Number of chunks to retrieve from Qdrant
     score_threshold: float = 0.5  # Minimum similarity score (0-1)
-    max_tokens: int = 500  # Maximum tokens in LLM response
+    max_tokens: int = 1500  # Maximum tokens in LLM response (increased for multi-company comparisons)
     
     # Batch Processing
     embedding_batch_size: int = 32  # Batch size for embedding generation

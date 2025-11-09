@@ -162,19 +162,33 @@ class RAGSearchTool:
         
         return "\n".join(context_parts)
 
-    def build_prompt(self, query: str, context: str) -> str:
+    def build_prompt(self, query: str, context: str) -> tuple[str, str]:
         """
         Build LLM prompt with query and context from an external file.
+        Returns (system_prompt, user_prompt) tuple.
         """
         try:
             from pathlib import Path
             prompt_path = Path(__file__).parent.parent / "prompts" / "synthesizer.txt"
-            prompt_template = prompt_path.read_text()
+            full_prompt = prompt_path.read_text()
+            
+            # Split at "Context:" to separate system instructions from user content
+            if "Context:" in full_prompt:
+                parts = full_prompt.split("Context:", 1)
+                system_prompt = parts[0].strip()
+                user_template = "Context:\n" + parts[1]
+                user_prompt = user_template.format(context=context, query=query)
+            else:
+                # Fallback: treat entire prompt as user message
+                system_prompt = "You are a helpful financial analyst."
+                user_prompt = full_prompt.format(context=context, query=query)
+                
         except FileNotFoundError:
-            print("ERROR: Synthesizer prompt file not found. Using fallback prompt.")
-            prompt_template = """As a financial analyst, answer the following question using ONLY the provided SEC filing context.\n\nContext:\n{context}\n\nQuestion: {query}\n\nAnswer:"""
+            logger.warning("Synthesizer prompt file not found. Using fallback prompt.")
+            system_prompt = "You are a financial analyst. Answer using ONLY the provided context."
+            user_prompt = f"Context:\n{context}\n\nQuestion: {query}"
         
-        return prompt_template.format(context=context, query=query)
+        return system_prompt, user_prompt
 
     def generate(self, prompt: str, max_tokens: int = None) -> str:
         """
@@ -198,22 +212,46 @@ class RAGSearchTool:
             logger.info(f"Generating answer with {self.model_name}...")
 
             # Use ChatOllama invoke (consistent with rest of codebase)
-            from langchain_core.messages import HumanMessage
+            from langchain_core.messages import SystemMessage, HumanMessage
             from langchain_ollama import ChatOllama
             
             # Create LLM instance with correct parameters
             # ChatOllama doesn't support bind() for num_predict, need to pass in constructor
+            # IMPORTANT: Use unique seed to prevent Ollama from caching responses
+            import time
+            unique_seed = int(time.time() * 1000000) % 2147483647  # Max int32
+            
             if max_tokens:
                 llm = ChatOllama(
                     model=self.model_name,
                     base_url=settings.ollama_base_url,
                     temperature=0.1,
-                    num_predict=max_tokens
+                    num_predict=max_tokens,
+                    seed=unique_seed,
+                    num_ctx=8192  # Isolated context window per request
                 )
             else:
-                llm = self.llm_client
+                # Always create fresh instance with unique seed to prevent caching
+                llm = ChatOllama(
+                    model=self.model_name,
+                    base_url=settings.ollama_base_url,
+                    temperature=0.1,
+                    seed=unique_seed,
+                    num_ctx=8192  # Isolated context window per request
+                )
             
-            response = llm.invoke([HumanMessage(content=prompt)])
+            # Prompt is expected to be a tuple (system_prompt, user_prompt)
+            if isinstance(prompt, tuple):
+                system_prompt, user_prompt = prompt
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
+            else:
+                # Fallback for old single-string prompts
+                messages = [HumanMessage(content=prompt)]
+            
+            response = llm.invoke(messages)
             raw_answer = response.content.strip()
             logger.info(f"Generated answer ({len(raw_answer)} chars)")
             
@@ -234,30 +272,10 @@ class RAGSearchTool:
                 return json.dumps(parsed, indent=2)
             except json.JSONDecodeError as e:
                 logger.warning(f"LLM response is not valid JSON: {e}")
-                # If not valid JSON, try to extract JSON from the response
-                try:
-                    # Look for JSON object/array in the response
-                    json_start = content.find('{')
-                    json_end = content.rfind('}') + 1
-                    if json_start >= 0 and json_end > json_start:
-                        json_str = content[json_start:json_end]
-                        parsed = json.loads(json_str)
-                        return json.dumps(parsed, indent=2)
-                except Exception as extract_error:
-                    logger.error(f"Failed to extract JSON from response: {extract_error}")
-                
-                # If we can't extract valid JSON, create a fallback response
-                return json.dumps({
-                    "answer": {
-                        "sections": [{
-                            "type": "paragraph",
-                            "content": raw_answer,
-                            "citations": []
-                        }]
-                    },
-                    "confidence": "low",
-                    "error": "Failed to generate valid JSON response"
-                })
+                # Return raw answer - let filing_qa_tool handle recovery
+                # It has better error handling for double-nested and malformed JSON
+                logger.info("Returning raw answer for filing_qa_tool to handle")
+                return raw_answer
                 
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")

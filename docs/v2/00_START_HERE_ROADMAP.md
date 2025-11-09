@@ -1,5 +1,115 @@
 # Multi-Agent Finance Agent: Complete Learning Roadmap & Summary
 
+## ⚠️ CRITICAL: Production Issues Requiring Fast Follow
+
+### 🔴 Issue #1: Context Window Overflow in Multi-Turn Conversations
+
+**Status**: Not Handled (Production Bug)
+
+**Problem**:
+In multi-turn conversations, the entire message history is passed to the LLM on every turn, causing unbounded context growth:
+
+```python
+# supervisor.py line 150-151 (CURRENT IMPLEMENTATION)
+messages = [SystemMessage(content=system_prompt)] + state["messages"]
+response = self.llm_with_tools.invoke(messages)
+```
+
+**Impact**:
+- Turn 1: 2 messages (system + user)
+- Turn 2: 4 messages (system + user1 + ai1 + user2)
+- Turn 3: 6 messages (system + user1 + ai1 + user2 + ai2 + user3)
+- Turn 10-15: **Context window overflow** (8192 tokens for llama3.1:8b)
+- Result: System crashes or truncates important context
+
+**Why This Matters**:
+- Users will hit this after 10-15 conversation turns
+- No graceful degradation currently implemented
+- Checkpointing stores full history, making problem worse over time
+
+**Solution Options**:
+
+**Option 1: Sliding Window (Recommended for Financial Q&A)**
+```python
+# supervisor.py _llm_call() method
+MAX_HISTORY = 8  # Last 4 turns (user + ai pairs)
+recent_messages = (
+    state["messages"][-MAX_HISTORY:] 
+    if len(state["messages"]) > MAX_HISTORY 
+    else state["messages"]
+)
+messages = [SystemMessage(content=system_prompt)] + recent_messages
+response = self.llm_with_tools.invoke(messages)
+```
+
+**Option 2: LangChain Message Trimming (More Sophisticated)**
+```python
+from langchain_core.messages import trim_messages
+
+def _llm_call(self, state: MessagesState):
+    system_msg = SystemMessage(content=system_prompt)
+    
+    # Keep messages within token budget
+    trimmed = trim_messages(
+        state["messages"],
+        max_tokens=6000,  # Leave room for system + response
+        strategy="last",  # Keep most recent
+        token_counter=len  # Or use tiktoken for accuracy
+    )
+    
+    messages = [system_msg] + trimmed
+    response = self.llm_with_tools.invoke(messages)
+    return {"messages": [response]}
+```
+
+**Option 3: Conversation Summarization (Most Complex)**
+```python
+# After N turns, summarize conversation history
+if len(state["messages"]) > 20:
+    summary_prompt = "Summarize this conversation: ..."
+    summary = llm.invoke(summary_prompt)
+    # Replace old messages with summary + recent context
+    state["messages"] = [summary] + state["messages"][-4:]
+```
+
+**Recommendation**: 
+Implement **Option 1 (Sliding Window)** immediately as a fast follow. For financial Q&A:
+- Most queries are independent
+- Context from 2-3 turns back is sufficient
+- Simple, predictable, no additional LLM calls
+- Set `MAX_HISTORY = 8` (4 conversation turns)
+
+**Priority**: 🔴 **HIGH** - Will cause production failures
+
+**Effort**: 🟢 **LOW** - 15 minutes to implement Option 1
+
+**Files to Modify**:
+- `app/agents/supervisor.py` (line ~150)
+- Add tests in `tests/unit/test_supervisor.py`
+- Document in `docs/Architecture.md`
+
+**Testing**:
+```python
+# Test case: 20-turn conversation
+def test_context_window_management():
+    supervisor = SupervisorAgent()
+    session_id = str(uuid.uuid4())
+    
+    # Simulate 20 turns
+    for i in range(20):
+        result = await supervisor.ainvoke(
+            f"Query {i}",
+            session_id=session_id
+        )
+        assert result is not None  # Should not crash
+    
+    # Verify message count is bounded
+    state = get_checkpoint_state(session_id)
+    assert len(state["messages"]) <= MAX_HISTORY + 1  # +1 for system
+```
+
+---
+
 ## 🎯 Overview
 
 Congratulations! You now have a comprehensive guide to building a production-grade multi-agent system for your Finance Agent. This document ties everything together and provides a clear path forward.

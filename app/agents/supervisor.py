@@ -268,26 +268,26 @@ class SupervisorAgent:
             if not session_id:
                 import uuid
                 session_id = str(uuid.uuid4())
+                logger.info(f"Generated new session_id: {session_id}")
             
-            messages = [HumanMessage(content=query)]
-            thread_id = f"{user_id or 'anonymous'}_{session_id}"
-            config = {"configurable": {"thread_id": thread_id}}
+            thread_id = f"user_{user_id or 'anonymous'}_{session_id}"
+            logger.info(f"Starting streaming for thread_id: {thread_id}")
             
-            logger.info(f"Streaming query for thread_id: {thread_id}")
+            # Initialize state variables
+            accumulated_answer = ""
+            sent_structured_complete = False
+            current_step = None
+            step_start_time = None
+            sources = []  # Store sources from tool output
             
             # Get checkpointer and compile graph
             checkpointer = self.get_checkpointer()
             graph = self.graph_builder.compile(checkpointer=checkpointer)
             
-            accumulated_answer = ""
-            current_step = None
-            step_start_time = None
-            sources = []  # Store sources from tool output
-            
             # Stream events from graph execution
             async for event in graph.astream_events(
-                {"messages": messages},
-                config=config,
+                {"messages": [HumanMessage(content=query)]},
+                config={"configurable": {"thread_id": thread_id}},
                 version="v2"
             ):
                 event_type = event.get("event")
@@ -374,18 +374,30 @@ class SupervisorAgent:
                             
                             # Check if we have a structured answer with sections
                             if isinstance(answer_content, dict) and "sections" in answer_content:
-                                # The answer is already formatted by the tool, so we just use it directly.
-                                ui_formatted = answer_content
+                                # The answer is already UI-formatted by format_answer_for_ui()
+                                # It has: sections (with component/props), metadata, visualization
+                                # Just add sources if not already present
+                                if "sources" not in answer_content:
+                                    answer_content["sources"] = sources
+                                
+                                # Merge metadata from structured_data if present and not in answer
+                                # (though format_answer_for_ui already includes it)
+                                if structured_data and "metadata" not in answer_content:
+                                    answer_content["metadata"] = structured_data
                                 
                                 # Set the accumulated answer to the formatted UI structure
-                                accumulated_answer = ui_formatted
+                                accumulated_answer = answer_content
                                 
                                 # Send the complete structured answer in one go
                                 yield {
                                     "type": "complete_structured",
-                                    "content": ui_formatted,
-                                    "session_id": session_id
+                                    "content": answer_content,
+                                    "session_id": session_id,
+                                    "sources": sources
                                 }
+                                
+                                # Mark that we've sent the structured completion
+                                sent_structured_complete = True
                             else:
                                 # Legacy plain text format - stream character by character
                                 answer_text = str(answer_content) if answer_content else str(result.get("answer", tool_output))
@@ -424,23 +436,27 @@ class SupervisorAgent:
                             }
             
             # Send completion event with full answer and sources
-            logger.info(f"✓ Streaming complete for thread_id: {thread_id}")
-            
-            # Handle structured vs string answers correctly
-            if isinstance(accumulated_answer, dict):
-                # For structured answers, send the object directly 
-                # FastAPI will serialize it properly for JSON transmission
-                completion_answer = accumulated_answer
-            else:
-                # For string answers, keep as string
-                completion_answer = accumulated_answer
+            # Skip if we already sent a complete_structured event
+            if not sent_structured_complete:
+                logger.info(f"✓ Streaming complete for thread_id: {thread_id}")
                 
-            yield {
-                "type": "complete",
-                "answer": completion_answer,
-                "sources": sources,
-                "session_id": session_id
-            }
+                # Handle structured vs string answers correctly
+                if isinstance(accumulated_answer, dict):
+                    # For structured answers, send the object directly 
+                    # FastAPI will serialize it properly for JSON transmission
+                    completion_answer = accumulated_answer
+                else:
+                    # For string answers, keep as string
+                    completion_answer = accumulated_answer
+                    
+                yield {
+                    "type": "complete",
+                    "answer": completion_answer,
+                    "sources": sources if 'sources' in locals() else [],
+                    "session_id": session_id
+                }
+            else:
+                logger.info(f"✓ Streaming complete (structured) for thread_id: {thread_id}")
             
         except RuntimeError as e:
             logger.error(f"Checkpointer error during streaming: {e}")

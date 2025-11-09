@@ -66,7 +66,22 @@ def format_answer_for_ui(synthesis_result: dict, sources: list) -> dict:
             logger.warning(f"Unknown section type: {section_type}, treating as paragraph")
             formatted_sections.append(_format_paragraph(section, sources))
     
+    # Check if comparison data exists at root level and add as section if not already present
     structured_data = synthesis_result.get("structured", {})
+    comparison_data = synthesis_result.get("comparison", {})
+    if comparison_data and comparison_data.get("summary"):
+        # Check if comparison_summary section already exists
+        has_comparison_section = any(s.get("type") == "comparison_summary" for s in sections_raw)
+        if not has_comparison_section:
+            formatted_sections.append({
+                "component": "ComparisonSummary",
+                "props": {
+                    "summary": comparison_data.get("summary", ""),
+                    "winner": comparison_data.get("winner"),
+                    "metric": comparison_data.get("metric"),
+                    "citations": []
+                }
+            })
     return {
         "sections": formatted_sections,
         "metadata": {
@@ -93,12 +108,43 @@ def _format_paragraph(section: dict, sources: list) -> dict:
 def _format_table(section: dict, sources: list) -> dict:
     """Format comparison table section."""
     data = section.get("data", {})
+    
+    # Handle case where content might be an object instead of string
+    content = section.get("content", "Comparison")
+    if isinstance(content, dict):
+        # If content is a dict, it might have the table data
+        # Use it as data if data is empty
+        if not data or (not data.get("headers") and not data.get("rows")):
+            data = content
+        # Use a default title
+        title = "Comparison"
+    else:
+        title = str(content)
+    
+    # Flatten rows if they contain objects (LLM sometimes generates this)
+    rows = data.get("rows", [])
+    flattened_rows = []
+    for row in rows:
+        if isinstance(row, list):
+            flattened_row = []
+            for cell in row:
+                if isinstance(cell, dict):
+                    # Extract values from dict and flatten
+                    # e.g., {"company": "AAPL", "growth_rate": "2%"} -> ["AAPL", "2%"]
+                    flattened_row.extend(cell.values())
+                else:
+                    flattened_row.append(str(cell))
+            flattened_rows.append(flattened_row)
+        else:
+            # Single value row (shouldn't happen, but handle it)
+            flattened_rows.append([str(row)])
+    
     return {
         "component": "Table",
         "props": {
-            "title": section.get("content", "Comparison"),
+            "title": title,
             "headers": data.get("headers", []),
-            "rows": data.get("rows", []),
+            "rows": flattened_rows,
             "citations": _build_citations(section.get("citations", []), sources)
         }
     }
@@ -399,8 +445,19 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
             context_parts.append(rag_tool.build_context(chunks))
     context = "\n".join(context_parts)
     
+    # Log what we're sending to the LLM
+    logger.info("="*80)
+    logger.info(f"📝 QUERY: '{query}'")
+    logger.info(f"📊 COMPANIES IN CONTEXT: {list(chunks_by_company.keys())}")
+    logger.info(f"📦 CHUNK COUNTS: {{{', '.join([f'{k}: {len(v)} chunks' for k, v in chunks_by_company.items()])}}}")
+    logger.info("="*80)
+    
     prompt = rag_tool.build_prompt(query, context)
     raw_answer = rag_tool.generate(prompt)
+    
+    # Log first part of LLM response to verify it's unique
+    logger.info(f"🤖 LLM RESPONSE PREVIEW (first 500 chars): {raw_answer[:500]}...")
+    logger.info("="*80)
     
     # Parse JSON response from LLM
     import json
@@ -420,12 +477,62 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
                 raise ValueError("No JSON found in response")
         
         parsed_result = json.loads(json_str)
-        logger.info("✓ Successfully parsed JSON response from synthesizer")
         
-        # Ensure answer is a string and structured data is properly formatted
+        # Check if LLM double-nested the JSON (common bug with small models)
+        # Pattern: {"answer": {"sections": [{"content": "{\n  \"answer\": {...}}"}]}}
         answer = parsed_result.get("answer", raw_answer)
+        if isinstance(answer, dict) and "sections" in answer:
+            first_section = answer["sections"][0] if answer["sections"] else None
+            if first_section and isinstance(first_section.get("content"), str):
+                content_str = first_section["content"]
+                # Check if content looks like JSON (starts with { and contains "answer")
+                if content_str.strip().startswith('{') and '"answer"' in content_str:
+                    try:
+                        # Try to parse the nested JSON
+                        nested_json = json.loads(content_str)
+                        if isinstance(nested_json, dict) and "answer" in nested_json:
+                            # Replace with the inner structure
+                            parsed_result = nested_json
+                            answer = nested_json["answer"]
+                    except json.JSONDecodeError as e:
+                        # Try to fix truncated JSON by adding closing braces
+                        # Count open vs close braces
+                        open_braces = content_str.count('{')
+                        close_braces = content_str.count('}')
+                        missing_braces = open_braces - close_braces
+                        
+                        if missing_braces > 0:
+                            fixed_json = content_str + ('}' * missing_braces)
+                            try:
+                                nested_json = json.loads(fixed_json)
+                                if isinstance(nested_json, dict) and "answer" in nested_json:
+                                    parsed_result = nested_json
+                                    answer = nested_json["answer"]
+                            except json.JSONDecodeError:
+                                # Try to find the longest valid JSON prefix
+                                for i in range(len(content_str), 0, -1):
+                                    try:
+                                        nested_json = json.loads(content_str[:i])
+                                        if isinstance(nested_json, dict) and "answer" in nested_json:
+                                            parsed_result = nested_json
+                                            answer = nested_json["answer"]
+                                            break
+                                    except json.JSONDecodeError:
+                                        continue
+                        else:
+                            # No missing braces, try prefix extraction
+                            for i in range(len(content_str), 0, -1):
+                                try:
+                                    nested_json = json.loads(content_str[:i])
+                                    if isinstance(nested_json, dict) and "answer" in nested_json:
+                                        parsed_result = nested_json
+                                        answer = nested_json["answer"]
+                                        break
+                                except json.JSONDecodeError:
+                                    continue
+        
+        # Ensure answer is properly formatted
         if isinstance(answer, dict):
-            # If answer is already a dict, use it as is
             answer_content = answer
         else:
             # If answer is a string, create a simple paragraph section

@@ -70,8 +70,8 @@ export function ChatMessage({ message }) {
         {answer.sections && answer.sections.map((section, idx) => {
           const { component, props } = section
 
-          switch (component) {
-            case 'Paragraph':
+          switch (component?.toLowerCase()) {
+            case 'paragraph':
               return (
                 <div key={idx} className="text-foreground text-base leading-relaxed">
                   {props.text}
@@ -89,7 +89,7 @@ export function ChatMessage({ message }) {
                 </div>
               )
             
-            case 'Table':
+            case 'table':
               return (
                 <Card key={idx} className="p-4">
                   {props.title && (
@@ -133,7 +133,7 @@ export function ChatMessage({ message }) {
                 </Card>
               )
             
-            case 'KeyFindings':
+            case 'keyfindings':
               return (
                 <Card key={idx} className="p-4 bg-primary/5 border-primary/20">
                   <div className="flex items-center gap-2 mb-3">
@@ -162,7 +162,7 @@ export function ChatMessage({ message }) {
                 </Card>
               )
             
-            case 'ComparisonSummary':
+            case 'comparisonsummary':
               return (
                 <Card key={idx} className="p-4 bg-secondary/50">
                   <div className="flex items-center gap-2 mb-3">
@@ -349,7 +349,6 @@ export function ChatMessage({ message }) {
         </div>
 
         <div className="prose prose-sm max-w-none dark:prose-invert">
-          {/* Check if content is structured format or legacy plain text */}
           {typeof message.content === 'object' && message.content !== null
             ? renderStructuredAnswer(message.content)
             : <div className="whitespace-pre-wrap text-foreground text-base leading-relaxed">

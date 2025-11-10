@@ -140,6 +140,9 @@ class SupervisorAgent:
     # Node implementations
     def _llm_call(self, state: MessagesState):
         """The supervisor LLM decides which tool to call."""
+        import time
+        start_time = time.time()
+        
         try:
             prompt_path = Path(__file__).parent.parent / "prompts" / "supervisor.txt"
             system_prompt = prompt_path.read_text()
@@ -148,7 +151,21 @@ class SupervisorAgent:
             system_prompt = "You are a helpful assistant. Use the tools available to answer the user's question."
 
         messages = [SystemMessage(content=system_prompt)] + state["messages"]
+        
+        # Log the LLM call
+        logger.info("=" * 80)
+        logger.info("🔍 Supervisor LLM Call Starting...")
+        logger.info(f"📝 Input: {messages[-1].content[:200]}...")
+        
+        # Make the LLM call
         response = self.llm_with_tools.invoke(messages)
+        
+        # Calculate and log duration
+        duration = time.time() - start_time
+        logger.info(f"✅ Supervisor LLM Call Completed")
+        logger.info(f"⏱️  Duration: {duration:.2f}s")
+        logger.info("=" * 80)
+        
         return {"messages": [response]}
 
     def _tool_node(self, state: MessagesState):

@@ -332,60 +332,60 @@ async def health_check():
     return health_status
 
 
-@app.post("/api/v2/chat")
-async def chat_endpoint(request: ChatRequest):
-    """
-    Natural language chat endpoint for the v2 Supervisor Agent.
+# @app.post("/api/v2/chat")
+# async def chat_endpoint(request: ChatRequest):
+#     """
+#     Natural language chat endpoint for the v2 Supervisor Agent.
 
-    This is the main endpoint for the agentic architecture. The supervisor
-    analyzes the query and delegates to appropriate specialist tools.
+#     This is the main endpoint for the agentic architecture. The supervisor
+#     analyzes the query and delegates to appropriate specialist tools.
     
-    Supports conversation continuity through session_id:
-    - Frontend should store session_id in localStorage
-    - Send same session_id for follow-up questions
-    - Omit session_id to start a new conversation
+#     Supports conversation continuity through session_id:
+#     - Frontend should store session_id in localStorage
+#     - Send same session_id for follow-up questions
+#     - Omit session_id to start a new conversation
     
-    Example:
-        POST /api/v2/chat
-        {
-            "query": "What are the risks of investing in Apple?",
-            "session_id": "abc-123-def"  // Optional, for conversation history
-        }
+#     Example:
+#         POST /api/v2/chat
+#         {
+#             "query": "What are the risks of investing in Apple?",
+#             "session_id": "abc-123-def"  // Optional, for conversation history
+#         }
     
-    Response includes session_id for frontend to persist.
-    """
-    try:
-        logger.info("=" * 80)
-        logger.info(f"🔍 NEW QUERY: {request.query[:100]}...")
-        if request.session_id:
-            logger.info(f"📝 Session ID: {request.session_id}")
-        logger.info("=" * 80)
+#     Response includes session_id for frontend to persist.
+#     """
+#     try:
+#         logger.info("=" * 80)
+#         logger.info(f"🔍 NEW QUERY: {request.query[:100]}...")
+#         if request.session_id:
+#             logger.info(f"📝 Session ID: {request.session_id}")
+#         logger.info("=" * 80)
         
-        # Process query with checkpointing
-        result = await supervisor.ainvoke(
-            query=request.query,
-            user_id=request.user_id,
-            session_id=request.session_id  # Can be None, will be generated
-        )
+#         # Process query with checkpointing
+#         result = await supervisor.ainvoke(
+#             query=request.query,
+#             user_id=request.user_id,
+#             session_id=request.session_id  # Can be None, will be generated
+#         )
         
-        return {
-            "query": result['query'],
-            "answer": result['answer'],
-            "session_id": result['session_id']  # Return for frontend to store
-        }
-    except RuntimeError as e:
-        # Checkpointer not initialized
-        logger.error(f"Checkpointer error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Conversation persistence service unavailable"
-        )
-    except Exception as e:
-        logger.error(f"Error processing query: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing query: {str(e)}"
-        )
+#         return {
+#             "query": result['query'],
+#             "answer": result['answer'],
+#             "session_id": result['session_id']  # Return for frontend to store
+#         }
+#     except RuntimeError as e:
+#         # Checkpointer not initialized
+#         logger.error(f"Checkpointer error: {e}", exc_info=True)
+#         raise HTTPException(
+#             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+#             detail="Conversation persistence service unavailable"
+#         )
+#     except Exception as e:
+#         logger.error(f"Error processing query: {e}", exc_info=True)
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Error processing query: {str(e)}"
+#         )
 
 
 @app.post("/api/v2/chat/stream")

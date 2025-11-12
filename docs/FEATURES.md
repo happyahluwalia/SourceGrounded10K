@@ -352,9 +352,14 @@ X-RateLimit-Reset: 1634567890
 ## Future Enhancements
 
 ### Planned Features
+Completed on Nov 7th
+- [x] **Multi-company analysis**: Compare multiple companies
 
-- [ ] **Streaming responses**: Token-by-token LLM generation
-- [ ] **Multi-company analysis**: Compare multiple companies
+Completed on Nov 10th
+- [x] **Streaming responses**: Token-by-token LLM generation (non-streaming endpoint disabled)
+- [x] **Supervisor LLM call timing**: Log generation time for Supervisor agent
+
+
 - [ ] **Time-series queries**: Track metrics over quarters
 - [ ] **Advanced filters**: Industry, market cap, geography
 - [ ] **Export functionality**: Download answers as PDF/CSV

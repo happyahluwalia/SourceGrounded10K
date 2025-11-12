@@ -304,8 +304,25 @@ def get_plan(query: str) -> dict:
             SystemMessage(content=system_prompt),
             HumanMessage(content=query)
         ]
+        
+        # Token metrics: log before and after call
+        from app.utils.token_metrics import current_token_metrics
+        token_metrics = current_token_metrics.get()
+        start_time = time.time()
+        
         response = llm.invoke(messages)
         response_content = response.content
+        
+        # Log token metrics
+        if token_metrics:
+            token_metrics.log_call(
+                stage="planner",
+                model=settings.planner_model,
+                input_messages=messages,
+                output=response_content,
+                start_time=start_time,
+                end_time=time.time()
+            )
         
         try:
             json_start_index = response_content.find('{')
@@ -453,11 +470,33 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
     logger.info("="*80)
     
     prompt = rag_tool.build_prompt(query, context)
+    
+    # Token metrics: log before and after call
+    from app.utils.token_metrics import current_token_metrics
+    token_metrics = current_token_metrics.get()
+    start_time = time.time()
+    
     raw_answer = rag_tool.generate(prompt)
     
-    # Log first part of LLM response to verify it's unique
-    logger.info(f"🤖 LLM RESPONSE PREVIEW (first 500 chars): {raw_answer[:500]}...")
-    logger.info("="*80)
+    # Log token metrics for synthesizer
+    if token_metrics:
+        # Convert prompt tuple to messages list for token counting
+        if isinstance(prompt, tuple):
+            from langchain_core.messages import SystemMessage, HumanMessage
+            system_prompt, user_prompt = prompt
+            messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+        else:
+            from langchain_core.messages import HumanMessage
+            messages = [HumanMessage(content=prompt)]
+        
+        token_metrics.log_call(
+            stage="synthesizer",
+            model=settings.synthesizer_model,
+            input_messages=messages,
+            output=raw_answer,
+            start_time=start_time,
+            end_time=time.time()
+        )
     
     # Parse JSON response from LLM
     import json
@@ -654,6 +693,14 @@ def answer_filing_question(query: str) -> str:
             for i, chunk in enumerate(all_chunks)
         ]
     }
+    
+    # Add token metrics summary and print analysis
+    from app.utils.token_metrics import current_token_metrics
+    token_metrics = current_token_metrics.get()
+    if token_metrics:
+        result["token_metrics"] = token_metrics.get_summary()
+        # Print comprehensive analysis
+        token_metrics.print_summary()
     
     # Return as a JSON string, as expected by the agent framework
     return json.dumps(result)

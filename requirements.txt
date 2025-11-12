@@ -56,3 +56,6 @@ langchain-ollama
 
 # Adding checkpointing and memory in graph
 langgraph-checkpoint-postgres
+
+#Adding tiktoken to count tokens at each stage
+tiktoken==0.12.0

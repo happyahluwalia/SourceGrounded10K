@@ -120,7 +120,7 @@ See Also:
 - app.core.config: Configuration management
 """
 
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, validator
@@ -139,8 +139,7 @@ import uuid
 from app.services.vector_store import VectorStore
 from app.services.log_streamer import subscribe_to_logs, unsubscribe_from_logs, get_log_stream_handler
 from app.agents.supervisor import SupervisorAgent
-
-
+from app.utils.token_metrics import TokenMetrics, current_token_metrics
 from app.core.config import settings
 
 # Configure logging
@@ -166,6 +165,108 @@ get_log_stream_handler()
 # We only need to instantiate the SupervisorAgent here.
 supervisor = SupervisorAgent()
 
+
+# ============================================================================
+# Ollama Model Health Check
+# ============================================================================
+
+async def verify_ollama_models_with_retry(max_retries: int = 30, retry_delay: int = 2):
+    """
+    Verify that all required Ollama models are available.
+    Retries with exponential backoff for Docker environments where Ollama starts slower.
+    
+    Args:
+        max_retries: Maximum number of retry attempts (default: 30 = 60 seconds)
+        retry_delay: Initial delay between retries in seconds (default: 2)
+    
+    Raises:
+        RuntimeError: If models are not available after max retries
+    """
+    required_models = {
+        "LLM Models": [
+            settings.supervisor_model,
+            settings.planner_model,
+            settings.synthesizer_model
+        ],
+        "Embedding Models": [
+            settings.embedding_model
+        ]
+    }
+    
+    # Flatten all required models
+    all_models = []
+    for category, models in required_models.items():
+        all_models.extend(models)
+    
+    # Remove duplicates
+    all_models = list(set(all_models))
+    
+    logger.info(f"Verifying {len(all_models)} required Ollama models...")
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            # Check if Ollama is reachable
+            response = requests.get(f"{settings.ollama_base_url}/api/tags", timeout=5)
+            response.raise_for_status()
+            
+            available_models = [model["name"] for model in response.json().get("models", [])]
+            
+            # Check each required model
+            missing_models = []
+            for model in all_models:
+                # Handle model tags (e.g., "llama3.2:3b" or "llama3.2")
+                model_found = any(
+                    available.startswith(model) or model.startswith(available.split(":")[0])
+                    for available in available_models
+                )
+                if not model_found:
+                    missing_models.append(model)
+            
+            if not missing_models:
+                logger.info(f"✓ All {len(all_models)} Ollama models verified")
+                for category, models in required_models.items():
+                    logger.info(f"  {category}: {', '.join(models)}")
+                return
+            
+            # Models missing - log and retry
+            if attempt < max_retries:
+                wait_time = min(retry_delay * attempt, 10)  # Cap at 10 seconds
+                logger.warning(
+                    f"Missing models: {', '.join(missing_models)}. "
+                    f"Retry {attempt}/{max_retries} in {wait_time}s (Ollama may still be starting)..."
+                )
+                await asyncio.sleep(wait_time)
+            else:
+                # Final attempt failed
+                error_msg = (
+                    f"Required Ollama models not found after {max_retries} attempts.\n"
+                    f"Missing: {', '.join(missing_models)}\n\n"
+                    f"Please run:\n"
+                )
+                for model in missing_models:
+                    error_msg += f"  ollama pull {model}\n"
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+                
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries:
+                wait_time = min(retry_delay * attempt, 10)
+                logger.warning(
+                    f"Ollama not reachable: {e}. "
+                    f"Retry {attempt}/{max_retries} in {wait_time}s (waiting for Ollama to start)..."
+                )
+                await asyncio.sleep(wait_time)
+            else:
+                error_msg = (
+                    f"Ollama service not reachable after {max_retries} attempts.\n"
+                    f"URL: {settings.ollama_base_url}\n"
+                    f"Error: {e}\n\n"
+                    f"Please ensure Ollama is running:\n"
+                    f"  - Native: ollama serve\n"
+                    f"  - Docker: docker-compose up ollama"
+                )
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
 
 # ============================================================================
 # Lifespan Management
@@ -198,6 +299,9 @@ async def lifespan(app: FastAPI):
         logger.error(f"✗ Database connection failed: {e}")
         raise
     
+    # Verify Ollama models with retry logic (for Docker environments)
+    await verify_ollama_models_with_retry()
+
     try:
         VectorStore().client.get_collections()
         logger.info("✓ Qdrant connection verified")
@@ -332,64 +436,67 @@ async def health_check():
     return health_status
 
 
-@app.post("/api/v2/chat")
-async def chat_endpoint(request: ChatRequest):
-    """
-    Natural language chat endpoint for the v2 Supervisor Agent.
+# @app.post("/api/v2/chat")
+# async def chat_endpoint(request: ChatRequest):
+#     """
+#     Natural language chat endpoint for the v2 Supervisor Agent.
 
-    This is the main endpoint for the agentic architecture. The supervisor
-    analyzes the query and delegates to appropriate specialist tools.
+#     This is the main endpoint for the agentic architecture. The supervisor
+#     analyzes the query and delegates to appropriate specialist tools.
     
-    Supports conversation continuity through session_id:
-    - Frontend should store session_id in localStorage
-    - Send same session_id for follow-up questions
-    - Omit session_id to start a new conversation
+#     Supports conversation continuity through session_id:
+#     - Frontend should store session_id in localStorage
+#     - Send same session_id for follow-up questions
+#     - Omit session_id to start a new conversation
     
-    Example:
-        POST /api/v2/chat
-        {
-            "query": "What are the risks of investing in Apple?",
-            "session_id": "abc-123-def"  // Optional, for conversation history
-        }
+#     Example:
+#         POST /api/v2/chat
+#         {
+#             "query": "What are the risks of investing in Apple?",
+#             "session_id": "abc-123-def"  // Optional, for conversation history
+#         }
     
-    Response includes session_id for frontend to persist.
-    """
-    try:
-        logger.info("=" * 80)
-        logger.info(f"🔍 NEW QUERY: {request.query[:100]}...")
-        if request.session_id:
-            logger.info(f"📝 Session ID: {request.session_id}")
-        logger.info("=" * 80)
+#     Response includes session_id for frontend to persist.
+#     """
+#     try:
+#         logger.info("=" * 80)
+#         logger.info(f"🔍 NEW QUERY: {request.query[:100]}...")
+#         if request.session_id:
+#             logger.info(f"📝 Session ID: {request.session_id}")
+#         logger.info("=" * 80)
         
-        # Process query with checkpointing
-        result = await supervisor.ainvoke(
-            query=request.query,
-            user_id=request.user_id,
-            session_id=request.session_id  # Can be None, will be generated
-        )
+#         # Process query with checkpointing
+#         result = await supervisor.ainvoke(
+#             query=request.query,
+#             user_id=request.user_id,
+#             session_id=request.session_id  # Can be None, will be generated
+#         )
         
-        return {
-            "query": result['query'],
-            "answer": result['answer'],
-            "session_id": result['session_id']  # Return for frontend to store
-        }
-    except RuntimeError as e:
-        # Checkpointer not initialized
-        logger.error(f"Checkpointer error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Conversation persistence service unavailable"
-        )
-    except Exception as e:
-        logger.error(f"Error processing query: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing query: {str(e)}"
-        )
+#         return {
+#             "query": result['query'],
+#             "answer": result['answer'],
+#             "session_id": result['session_id']  # Return for frontend to store
+#         }
+#     except RuntimeError as e:
+#         # Checkpointer not initialized
+#         logger.error(f"Checkpointer error: {e}", exc_info=True)
+#         raise HTTPException(
+#             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+#             detail="Conversation persistence service unavailable"
+#         )
+#     except Exception as e:
+#         logger.error(f"Error processing query: {e}", exc_info=True)
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Error processing query: {str(e)}"
+#         )
 
 
 @app.post("/api/v2/chat/stream")
-async def chat_stream_endpoint(request: ChatRequest):
+async def chat_stream_endpoint(
+    request: ChatRequest,
+    background_tasks: BackgroundTasks
+):
     """
     Streaming version of /api/v2/chat endpoint.
     
@@ -430,6 +537,10 @@ async def chat_stream_endpoint(request: ChatRequest):
             }
         }
     """
+    # Create token metrics for this request
+    token_metrics = TokenMetrics()
+    token_metrics_token = current_token_metrics.set(token_metrics)
+    
     async def event_generator():
         try:
             logger.info("=" * 80)
@@ -442,10 +553,15 @@ async def chat_stream_endpoint(request: ChatRequest):
             async for event in supervisor.astream_response(
                 query=request.query,
                 user_id=request.user_id,
-                session_id=request.session_id
+                session_id=request.session_id,
+                token_metrics=token_metrics
             ):
                 # Format as Server-Sent Event
                 yield f"data: {json.dumps(event)}\n\n"
+            
+            # After streaming completes, log token metrics
+            metrics_summary = token_metrics.get_summary()
+            log_token_metrics(metrics_summary, request.session_id)
                 
         except Exception as e:
             logger.error(f"Error in streaming: {e}", exc_info=True)
@@ -456,15 +572,26 @@ async def chat_stream_endpoint(request: ChatRequest):
             }
             yield f"data: {json.dumps(error_event)}\n\n"
     
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"  # Disable nginx buffering
-        }
-    )
+    try:
+        
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"  # Disable nginx buffering
+            }
+        )
+    finally:
+        # Reset the context variable
+        current_token_metrics.reset(token_metrics_token)
+
+
+def log_token_metrics(metrics: dict, session_id: str):
+    """Log token metrics to the database or logger."""
+    # For now, just log to console
+    logger.info(f"Token Metrics for session {session_id}: {json.dumps(metrics, indent=2)}")
 
 
 @app.get("/api/logs/stream")

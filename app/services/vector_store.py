@@ -183,9 +183,22 @@ class VectorStore:
                 )
                 embeddings.append(response['embedding'])
             except Exception as e:
+                error_msg = str(e).lower()
+                
+                # Check for model not found error (404)
+                if "not found" in error_msg or "404" in error_msg:
+                    logger.error(
+                        f"Embedding model '{self.embedding_model}' not found. "
+                        f"Please run: ollama pull {self.embedding_model}"
+                    )
+                    raise RuntimeError(
+                        f"Embedding model '{self.embedding_model}' not available. "
+                        f"Run: ollama pull {self.embedding_model}"
+                    ) from e
+                
+                # Other errors - log and fail fast
                 logger.error(f"Error embedding text {i}: {e}")
-                # Return zero vector on error to avoid breaking the pipeline
-                embeddings.append([0.0] * self.vector_size)
+                raise RuntimeError(f"Embedding failed for text {i}: {e}") from e
         
         logger.info(f"✓ Embedded {len(texts)} texts")
         return embeddings
@@ -458,10 +471,19 @@ class VectorStore:
             with_payload=True,                  # Include metadata in results
         )
 
-        # Step 4: Format results for easier consumption
+        # Step 4: Format and filter results by confidence threshold
         # Convert Qdrant's result objects to simple dictionaries
+        # Filter out low-confidence results that don't meet the threshold
         formatted_results=[]
+        filtered_count = 0
+        
         for result in results:
+            # Apply score threshold filter
+            if result.score < settings.score_threshold:
+                filtered_count += 1
+                logger.debug(f"Filtered chunk {result.id} with score {result.score:.2f} (below threshold {settings.score_threshold})")
+                continue
+                
             formatted_results.append(
                 {
                     "id":result.id,                 # UUID of the chunk
@@ -469,6 +491,14 @@ class VectorStore:
                 **result.payload                # Unpack all metadata (ticker, text, section, etc)
                 }
             )
+        
+        # Log filtering statistics
+        if filtered_count > 0:
+            logger.info(f"Filtered {filtered_count} chunks below threshold {settings.score_threshold}. Returning {len(formatted_results)} high-confidence chunks.")
+        
+        # Return empty list if no results meet threshold
+        if not formatted_results:
+            logger.warning(f"No chunks found above confidence threshold {settings.score_threshold}. Consider lowering threshold or improving query.")
 
         return formatted_results
 

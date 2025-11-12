@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 import json
 
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage, trim_messages
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langchain_ollama import ChatOllama
@@ -140,6 +140,9 @@ class SupervisorAgent:
     # Node implementations
     def _llm_call(self, state: MessagesState):
         """The supervisor LLM decides which tool to call."""
+        import time
+        start_time = time.time()
+        
         try:
             prompt_path = Path(__file__).parent.parent / "prompts" / "supervisor.txt"
             system_prompt = prompt_path.read_text()
@@ -147,8 +150,61 @@ class SupervisorAgent:
             logger.error("Supervisor prompt file not found.")
             system_prompt = "You are a helpful assistant. Use the tools available to answer the user's question."
 
-        messages = [SystemMessage(content=system_prompt)] + state["messages"]
+        # CONTEXT WINDOW MANAGEMENT: Trim messages to fit within token budget
+        # llama3.1:8b has 8192 token context window
+        # Reserve: 500 tokens for system prompt + 1500 for response = 6192 available
+        from app.utils.token_metrics import count_tokens
+        from app.core.config import get_settings
+        
+        settings = get_settings()
+        MAX_TOKENS = settings.max_conversation_tokens
+        original_count = len(state["messages"])
+        
+        # Trim messages to stay within token budget (keeps most recent)
+        trimmed_messages = trim_messages(
+            state["messages"],
+            max_tokens=MAX_TOKENS,
+            strategy="last",  # Keep most recent messages
+            token_counter=lambda msgs: sum(
+                count_tokens(msg.content if hasattr(msg, 'content') else str(msg), self.model_name) 
+                for msg in msgs
+            )
+        )
+        
+        # Log if trimming occurred
+        if len(trimmed_messages) < original_count:
+            trimmed_count = original_count - len(trimmed_messages)
+            logger.info(f"📊 Context window: Trimmed {trimmed_count} old messages (kept {len(trimmed_messages)} most recent)")
+        
+        messages = [SystemMessage(content=system_prompt)] + trimmed_messages
+        
+        # Log the LLM call
+        logger.info("=" * 80)
+        logger.info("🔍 Supervisor LLM Call Starting...")
+        logger.info(f"📝 Input: {messages[-1].content[:200]}...")
+        
+        # Make the LLM call
         response = self.llm_with_tools.invoke(messages)
+        
+        # Calculate and log duration
+        duration = time.time() - start_time
+        logger.info(f"✅ Supervisor LLM Call Completed")
+        logger.info(f"⏱️  Duration: {duration:.2f}s")
+        logger.info("=" * 80)
+        
+        # Token metrics logging
+        from app.utils.token_metrics import current_token_metrics
+        token_metrics = current_token_metrics.get()
+        if token_metrics:
+            token_metrics.log_call(
+                stage="supervisor",
+                model=self.model_name,
+                input_messages=messages,
+                output=response.content,
+                start_time=start_time,
+                end_time=time.time()
+            )
+        
         return {"messages": [response]}
 
     def _tool_node(self, state: MessagesState):
@@ -170,7 +226,8 @@ class SupervisorAgent:
         self, 
         query: str, 
         user_id: Optional[str] = None, 
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
+        token_metrics = None
     ) -> dict:
         """
         Processes a query asynchronously with checkpointing.
@@ -188,6 +245,11 @@ class SupervisorAgent:
             Exception: For other processing errors
         """
         try:
+            # Set token metrics in context if provided
+            from app.utils.token_metrics import current_token_metrics
+            if token_metrics:
+                token_metrics_token = current_token_metrics.set(token_metrics)
+            
             # Validate session_id for checkpointing
             if not session_id:
                 logger.warning("No session_id provided, generating new one")
@@ -243,7 +305,8 @@ class SupervisorAgent:
         self,
         query: str,
         user_id: Optional[str] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
+        token_metrics = None
     ):
         """
         Stream events from graph execution for real-time UI updates.
@@ -264,6 +327,11 @@ class SupervisorAgent:
             dict: Event objects with type and relevant data
         """
         try:
+            # Set token metrics in context if provided
+            from app.utils.token_metrics import current_token_metrics
+            if token_metrics:
+                token_metrics_token = current_token_metrics.set(token_metrics)
+            
             # Validate session_id
             if not session_id:
                 import uuid

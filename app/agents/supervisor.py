@@ -166,6 +166,19 @@ class SupervisorAgent:
         logger.info(f"⏱️  Duration: {duration:.2f}s")
         logger.info("=" * 80)
         
+        # Token metrics logging
+        from app.utils.token_metrics import current_token_metrics
+        token_metrics = current_token_metrics.get()
+        if token_metrics:
+            token_metrics.log_call(
+                stage="supervisor",
+                model=self.model_name,
+                input_messages=messages,
+                output=response.content,
+                start_time=start_time,
+                end_time=time.time()
+            )
+        
         return {"messages": [response]}
 
     def _tool_node(self, state: MessagesState):
@@ -187,7 +200,8 @@ class SupervisorAgent:
         self, 
         query: str, 
         user_id: Optional[str] = None, 
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
+        token_metrics = None
     ) -> dict:
         """
         Processes a query asynchronously with checkpointing.
@@ -205,6 +219,11 @@ class SupervisorAgent:
             Exception: For other processing errors
         """
         try:
+            # Set token metrics in context if provided
+            from app.utils.token_metrics import current_token_metrics
+            if token_metrics:
+                token_metrics_token = current_token_metrics.set(token_metrics)
+            
             # Validate session_id for checkpointing
             if not session_id:
                 logger.warning("No session_id provided, generating new one")
@@ -260,7 +279,8 @@ class SupervisorAgent:
         self,
         query: str,
         user_id: Optional[str] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
+        token_metrics = None
     ):
         """
         Stream events from graph execution for real-time UI updates.
@@ -281,6 +301,11 @@ class SupervisorAgent:
             dict: Event objects with type and relevant data
         """
         try:
+            # Set token metrics in context if provided
+            from app.utils.token_metrics import current_token_metrics
+            if token_metrics:
+                token_metrics_token = current_token_metrics.set(token_metrics)
+            
             # Validate session_id
             if not session_id:
                 import uuid

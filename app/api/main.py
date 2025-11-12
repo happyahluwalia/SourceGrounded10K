@@ -120,7 +120,7 @@ See Also:
 - app.core.config: Configuration management
 """
 
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, validator
@@ -139,8 +139,7 @@ import uuid
 from app.services.vector_store import VectorStore
 from app.services.log_streamer import subscribe_to_logs, unsubscribe_from_logs, get_log_stream_handler
 from app.agents.supervisor import SupervisorAgent
-
-
+from app.utils.token_metrics import TokenMetrics, current_token_metrics
 from app.core.config import settings
 
 # Configure logging
@@ -389,7 +388,10 @@ async def health_check():
 
 
 @app.post("/api/v2/chat/stream")
-async def chat_stream_endpoint(request: ChatRequest):
+async def chat_stream_endpoint(
+    request: ChatRequest,
+    background_tasks: BackgroundTasks
+):
     """
     Streaming version of /api/v2/chat endpoint.
     
@@ -430,6 +432,10 @@ async def chat_stream_endpoint(request: ChatRequest):
             }
         }
     """
+    # Create token metrics for this request
+    token_metrics = TokenMetrics()
+    token_metrics_token = current_token_metrics.set(token_metrics)
+    
     async def event_generator():
         try:
             logger.info("=" * 80)
@@ -442,10 +448,15 @@ async def chat_stream_endpoint(request: ChatRequest):
             async for event in supervisor.astream_response(
                 query=request.query,
                 user_id=request.user_id,
-                session_id=request.session_id
+                session_id=request.session_id,
+                token_metrics=token_metrics
             ):
                 # Format as Server-Sent Event
                 yield f"data: {json.dumps(event)}\n\n"
+            
+            # After streaming completes, log token metrics
+            metrics_summary = token_metrics.get_summary()
+            log_token_metrics(metrics_summary, request.session_id)
                 
         except Exception as e:
             logger.error(f"Error in streaming: {e}", exc_info=True)
@@ -456,15 +467,26 @@ async def chat_stream_endpoint(request: ChatRequest):
             }
             yield f"data: {json.dumps(error_event)}\n\n"
     
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"  # Disable nginx buffering
-        }
-    )
+    try:
+        
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"  # Disable nginx buffering
+            }
+        )
+    finally:
+        # Reset the context variable
+        current_token_metrics.reset(token_metrics_token)
+
+
+def log_token_metrics(metrics: dict, session_id: str):
+    """Log token metrics to the database or logger."""
+    # For now, just log to console
+    logger.info(f"Token Metrics for session {session_id}: {json.dumps(metrics, indent=2)}")
 
 
 @app.get("/api/logs/stream")

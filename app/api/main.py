@@ -167,6 +167,108 @@ supervisor = SupervisorAgent()
 
 
 # ============================================================================
+# Ollama Model Health Check
+# ============================================================================
+
+async def verify_ollama_models_with_retry(max_retries: int = 30, retry_delay: int = 2):
+    """
+    Verify that all required Ollama models are available.
+    Retries with exponential backoff for Docker environments where Ollama starts slower.
+    
+    Args:
+        max_retries: Maximum number of retry attempts (default: 30 = 60 seconds)
+        retry_delay: Initial delay between retries in seconds (default: 2)
+    
+    Raises:
+        RuntimeError: If models are not available after max retries
+    """
+    required_models = {
+        "LLM Models": [
+            settings.supervisor_model,
+            settings.planner_model,
+            settings.synthesizer_model
+        ],
+        "Embedding Models": [
+            settings.embedding_model
+        ]
+    }
+    
+    # Flatten all required models
+    all_models = []
+    for category, models in required_models.items():
+        all_models.extend(models)
+    
+    # Remove duplicates
+    all_models = list(set(all_models))
+    
+    logger.info(f"Verifying {len(all_models)} required Ollama models...")
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            # Check if Ollama is reachable
+            response = requests.get(f"{settings.ollama_base_url}/api/tags", timeout=5)
+            response.raise_for_status()
+            
+            available_models = [model["name"] for model in response.json().get("models", [])]
+            
+            # Check each required model
+            missing_models = []
+            for model in all_models:
+                # Handle model tags (e.g., "llama3.2:3b" or "llama3.2")
+                model_found = any(
+                    available.startswith(model) or model.startswith(available.split(":")[0])
+                    for available in available_models
+                )
+                if not model_found:
+                    missing_models.append(model)
+            
+            if not missing_models:
+                logger.info(f"✓ All {len(all_models)} Ollama models verified")
+                for category, models in required_models.items():
+                    logger.info(f"  {category}: {', '.join(models)}")
+                return
+            
+            # Models missing - log and retry
+            if attempt < max_retries:
+                wait_time = min(retry_delay * attempt, 10)  # Cap at 10 seconds
+                logger.warning(
+                    f"Missing models: {', '.join(missing_models)}. "
+                    f"Retry {attempt}/{max_retries} in {wait_time}s (Ollama may still be starting)..."
+                )
+                await asyncio.sleep(wait_time)
+            else:
+                # Final attempt failed
+                error_msg = (
+                    f"Required Ollama models not found after {max_retries} attempts.\n"
+                    f"Missing: {', '.join(missing_models)}\n\n"
+                    f"Please run:\n"
+                )
+                for model in missing_models:
+                    error_msg += f"  ollama pull {model}\n"
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+                
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries:
+                wait_time = min(retry_delay * attempt, 10)
+                logger.warning(
+                    f"Ollama not reachable: {e}. "
+                    f"Retry {attempt}/{max_retries} in {wait_time}s (waiting for Ollama to start)..."
+                )
+                await asyncio.sleep(wait_time)
+            else:
+                error_msg = (
+                    f"Ollama service not reachable after {max_retries} attempts.\n"
+                    f"URL: {settings.ollama_base_url}\n"
+                    f"Error: {e}\n\n"
+                    f"Please ensure Ollama is running:\n"
+                    f"  - Native: ollama serve\n"
+                    f"  - Docker: docker-compose up ollama"
+                )
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+
+# ============================================================================
 # Lifespan Management
 # ============================================================================
 
@@ -197,6 +299,9 @@ async def lifespan(app: FastAPI):
         logger.error(f"✗ Database connection failed: {e}")
         raise
     
+    # Verify Ollama models with retry logic (for Docker environments)
+    await verify_ollama_models_with_retry()
+
     try:
         VectorStore().client.get_collections()
         logger.info("✓ Qdrant connection verified")

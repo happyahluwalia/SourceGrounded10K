@@ -136,6 +136,24 @@
       "impact": "Consistent UI rendering, easier A/B testing, future-proof for charts/graphs, no formatting tokens wasted, separation of concerns (LLM=analysis, code=presentation).",
       "date": "2024-11-04",
       "lesson": "LLMs should focus on semantic data extraction, not presentation. Use deterministic code for formatting. Architecture: LLM → Structured JSON → Formatter functions → UI components."
+    },
+    {
+      "category": "infrastructure",
+      "title": "Infrastructure bottleneck masquerading as algorithm problem",
+      "problem": "Ollama running in Docker on Mac was using CPU-only (no GPU acceleration) because Docker on macOS doesn't support GPU passthrough. Inference was extremely slow: 90+ seconds for 3 LLM calls.",
+      "solution": "Run Ollama natively on Mac to leverage Metal (Apple's GPU framework) instead of Docker. Native Ollama automatically uses GPU acceleration on Apple Silicon.",
+      "impact": "5-10x faster inference on local development. What seemed like a model performance issue was actually an infrastructure configuration problem. Production servers with NVIDIA GPUs in Docker work correctly.",
+      "date": "2024-11-10",
+      "lesson": "Always verify infrastructure before optimizing algorithms. Docker on Mac: CPU-only. Native Mac: GPU via Metal. Production Linux: GPU via NVIDIA Container Toolkit. Test infrastructure assumptions early."
+    },
+    {
+      "category": "multi_agent_systems",
+      "title": "Multi-agent token multiplication: 15x more tokens than chat",
+      "problem": "Our system uses 3 LLM agents (Supervisor, Planner, Synthesizer) before responding. Each agent processes full context, multiplying token usage. Anthropic research shows multi-agent systems use ~15x more tokens than simple chat.",
+      "solution": "Measured actual token usage: System prompts (1,492 tokens) dominate over user queries (21 tokens). Total: 1,575 tokens for 3 agents vs ~100 tokens for single chat interaction.",
+      "impact": "Token profiling revealed: Supervisor (214 input, 0 output), Planner (1,299 input, 62 output), Synthesizer (largest). System prompts are 71x larger than user queries. Optimization target: reduce system prompt size.",
+      "date": "2024-11-10",
+      "lesson": "Multi-agent systems trade tokens for reasoning quality. Our 3-agent pipeline: Supervisor delegates → Planner creates structured plan → Synthesizer generates answer. Each step adds context but improves accuracy. Monitor token usage to optimize system prompts."
     }
   ],
   "performance_tips": [

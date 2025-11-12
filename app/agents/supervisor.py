@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 import json
 
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage, trim_messages
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langchain_ollama import ChatOllama
@@ -150,7 +150,33 @@ class SupervisorAgent:
             logger.error("Supervisor prompt file not found.")
             system_prompt = "You are a helpful assistant. Use the tools available to answer the user's question."
 
-        messages = [SystemMessage(content=system_prompt)] + state["messages"]
+        # CONTEXT WINDOW MANAGEMENT: Trim messages to fit within token budget
+        # llama3.1:8b has 8192 token context window
+        # Reserve: 500 tokens for system prompt + 1500 for response = 6192 available
+        from app.utils.token_metrics import count_tokens
+        from app.core.config import get_settings
+        
+        settings = get_settings()
+        MAX_TOKENS = settings.max_conversation_tokens
+        original_count = len(state["messages"])
+        
+        # Trim messages to stay within token budget (keeps most recent)
+        trimmed_messages = trim_messages(
+            state["messages"],
+            max_tokens=MAX_TOKENS,
+            strategy="last",  # Keep most recent messages
+            token_counter=lambda msgs: sum(
+                count_tokens(msg.content if hasattr(msg, 'content') else str(msg), self.model_name) 
+                for msg in msgs
+            )
+        )
+        
+        # Log if trimming occurred
+        if len(trimmed_messages) < original_count:
+            trimmed_count = original_count - len(trimmed_messages)
+            logger.info(f"📊 Context window: Trimmed {trimmed_count} old messages (kept {len(trimmed_messages)} most recent)")
+        
+        messages = [SystemMessage(content=system_prompt)] + trimmed_messages
         
         # Log the LLM call
         logger.info("=" * 80)

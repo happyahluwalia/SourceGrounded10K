@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     score_threshold: float = 0.5  # Minimum similarity score (0-1)
     max_tokens: int = 1500  # Maximum tokens in LLM response (increased for multi-company comparisons)
     
+    # Context Window Management
+    # llama3.1:8b has 8192 token context window
+    # Reserve: ~500 tokens for system prompt + 1500 for response = 6192 available
+    max_conversation_tokens: int = 6000  # Maximum tokens for conversation history (conservative limit)
+    
     # Batch Processing
     embedding_batch_size: int = 32  # Batch size for embedding generation
     qdrant_upload_batch_size: int = 100  # Batch size for Qdrant uploads

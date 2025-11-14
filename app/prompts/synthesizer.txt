@@ -6,109 +6,44 @@ Rules:
 - If context has ONE company, answer ONLY about that company - do NOT compare with other companies
 - If context includes MULTIPLE companies, include ALL of them in your response
 - Be precise with numbers and dates from the context
-- Cite sources for all factual claims
+- Cite sources using 0-based indices (Document 0 = first document in context)
 - If data is missing from context, note it in "missing_data" - do NOT make up data
+
 Context:
 {context}
 
 Question: {query}
 
-CRITICAL INSTRUCTIONS:
-1. You MUST return your answer as a valid JSON object. Do not include any text before or after the JSON.
-2. ENSURE ALL STRINGS ARE PROPERLY CLOSED with double quotes. Do not leave any strings unterminated.
-3. ENSURE ALL OBJECTS AND ARRAYS ARE PROPERLY CLOSED with matching braces/brackets.
-4. If a string contains quotes, escape them with backslash: \"
-5. ONLY answer about companies that appear in the context above. Do NOT mention companies not in the context.
-6. If context has ONE company, answer ONLY about that company. Set "comparison" to null.
-7. If the context includes data for MULTIPLE companies, you MUST include ALL of them in the "companies" section.
-8. DO NOT omit any company that has context provided. Each company with context MUST have its own entry.
-9. ONLY fill out the "comparison" field if context has MULTIPLE companies. For single-company context, set "comparison" to null.
+INSTRUCTIONS:
+Your response will be automatically formatted as JSON matching a predefined schema.
+Provide STRUCTURED DATA, not formatted text. The backend will handle all formatting.
 
-CRITICAL JSON STRUCTURE REQUIREMENTS:
-- The JSON MUST have these TOP-LEVEL keys: "answer", "companies", "comparison", "confidence", "missing_data"
-- "answer" contains "sections" array
-- "companies" is a SEPARATE top-level object (NOT inside "answer")
-- "comparison" is a SEPARATE top-level object (NOT inside "answer")
-- For comparison queries, "companies" MUST contain ALL companies with "business_context" for each
-- For comparison queries, "comparison" MUST have "summary", "winner", and "metric"
+CONTENT GUIDELINES:
 
-Your response will be used to generate a rich UI. Provide STRUCTURED DATA, not formatted text.
-The backend will handle all formatting (tables, hyperlinks, bold text, etc.).
-
-JSON Schema:
-{{
-  "answer": {{
-    "sections": [
-      {{
-        "type": "paragraph",  // MUST be ONE of: paragraph, table, key_findings, comparison_summary
-        "content": "Plain text without formatting. Be specific with numbers and dates.",
-        "data": {{}}  // For tables: {{"headers": [...], "rows": [[...]]}}
-        "citations": [0, 1, 2]  // Indices of source documents used (0-based)
-      }}
-    ]
-  }},
-  "companies": {{
-    "TICKER": {{
-      "key_findings": ["Finding 1", "Finding 2"],
-      "metrics": {{
-        "metric_name": {{"value": 391.0, "unit": "billion", "formatted": "$391.0B"}}
-      }},
-      "context_source": "10-K Item 7, Item 1A",
-      "business_context": {{
-      "growth_drivers": "iPhone demand in emerging markets, services revenue growth",
-      "headwinds": "Smartphone market saturation, competition from Android",
-      "explanation": "Low 2% growth reflects mature iPhone market offset by services expansion",
-      "citations": [0, 1]
-    }}
-    }}
-  }},
-  "comparison": {{
-    "summary": "Plain text explaining key differences",
-    "winner": "TICKER or null",
-    "metric": "revenue_growth or null",
-    "differences": [
-      {{"aspect": "growth_driver", "description": "Microsoft: cloud, Apple: hardware"}}
-    ]
-  }},
-  "visualization_hint": "table|bar_chart|none - suggest best visualization",
-  "confidence": "high|medium|low",
-  "missing_data": ["List missing data points"]
-}}
-
-Section Types (CHOOSE ONE per section, DO NOT use pipes):
-- "paragraph": Standard text answer with citations
+Section Types:
+- "paragraph": Standard text answer
 - "table": Comparison data (provide headers and rows in "data" field)
-- "key_findings": Bullet-point style findings
+- "key_findings": Bullet-point style findings  
 - "comparison_summary": Summary of differences between companies
 
-IMPORTANT: Each section must have EXACTLY ONE type. 
-❌ WRONG: "type": "paragraph|table|key_findings"
-✅ CORRECT: "type": "paragraph"
-
-Citation Rules:
-- Use 0-based indices to reference source documents
-- Document 0 = first document in context, Document 1 = second, etc.
-- Backend will convert these to hyperlinks with filing names
-
-Instructions:
+Content Requirements:
 - NO formatting in text (no bold, no markdown, no HTML)
-- Use numbers, not strings for metrics (391.0, not "$391.0B")
-- For each company, extract business_context explaining:
-  * What drove the metrics (growth_drivers)
-  * What held them back (headwinds)  
-  * Why these numbers matter (explanation)
+- Be specific with numbers and dates from the context
+- For each company, extract business_context:
+  * growth_drivers: What drove the metrics
+  * headwinds: What held them back
+  * explanation: Why these numbers matter
+  * citations: Source document indices
 - Pull context from MD&A, Risk Factors, Business Description sections
-- Cite sources for context claims
-- Provide structured data that code can format consistently
 - Keep text concise and factual
 
-COMPARISON QUERIES - REQUIRED SECTIONS:
-When comparing multiple companies, you MUST include ALL of these sections in order:
-1. "paragraph" section: Introduce the comparison with key numbers and insights
-2. "table" section: Show side-by-side comparison data with headers and rows
-3. "comparison_summary" section: Explain which company performed better and why
-4. Fill out "business_context" for EACH company in the "companies" object
-5. Fill out the "comparison" object with summary, winner, and metric
+COMPARISON QUERIES:
+When comparing multiple companies, include these sections:
+1. "paragraph": Introduce the comparison with key numbers
+2. "table": Side-by-side comparison data
+3. "comparison_summary": Explain which company performed better and why
+4. Fill out "business_context" for EACH company
+5. Fill out "comparison" object with summary, winner, and metric
 
 Example for single company query:
 {{
@@ -209,11 +144,4 @@ Example for comparison query:
   "missing_data": []
 }}
 
-REMEMBER: Your JSON MUST have ALL FIVE top-level keys:
-1. "answer" - with "sections" array
-2. "companies" - with business_context for EACH company
-3. "comparison" - with summary, winner, metric (or null for single company)
-4. "confidence" - high/medium/low
-5. "missing_data" - array of missing data points
-
-Now generate your JSON response:
+Now analyze the context and answer the question:

@@ -211,9 +211,10 @@ class RAGSearchTool:
             
             logger.info(f"Generating answer with {self.model_name}...")
 
-            # Use ChatOllama invoke (consistent with rest of codebase)
+            # Use ChatOllama invoke with structured outputs (guarantees valid JSON)
             from langchain_core.messages import SystemMessage, HumanMessage
             from langchain_ollama import ChatOllama
+            from app.schemas.synthesizer_output import SynthesizerOutput
             
             # Create LLM instance with correct parameters
             # ChatOllama doesn't support bind() for num_predict, need to pass in constructor
@@ -221,6 +222,7 @@ class RAGSearchTool:
             import time
             unique_seed = int(time.time() * 1000000) % 2147483647  # Max int32
             
+            # Structured outputs: Pass Pydantic schema to guarantee valid JSON
             if max_tokens:
                 llm = ChatOllama(
                     model=self.model_name,
@@ -228,7 +230,8 @@ class RAGSearchTool:
                     temperature=0.1,
                     num_predict=max_tokens,
                     seed=unique_seed,
-                    num_ctx=8192  # Isolated context window per request
+                    num_ctx=8192,  # Isolated context window per request
+                    format=SynthesizerOutput.model_json_schema()  # Structured output
                 )
             else:
                 # Always create fresh instance with unique seed to prevent caching
@@ -237,7 +240,8 @@ class RAGSearchTool:
                     base_url=settings.ollama_base_url,
                     temperature=0.1,
                     seed=unique_seed,
-                    num_ctx=8192  # Isolated context window per request
+                    num_ctx=8192,  # Isolated context window per request
+                    format=SynthesizerOutput.model_json_schema()  # Structured output
                 )
             
             # Prompt is expected to be a tuple (system_prompt, user_prompt)

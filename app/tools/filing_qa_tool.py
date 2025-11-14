@@ -649,17 +649,8 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
                 }]
             }
         
-        for idx, section in enumerate(answer_content.get('sections', [])):
-            logger.info(f"  Section {idx}: type='{section.get('type')}', has_content={bool(section.get('content'))}")
-        
         companies = parsed_result.get("companies", {})
         comparison = parsed_result.get("comparison", {})
-        if comparison:
-            summary = comparison.get('summary', '')
-            logger.info(f"  - summary: {bool(summary)} ({len(summary)} chars)" if summary else "  - summary: False")
-            logger.info(f"  - winner: {comparison.get('winner')}")
-            logger.info(f"  - metric: {comparison.get('metric')}")
-        logger.info("=" * 80)
             
         return {
             "answer": answer_content,
@@ -748,13 +739,7 @@ def answer_filing_question(query: str) -> str:
     total_time = time.time() - total_start_time
     timings['Total Tool Time'] = total_time
 
-    # Log performance summary
-    logger.info("\n" + "="*80)
-    logger.info("FILING QA TOOL: PERFORMANCE SUMMARY")
-    logger.info("="*80)
-    for step, duration in timings.items():
-        logger.info(f"- {step}: {duration:.1f}s")
-    logger.info("="*80 + "\n")
+    # Performance timings will be included in token_metrics JSON
 
     # Extract sources from all companies (flatten dict to list)
     all_chunks = []
@@ -811,13 +796,6 @@ def answer_filing_question(query: str) -> str:
         ]
     }
     
-    # Add token metrics summary and print analysis
-    from app.utils.token_metrics import current_token_metrics
-    token_metrics = current_token_metrics.get()
-    if token_metrics:
-        result["token_metrics"] = token_metrics.get_summary()
-        # Print comprehensive analysis
-        token_metrics.print_summary()
-    
     # Return the dict directly - supervisor will handle JSON serialization
+    # Note: token_metrics are tracked separately by the API layer
     return result

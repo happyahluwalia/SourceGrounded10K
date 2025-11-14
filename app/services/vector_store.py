@@ -94,8 +94,6 @@ class VectorStore:
         ollama_host = settings.ollama_base_url
         self.ollama_client = ollama.Client(host=ollama_host)
         
-        logger.info(f"✓ Using embedding model: {self.embedding_model}")
-        logger.info(f"✓ Embedding dimension: {self.vector_size}")
 
     def create_collection(self, recreate: bool = False) -> None:
         """

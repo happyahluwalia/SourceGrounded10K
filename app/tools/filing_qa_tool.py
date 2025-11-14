@@ -10,7 +10,6 @@ import re
 import json
 import time
 import logging
-import ollama
 from pathlib import Path
 
 # Ensure the app root is in the path for imports
@@ -25,10 +24,72 @@ from app.services.storage import DatabaseStorage
 from app.services.vector_store import VectorStore
 from app.tools.data_prep_service import DataPrepTool
 from app.tools.rag_search_service import RAGSearchTool
-from app.services.ticker_service import get_ticker_service # Needed for comprehensive company detection
+from app.models.database import SECFiling
+from app.services.ticker_service import get_ticker_service  # Needed for comprehensive company detection
 
 # Special message to indicate an unsupported company was found
 UNSUPPORTED_COMPANY_MSG = "UNSUPPORTED_COMPANY"
+
+# ============================================================================
+# FILING URL LOOKUP - Simple ticker-based approach
+# ============================================================================
+
+def get_filing_urls_by_tickers(tickers: list) -> dict:
+    """
+    Get filing URLs for given tickers from PostgreSQL.
+    
+    Simple approach: We know the tickers from the query, so just fetch
+    the latest filing URL for each ticker directly.
+    
+    Args:
+        tickers: List of ticker symbols (e.g., ['AAPL', 'MSFT'])
+    
+    Returns:
+        Dict mapping ticker to filing info:
+        {
+            'AAPL': {
+                'ticker': 'AAPL',
+                'filing_type': '10-K',
+                'report_date': '2024-09-28',
+                'document_url': 'https://www.sec.gov/...',
+                'display_name': 'Apple 10-K (FY 2024)'
+            }
+        }
+    """
+    if not tickers:
+        return {}
+    
+    logger.info(f"📄 Fetching filing URLs for tickers: {tickers}")
+    
+    db_storage = DatabaseStorage()
+    filing_info = {}
+    
+    with db_storage.get_session() as session:
+        for ticker in tickers:
+            # Get the most recent 10-K filing for this ticker
+            filing = session.query(SECFiling).filter(
+                SECFiling.ticker == ticker,
+                SECFiling.filing_type == '10-K'
+            ).order_by(SECFiling.report_date.desc()).first()
+            
+            if filing:
+                # Get company name for display
+                from app.models.database import Company
+                company = session.query(Company).filter(Company.ticker == ticker).first()
+                company_name = company.name if company else ticker
+                
+                filing_info[ticker] = {
+                    'ticker': ticker,
+                    'filing_type': filing.filing_type,
+                    'report_date': filing.report_date.strftime('%Y-%m-%d') if filing.report_date else None,
+                    'document_url': filing.document_url,
+                    'display_name': f"{company_name} {filing.filing_type} (FY {filing.report_date.year if filing.report_date else 'N/A'})"
+                }
+                logger.info(f"  ✓ {ticker}: {filing.document_url[:80] if filing.document_url else 'NULL'}")
+            else:
+                logger.warning(f"  ✗ {ticker}: No 10-K filing found")
+    
+    return filing_info
 
 # ============================================================================
 # RESPONSE FORMATTER - Converts structured LLM output to UI-ready format
@@ -66,9 +127,10 @@ def format_answer_for_ui(synthesis_result: dict, sources: list) -> dict:
             logger.warning(f"Unknown section type: {section_type}, treating as paragraph")
             formatted_sections.append(_format_paragraph(section, sources))
     
-    # Check if comparison data exists at root level and add as section if not already present
+    # Check if comparison data exists and add as section if not already present
     structured_data = synthesis_result.get("structured", {})
-    comparison_data = synthesis_result.get("comparison", {})
+    companies_data = structured_data.get("companies", {})
+    comparison_data = structured_data.get("comparison", {})
     if comparison_data and comparison_data.get("summary"):
         # Check if comparison_summary section already exists
         has_comparison_section = any(s.get("type") == "comparison_summary" for s in sections_raw)
@@ -76,17 +138,18 @@ def format_answer_for_ui(synthesis_result: dict, sources: list) -> dict:
             formatted_sections.append({
                 "component": "ComparisonSummary",
                 "props": {
-                    "summary": comparison_data.get("summary", ""),
+                    "text": comparison_data.get("summary", ""),  # Frontend expects 'text', not 'summary'
                     "winner": comparison_data.get("winner"),
                     "metric": comparison_data.get("metric"),
                     "citations": []
                 }
             })
+    
     return {
         "sections": formatted_sections,
         "metadata": {
-            "companies": structured_data.get("companies", {}),
-            "comparison": structured_data.get("comparison", {}),
+            "companies": companies_data,
+            "comparison": comparison_data,
             "confidence": structured_data.get("confidence", "medium"),
             "missing_data": structured_data.get("missing_data", [])
         },
@@ -186,13 +249,16 @@ def _build_citations(citation_indices: list, sources: list) -> list:
     for idx in citation_indices:
         if 0 <= idx < len(sources):
             source = sources[idx]
+            # Use section_full if available, otherwise fall back to section
+            section_display = source.get('section_full') or source.get('section', '')
             citations.append({
                 "id": idx,
-                "text": f"{source.get('filing_type', 'Filing')} {source.get('section', '')}".strip(),
-                "url": f"#source-{idx}",
+                "text": f"{source.get('filing_type', 'Filing')} {section_display}".strip(),
+                "url": f"#source-{idx}",  # For scrolling to source in UI
+                "document_url": source.get("document_url"),  # SEC.gov URL for external link
                 "ticker": source.get("ticker", ""),
                 "filing_type": source.get("filing_type", ""),
-                "section": source.get("section", ""),
+                "section": section_display,
                 "report_date": source.get("report_date", "")
             })
         else:
@@ -245,7 +311,7 @@ def preprocess_query_with_ticker(query: str) -> str:
     # Use the full TickerService's map to detect *any* company name, even if unsupported.
     full_ticker_service = get_ticker_service()
     if not full_ticker_service._ticker_map:
-        print("WARNING: Full TickerService map not available for comprehensive company detection.")
+        logger.warning("Full TickerService map not available for comprehensive company detection.")
         # Fallback to simple suffix check if full map isn't loaded
         company_suffix_pattern = r'\b(inc|corp|ltd|llc|co|group|holdings|sa|plc|ag)\b'
         if re.search(company_suffix_pattern, query, re.IGNORECASE):
@@ -286,7 +352,7 @@ def get_plan(query: str) -> dict:
         prompt_path = Path(__file__).parent.parent.parent / "app" / "prompts" / "planner.txt"
         system_prompt = prompt_path.read_text()
     except FileNotFoundError:
-        print(f"ERROR: Prompt file not found at {prompt_path}")
+        logger.error(f"Prompt file not found at {prompt_path}")
         return None
 
     # Use ChatOllama for consistency (supports streaming)
@@ -340,7 +406,7 @@ def get_plan(query: str) -> dict:
         return plan
 
     except Exception as e:
-        print(f"ERROR: Failed to generate or parse plan: {e}")
+        logger.error(f"Failed to generate or parse plan: {e}")
         return None
 
 # ============================================================================
@@ -401,7 +467,7 @@ def execute_plan(plan: dict) -> dict:
             filing_type=task['filing_type']
             # Uses settings.top_k as default (configured in .env)
         )
-        # print(f"    > Found {len(chunks)} relevant chunks for {ticker}.")
+        logger.info(f"    > Found {len(chunks)} relevant chunks for {ticker}.")
         
         # Store chunks by company ticker
         if ticker not in results_by_company:
@@ -582,12 +648,24 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
                     "citations": []
                 }]
             }
+        
+        for idx, section in enumerate(answer_content.get('sections', [])):
+            logger.info(f"  Section {idx}: type='{section.get('type')}', has_content={bool(section.get('content'))}")
+        
+        companies = parsed_result.get("companies", {})
+        comparison = parsed_result.get("comparison", {})
+        if comparison:
+            summary = comparison.get('summary', '')
+            logger.info(f"  - summary: {bool(summary)} ({len(summary)} chars)" if summary else "  - summary: False")
+            logger.info(f"  - winner: {comparison.get('winner')}")
+            logger.info(f"  - metric: {comparison.get('metric')}")
+        logger.info("=" * 80)
             
         return {
             "answer": answer_content,
             "structured": {
-                "companies": parsed_result.get("companies", {}),
-                "comparison": parsed_result.get("comparison", {}),
+                "companies": companies,
+                "comparison": comparison,
                 "confidence": parsed_result.get("confidence", "medium"),
                 "missing_data": parsed_result.get("missing_data", [])
             }
@@ -598,11 +676,21 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
         logger.warning(f"Failed to parse JSON from synthesizer: {e}. Using plain text.")
         logger.debug(f"Raw answer: {raw_answer[:200]}...")
         
+        # Try to extract readable text from malformed JSON
+        # Look for common patterns like "content": "text here"
+        content_match = re.search(r'"content"\s*:\s*"([^"]+)"', raw_answer)
+        if content_match:
+            clean_content = content_match.group(1)
+        else:
+            # If no content field found, use a helpful error message
+            clean_content = "I apologize, but I encountered an error processing the response. Please try rephrasing your question."
+            logger.error(f"Could not extract readable content from malformed JSON response")
+        
         return {
             "answer": {
                 "sections": [{
                     "type": "paragraph",
-                    "content": raw_answer,
+                    "content": clean_content,
                     "citations": []
                 }]
             },
@@ -670,25 +758,54 @@ def answer_filing_question(query: str) -> str:
 
     # Extract sources from all companies (flatten dict to list)
     all_chunks = []
+    tickers = list(chunks_by_company.keys())
     for ticker, chunks in chunks_by_company.items():
         all_chunks.extend(chunks)
+
+    # FILTER OUT HALLUCINATED COMPANIES
+    # Only keep companies that were actually in the context (chunks_by_company)
+    valid_tickers = set(tickers)
+    structured_data = final_answer.get("structured", {})
+    companies_data = structured_data.get("companies", {})
+    
+    # Remove companies that weren't in the original context
+    hallucinated_companies = set(companies_data.keys()) - valid_tickers
+    if hallucinated_companies:
+        for hallucinated in hallucinated_companies:
+            del companies_data[hallucinated]
+    
+    # If only 1 company remains, clear comparison data (shouldn't compare with itself)
+    if len(companies_data) <= 1:
+        comparison_data = structured_data.get("comparison", {})
+        if comparison_data and any(comparison_data.values()):
+            structured_data["comparison"] = {"summary": None, "winner": None, "metric": None}
+
+    # Get filing URLs for all tickers (simple approach!)
+    filing_urls = get_filing_urls_by_tickers(tickers)
 
     # Format the structured answer for UI presentation
     # The `final_answer` from `synthesize_answer` is already structured
     ui_ready_answer = format_answer_for_ui(final_answer, all_chunks)
-
+    
+    # Add filing URLs to metadata
+    if 'metadata' not in ui_ready_answer:
+        ui_ready_answer['metadata'] = {}
+    ui_ready_answer['metadata']['filing_urls'] = filing_urls
+    
     # Combine UI-ready answer and sources into a single payload
     result = {
         "answer": ui_ready_answer,
         "sources": [
             {
                 "id": i,
-                "section": chunk.get("section", "Unknown"),
+                "section": chunk.get("section_full") or chunk.get("section", "Unknown"),
+                "section_full": chunk.get("section_full"),
                 "text": chunk.get("text", ""),
                 "score": float(chunk.get("score", 0.0)),
                 "ticker": str(chunk.get("ticker", "")),
                 "filing_type": str(chunk.get("filing_type", "")),
-                "report_date": str(chunk.get("report_date", ""))
+                "report_date": str(chunk.get("report_date", "")),
+                "document_url": chunk.get("document_url")  # SEC.gov URL for external link
             }
             for i, chunk in enumerate(all_chunks)
         ]
@@ -702,5 +819,5 @@ def answer_filing_question(query: str) -> str:
         # Print comprehensive analysis
         token_metrics.print_summary()
     
-    # Return as a JSON string, as expected by the agent framework
-    return json.dumps(result)
+    # Return the dict directly - supervisor will handle JSON serialization
+    return result

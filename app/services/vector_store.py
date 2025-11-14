@@ -335,6 +335,8 @@ class VectorStore:
                     "chunk_index": chunk['chunk_index'],
                     "chunk_type": chunk['chunk_type'],
                     "text": chunk['text'],
+                    # Note: document_url is NOT stored in Qdrant to avoid duplication
+                    # It's fetched from PostgreSQL via enrich_chunks_with_document_url()
                 }
             )
             points.append(point)

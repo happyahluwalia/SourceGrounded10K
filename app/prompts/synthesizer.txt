@@ -21,6 +21,14 @@ CRITICAL INSTRUCTIONS:
 5. DO NOT omit any company that has context provided. Each company with context MUST have its own entry.
 6. ONLY fill out the "comparison" field if context has MULTIPLE companies. For single-company context, set "comparison" to null.
 
+CRITICAL JSON STRUCTURE REQUIREMENTS:
+- The JSON MUST have these TOP-LEVEL keys: "answer", "companies", "comparison", "confidence", "missing_data"
+- "answer" contains "sections" array
+- "companies" is a SEPARATE top-level object (NOT inside "answer")
+- "comparison" is a SEPARATE top-level object (NOT inside "answer")
+- For comparison queries, "companies" MUST contain ALL companies with "business_context" for each
+- For comparison queries, "comparison" MUST have "summary", "winner", and "metric"
+
 Your response will be used to generate a rich UI. Provide STRUCTURED DATA, not formatted text.
 The backend will handle all formatting (tables, hyperlinks, bold text, etc.).
 
@@ -89,8 +97,15 @@ Instructions:
 - Pull context from MD&A, Risk Factors, Business Description sections
 - Cite sources for context claims
 - Provide structured data that code can format consistently
-- For comparisons, ALWAYS include a table section with comparison data
 - Keep text concise and factual
+
+COMPARISON QUERIES - REQUIRED SECTIONS:
+When comparing multiple companies, you MUST include ALL of these sections in order:
+1. "paragraph" section: Introduce the comparison with key numbers and insights
+2. "table" section: Show side-by-side comparison data with headers and rows
+3. "comparison_summary" section: Explain which company performed better and why
+4. Fill out "business_context" for EACH company in the "companies" object
+5. Fill out the "comparison" object with summary, winner, and metric
 
 Example for single company query:
 {{
@@ -138,6 +153,23 @@ Example for comparison query:
         "type": "paragraph",
         "content": "Apple's revenue grew 2% to $391.0B while Microsoft grew 16% to $245.1B. Microsoft's higher growth was driven by cloud services.",
         "citations": [0, 1]
+      }},
+      {{
+        "type": "table",
+        "content": "Revenue Comparison",
+        "data": {{
+          "headers": ["Company", "Revenue (2024)", "Growth Rate"],
+          "rows": [
+            ["AAPL", "$391.0B", "2%"],
+            ["MSFT", "$245.1B", "16%"]
+          ]
+        }},
+        "citations": [0, 1]
+      }},
+      {{
+        "type": "comparison_summary",
+        "content": "Microsoft's 16% growth significantly outpaced Apple's 2% due to cloud adoption (Azure +30%) vs Apple's hardware market saturation.",
+        "citations": [0, 1]
       }}
     ]
   }},
@@ -173,5 +205,12 @@ Example for comparison query:
   "confidence": "high",
   "missing_data": []
 }}
+
+REMEMBER: Your JSON MUST have ALL FIVE top-level keys:
+1. "answer" - with "sections" array
+2. "companies" - with business_context for EACH company
+3. "comparison" - with summary, winner, metric (or null for single company)
+4. "confidence" - high/medium/low
+5. "missing_data" - array of missing data points
 
 Now generate your JSON response:

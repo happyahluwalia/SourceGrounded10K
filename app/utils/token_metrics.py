@@ -94,20 +94,7 @@ class TokenMetrics:
         }
         
         self.metrics.append(metric_entry)
-        
-        # Log immediately for real-time visibility
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info("="*80)
-        logger.info(f" LLM Call: {stage.upper()}")
-        logger.info(f" Model: {model}")
-        logger.info(f" Input Tokens:")
-        logger.info(f"   - System: {input_breakdown['system']}")
-        logger.info(f"   - Human: {input_breakdown['human']}")
-        logger.info(f"   - Total: {input_breakdown['total']}")
-        logger.info(f" Output Tokens: {output_tokens}")
-        logger.info(f" Latency: {latency:.2f}s")
-        logger.info("="*80)
+        # Metrics will be available in JSON summary at the end
     
     def get_summary(self) -> Dict:
         """Return aggregated token statistics with detailed breakdown."""

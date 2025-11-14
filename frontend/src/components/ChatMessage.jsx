@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { User, Bot, Clock, FileText, TrendingUp, AlertCircle } from 'lucide-react'
+import { User, Bot, Clock, FileText, TrendingUp, AlertCircle, ExternalLink } from 'lucide-react'
 import { cn, formatTime } from '../lib/utils'
 import { Badge } from './Badge'
 import { Card } from './Card'
@@ -36,16 +36,34 @@ export function ChatMessage({ message }) {
   }
 
   // Render citation badge
-  const CitationBadge = ({ citation, onClick }) => (
-    <button
-      onClick={onClick}
-      className="inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded border border-primary/20 transition-colors cursor-pointer"
-      title={`${citation.ticker} - ${citation.filing_type} ${citation.section}\nClick to view source`}
-    >
-      <FileText className="h-3 w-3" />
-      {citation.text}
-    </button>
-  )
+  const CitationBadge = ({ citation, onClick }) => {
+    const handleClick = (e) => {
+      // If document_url exists, open in new tab
+      if (citation.document_url) {
+        e.preventDefault()
+        window.open(citation.document_url, '_blank', 'noopener,noreferrer')
+      }
+      // Also scroll to source if onClick provided
+      if (onClick) {
+        onClick()
+      }
+    }
+
+    return (
+      <button
+        onClick={handleClick}
+        className="inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded border border-primary/20 transition-colors cursor-pointer"
+        title={`${citation.ticker} - ${citation.filing_type} ${citation.section}\n${citation.document_url ? 'Click to open SEC filing' : 'Click to view source'}`}
+      >
+        {citation.document_url ? (
+          <ExternalLink className="h-3 w-3" />
+        ) : (
+          <FileText className="h-3 w-3" />
+        )}
+        {citation.text}
+      </button>
+    )
+  }
 
   // Render structured answer sections
   const renderStructuredAnswer = (answer) => {
@@ -205,6 +223,32 @@ export function ChatMessage({ message }) {
             />
           )
         ))}
+
+        {/* Render Filing Sources - Simple approach */}
+        {answer.metadata?.filing_urls && Object.keys(answer.metadata.filing_urls).length > 0 && (
+          <Card className="p-4 mt-4 bg-muted/30">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <h4 className="font-semibold text-sm">SEC Filings</h4>
+            </div>
+            <div className="space-y-2">
+              {Object.values(answer.metadata.filing_urls).map((filing, idx) => (
+                filing.document_url && (
+                  <a
+                    key={idx}
+                    href={filing.document_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    {filing.display_name}
+                  </a>
+                )
+              ))}
+            </div>
+          </Card>
+        )}
         
         {message.isStreaming && (
           <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse" />
@@ -398,9 +442,24 @@ export function ChatMessage({ message }) {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium">{source.section || 'Unknown Section'}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      Score: {(source.score * 100).toFixed(1)}%
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {source.document_url && (
+                        <a
+                          href={source.document_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+                          title="Open SEC filing"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          <span className="text-xs">View Filing</span>
+                        </a>
+                      )}
+                      <Badge variant="secondary" className="text-xs">
+                        Score: {(source.score * 100).toFixed(1)}%
+                      </Badge>
+                    </div>
                   </div>
                   <p className={cn(
                     "text-muted-foreground",

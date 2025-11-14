@@ -513,6 +513,8 @@ class DataPrepTool:
                 ).all()
                 
                 # Format for vector store
+                # Note: We don't include document_url here to avoid data duplication
+                # It will be fetched from PostgreSQL when needed (see enrich_chunks_with_document_url)
                 chunks_for_embedding = []
                 for chunk in db_chunks:
                     chunk_text = getattr(chunk, 'text', None) or getattr(chunk, 'content', '')

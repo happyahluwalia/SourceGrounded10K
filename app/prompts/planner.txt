@@ -53,7 +53,7 @@ Your final output MUST be a single JSON object with the following structure. Do 
 
 **CRITICAL RULE: For this version, you MUST ONLY use the '10-K' filing_type for all tasks. Do not use any other filing type like 'DEF 14A' or '10-Q', even if it seems more appropriate.**
 
-**IMPORTANT RULE:** If the user query contains `(Verified Ticker: XXX)`, you MUST use that ticker in your plan. Do not attempt to find the ticker yourself.
+**IMPORTANT RULE:** If the user query contains `(Verified Ticker: XXX)` or `(Verified Tickers: XXX, YYY)`, you MUST use those tickers in your plan. Do not attempt to find the tickers yourself. If multiple tickers are provided, create one task for each ticker.
 
 1.  **Analyze:** Read the user's query to identify all companies, concepts, and timeframes.
 2.  **Map:** Consult the `Document & Section Mapping` and `Terminology Mapping` tables to determine the correct filings, sections, and search terms.

@@ -292,14 +292,19 @@ def preprocess_query_with_ticker(query: str) -> str:
     supported_names = sorted(name_to_ticker_map.keys(), key=len, reverse=True)
     pattern = r'\b(' + '|'.join([re.escape(name) for name in supported_names]) + r')\b'
     
-    # Attempt 1: Match supported company name via regex
-    match = re.search(pattern, query, re.IGNORECASE)
-    if match:
-        company_name = match.group(1).lower()
-        found_ticker = name_to_ticker_map.get(company_name)
-        if found_ticker:
-            # print(f"SUCCESS: Found supported company '{company_name}' and verified ticker: {found_ticker}")
-            return f"{query}\n(Verified Ticker: {found_ticker})"
+    # Attempt 1: Match ALL supported company names via regex
+    matches = re.findall(pattern, query, re.IGNORECASE)
+    if matches:
+        found_tickers = []
+        for company_name in matches:
+            ticker = name_to_ticker_map.get(company_name.lower())
+            if ticker and ticker not in found_tickers:
+                found_tickers.append(ticker)
+        
+        if found_tickers:
+            # print(f"SUCCESS: Found supported companies and verified tickers: {found_tickers}")
+            tickers_str = ", ".join(found_tickers)
+            return f"{query}\n(Verified Tickers: {tickers_str})"
     
     # Attempt 2: Match supported ticker directly in query
     for word in query.split():
@@ -356,6 +361,8 @@ def get_plan(query: str) -> dict:
         return None
 
     # Use ChatOllama for consistency (supports streaming)
+    # NOTE: Structured outputs removed for planner - the schema was too complex
+    # for small models (llama3.2:3b) and caused it to miss companies in comparisons
     from langchain_ollama import ChatOllama
     from langchain_core.messages import SystemMessage, HumanMessage
     
@@ -363,6 +370,7 @@ def get_plan(query: str) -> dict:
         model=settings.planner_model,
         base_url=settings.ollama_base_url,
         temperature=0.0
+        # No format= parameter - let the model generate freely based on prompt examples
     )
 
     try:
@@ -446,9 +454,9 @@ def execute_plan(plan: dict) -> dict:
         # print(f"  - Executing Task {i+1}/{len(plan['tasks'])}: {task.get('search_query', 'N/A')} for {task.get('ticker', 'N/A')}")
         
         ticker = task.get('ticker')
-        filing_type = task.get('filing_type')
-        if not ticker or not filing_type:
-            logger.error(f"    > ERROR: Task is missing ticker or filing_type.")
+        filing_type = task.get('filing_type', '10-K')  # Default to 10-K if not provided
+        if not ticker:
+            logger.error(f"    > ERROR: Task {i+1} is missing ticker.")
             continue
 
         # print(f"    > Checking/processing filing: {ticker} {filing_type}...")
@@ -463,8 +471,8 @@ def execute_plan(plan: dict) -> dict:
         # print(f"    > Searching for: \"{task['search_query']}\"")
         chunks = vector_store.search(
             query=task['search_query'],
-            ticker=task['ticker'],
-            filing_type=task['filing_type']
+            ticker=ticker,
+            filing_type=filing_type  # Use the variable with default applied
             # Uses settings.top_k as default (configured in .env)
         )
         logger.info(f"    > Found {len(chunks)} relevant chunks for {ticker}.")
@@ -511,7 +519,13 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
 
     if not chunks_by_company:
         return {
-            "answer": "I could not find any relevant information to answer your question.",
+            "answer": {
+                "sections": [{
+                    "type": "paragraph",
+                    "content": "I could not find any relevant information to answer your question.",
+                    "citations": []
+                }]
+            },
             "structured": {}
         }
 
@@ -569,19 +583,27 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
     import re
     
     try:
-        # Try to extract JSON from response (may have markdown code blocks)
-        json_match = re.search(r'```(?:json)?\s*({.*?})\s*```', raw_answer, re.DOTALL)
-        if json_match:
-            json_str = json_match.group(1)
-        else:
-            # Try to find raw JSON object
-            json_match = re.search(r'{.*}', raw_answer, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(0)
-            else:
-                raise ValueError("No JSON found in response")
+        # With structured outputs, response should be clean JSON
+        # But handle legacy responses with markdown code blocks too
+        raw_answer_stripped = raw_answer.strip()
         
-        parsed_result = json.loads(json_str)
+        # Check if it's already valid JSON (structured outputs)
+        if raw_answer_stripped.startswith('{'):
+            parsed_result = json.loads(raw_answer_stripped)
+        else:
+            # Legacy: Try to extract JSON from markdown code blocks
+            json_match = re.search(r'```(?:json)?\s*({.*?})\s*```', raw_answer, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                # Try to find raw JSON object
+                json_match = re.search(r'{.*}', raw_answer, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                else:
+                    raise ValueError("No JSON found in response")
+            
+            parsed_result = json.loads(json_str)
         
         # Check if LLM double-nested the JSON (common bug with small models)
         # Pattern: {"answer": {"sections": [{"content": "{\n  \"answer\": {...}}"}]}}
@@ -651,7 +673,7 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
         
         companies = parsed_result.get("companies", {})
         comparison = parsed_result.get("comparison", {})
-            
+        
         return {
             "answer": answer_content,
             "structured": {

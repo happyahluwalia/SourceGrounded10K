@@ -15,11 +15,14 @@ Question: {query}
 
 CRITICAL INSTRUCTIONS:
 1. You MUST return your answer as a valid JSON object. Do not include any text before or after the JSON.
-2. ONLY answer about companies that appear in the context above. Do NOT mention companies not in the context.
-3. If context has ONE company, answer ONLY about that company. Set "comparison" to null.
-4. If the context includes data for MULTIPLE companies, you MUST include ALL of them in the "companies" section.
-5. DO NOT omit any company that has context provided. Each company with context MUST have its own entry.
-6. ONLY fill out the "comparison" field if context has MULTIPLE companies. For single-company context, set "comparison" to null.
+2. ENSURE ALL STRINGS ARE PROPERLY CLOSED with double quotes. Do not leave any strings unterminated.
+3. ENSURE ALL OBJECTS AND ARRAYS ARE PROPERLY CLOSED with matching braces/brackets.
+4. If a string contains quotes, escape them with backslash: \"
+5. ONLY answer about companies that appear in the context above. Do NOT mention companies not in the context.
+6. If context has ONE company, answer ONLY about that company. Set "comparison" to null.
+7. If the context includes data for MULTIPLE companies, you MUST include ALL of them in the "companies" section.
+8. DO NOT omit any company that has context provided. Each company with context MUST have its own entry.
+9. ONLY fill out the "comparison" field if context has MULTIPLE companies. For single-company context, set "comparison" to null.
 
 CRITICAL JSON STRUCTURE REQUIREMENTS:
 - The JSON MUST have these TOP-LEVEL keys: "answer", "companies", "comparison", "confidence", "missing_data"

@@ -663,19 +663,61 @@ def synthesize_answer(query: str, chunks_by_company: dict) -> dict:
         }
         
     except (json.JSONDecodeError, ValueError) as e:
-        # Fallback: return plain text answer
-        logger.warning(f"Failed to parse JSON from synthesizer: {e}. Using plain text.")
-        logger.debug(f"Raw answer: {raw_answer[:200]}...")
+        # Fallback: Try to repair and extract content from malformed JSON
+        logger.warning(f"Failed to parse JSON from synthesizer: {e}")
+        logger.error(f"Malformed JSON (first 500 chars): {raw_answer[:500]}")
         
-        # Try to extract readable text from malformed JSON
-        # Look for common patterns like "content": "text here"
-        content_match = re.search(r'"content"\s*:\s*"([^"]+)"', raw_answer)
-        if content_match:
-            clean_content = content_match.group(1)
+        # Attempt 1: Try to fix common JSON errors (unterminated strings, missing quotes)
+        try:
+            # Add closing quotes and braces if missing
+            repaired = raw_answer.rstrip()
+            if not repaired.endswith('}'):
+                # Count open braces
+                open_braces = repaired.count('{') - repaired.count('}')
+                repaired += '}' * open_braces
+            
+            parsed_result = json.loads(repaired)
+            logger.info("✓ Successfully repaired malformed JSON")
+            
+            # Process the repaired JSON normally
+            answer = parsed_result.get("answer", {})
+            if isinstance(answer, dict):
+                answer_content = answer
+            else:
+                answer_content = {
+                    "sections": [{
+                        "type": "paragraph",
+                        "content": str(answer),
+                        "citations": []
+                    }]
+                }
+            
+            companies = parsed_result.get("companies", {})
+            comparison = parsed_result.get("comparison", {})
+            
+            return {
+                "answer": answer_content,
+                "structured": {
+                    "companies": companies,
+                    "comparison": comparison,
+                    "confidence": parsed_result.get("confidence", "low"),
+                    "missing_data": parsed_result.get("missing_data", [])
+                }
+            }
+            
+        except (json.JSONDecodeError, ValueError):
+            logger.warning("Could not repair JSON, extracting readable text")
+        
+        # Attempt 2: Extract any readable content fields
+        content_matches = re.findall(r'"content"\s*:\s*"([^"]*(?:\\.[^"]*)*)"', raw_answer, re.DOTALL)
+        if content_matches:
+            # Combine all content fields found
+            clean_content = "\n\n".join(content_matches[:3])  # Take first 3 content blocks
+            logger.info(f"Extracted {len(content_matches)} content blocks from malformed JSON")
         else:
-            # If no content field found, use a helpful error message
-            clean_content = "I apologize, but I encountered an error processing the response. Please try rephrasing your question."
-            logger.error(f"Could not extract readable content from malformed JSON response")
+            # Last resort: generic error message
+            clean_content = "I apologize, but I encountered an error processing the response. The LLM generated malformed JSON. Please try rephrasing your question or try again."
+            logger.error(f"Could not extract any readable content from malformed JSON")
         
         return {
             "answer": {

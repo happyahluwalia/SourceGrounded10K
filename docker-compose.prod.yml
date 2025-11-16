@@ -26,7 +26,19 @@ services:
       QDRANT__SERVICE__GRPC_PORT: 6334
     restart: unless-stopped
 
-  # vLLM LLM Service (Production)
+  # Ollama - Embeddings Only (CPU)
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    # No GPU needed for embeddings
+
+  # vLLM LLM Service (Production) - GPU
   vllm:
     image: vllm/vllm-openai:latest
     command: |
@@ -37,7 +49,7 @@ services:
       --dtype auto
       --port 8000
     ports:
-      - "11434:8000"
+      - "8001:8000"
     volumes:
       - vllm_models:/root/.cache/huggingface
     environment:
@@ -65,7 +77,8 @@ services:
       # Services
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
-      OLLAMA_BASE_URL: http://vllm:8000/v1
+      OLLAMA_BASE_URL: http://ollama:11434
+      VLLM_BASE_URL: http://vllm:8000/v1
       
       # LLM & Embeddings
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
@@ -102,6 +115,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      ollama:
+        condition: service_started
       vllm:
         condition: service_started
     healthcheck:
@@ -133,5 +148,6 @@ services:
 volumes:
   postgres_data:
   qdrant_data:
+  ollama_data:
   vllm_models:
   filing_data:

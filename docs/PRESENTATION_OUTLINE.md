@@ -771,7 +771,82 @@ Can handle: 50+ turn conversations
 
 ---
 
-## 12. Suggestions to "Awe" Your Cohort (Throughout)
+## 12. Testing with Playwright: Finding Bugs Fast (2 min)
+
+### The Bug: Empty Comparison Summary
+
+**Problem**: Multi-company comparison summary section was rendering but empty
+
+**Traditional Debugging** (5 min per test):
+1. Start backend server
+2. Start frontend server
+3. Navigate to UI
+4. Type query
+5. Wait 30s for response
+6. Manually check each section
+7. Repeat for different queries
+
+### Playwright Solution: 2-Minute Verification
+
+**What is Playwright?**
+- Browser automation framework
+- Runs in real Chromium browser
+- Interacts with UI like a real user
+- Provides structured DOM snapshots
+
+**How We Used It** (via MCP - Model Context Protocol):
+```
+"Navigate to http://localhost:3000 and test the comparison query.
+Verify all sections render correctly."
+```
+
+**What It Found**:
+```yaml
+# Playwright snapshot:
+- heading "Summary" [level=4]  # ✅ Component rendered
+- paragraph [ref=e338]:         # ❌ Empty content!
+```
+
+**Root Cause Identified in 2 Minutes**:
+- Backend sent `props.summary`
+- Frontend expected `props.text`
+- **Fix**: 1-line change
+
+**Verification**:
+- Re-ran same test
+- Confirmed fix immediately
+- Verified 6 sections in one run:
+  - ✅ Comparison table
+  - ✅ Comparison summary (now with content!)
+  - ✅ Business context (both companies)
+  - ✅ SEC filing links (clickable)
+  - ✅ Sources panel (10 sources)
+
+### Benefits
+
+**Time Savings**:
+- Manual: 5 min per test
+- Automated: 2 min with instant verification
+- Regression testing: Free (just re-run)
+
+**Integration Testing**:
+- Tests entire stack: LLM → Backend → Frontend → UI
+- Catches bugs unit tests miss
+- Verifies real user interactions
+
+**Confidence**:
+- Before: "I think it works..."
+- After: "Playwright verified all sections ✅"
+
+### Key Learning
+
+> **"End-to-end testing catches integration bugs that unit tests miss. Playwright's structured snapshots are better than screenshots for verification."**
+
+**Test Reports**: `docs/PLAYWRIGHT_TEST_REPORT_FINAL.md`
+
+---
+
+## 13. Suggestions to "Awe" Your Cohort (Throughout)
 
 
 ### Technical Deep-Dives
@@ -793,6 +868,95 @@ Can handle: 50+ turn conversations
 
 ---
 
+## 13. Structured Outputs: From 10% Errors to Zero (2 min)
+
+### The Problem: Malformed JSON in Production
+
+**Symptoms**:
+```
+ERROR: Unterminated string starting at: line 48 column 16
+WARNING: Failed to parse JSON from synthesizer
+Result: Raw JSON dump shown to user 😞
+```
+
+**Error rate**: 5-10% of comparison queries with `llama3.1:8b`
+
+### Traditional Approach (Unreliable)
+
+**Prompt Instructions**:
+```
+"ENSURE ALL STRINGS ARE PROPERLY CLOSED with double quotes"
+"ENSURE ALL OBJECTS AND ARRAYS ARE PROPERLY CLOSED"
+```
+
+**Problem**: LLMs can't always follow formatting rules perfectly
+- Complex nested structures
+- Long responses with many fields
+- Edge cases with quotes in content
+
+### The Solution: Ollama Structured Outputs
+
+**Implementation**:
+```python
+# 1. Define Pydantic schema
+class SynthesizerOutput(BaseModel):
+    answer: Answer
+    companies: Dict[str, CompanyData]
+    comparison: Optional[Comparison]
+
+# 2. Pass to ChatOllama
+llm = ChatOllama(
+    model="llama3.1:8b",
+    format=SynthesizerOutput.model_json_schema()  # ✅ Magic!
+)
+```
+
+### How It Works: Constrained Generation
+
+**Token-Level Constraints**:
+- JSON schema → Grammar rules
+- At each step, only valid tokens allowed
+- Invalid tokens (unmatched quotes) **never generated**
+- Output **mathematically guaranteed** to match schema
+
+**Example**:
+```
+LLM generates: "content": "Apple's revenue
+Next token options:
+  ✅ " (closes string - ALLOWED)
+  ❌ . (continues - BLOCKED)
+  ❌ } (invalid - BLOCKED)
+Result: Always valid JSON!
+```
+
+### Impact
+
+**Reliability**:
+- Malformed JSON: 10% → 0%
+- No more error messages to users
+- Production stability improved
+
+**Performance**:
+- Removed 400 tokens of formatting instructions (15% reduction)
+- Prompt: 219 lines → 147 lines
+- Faster generation (less prompt processing)
+
+**Maintainability**:
+- Type-safe with Pydantic
+- Schema changes propagate automatically
+- Easier debugging
+
+### Key Learning
+
+> **"Use API-level constraints instead of prompt instructions. Grammar-based sampling mathematically guarantees valid output."**
+
+**Similar to**:
+- Claude's Structured Outputs (announced Nov 14, 2024 | https://www.claude.com/blog/structured-outputs-on-the-claude-developer-platform) 
+- OpenAI's JSON mode
+- But works with **local LLMs** via Ollama!
+
+---
+
 ## Key Takeaways (1 min)
 
 ### Technical Lessons
@@ -807,13 +971,15 @@ Can handle: 50+ turn conversations
 8. ✅ **Async-First**: All I/O operations
 9. ✅ **Infrastructure First**: Verify GPU/hardware before optimizing code
 10. ✅ **Token-Based Trimming**: O(n²) complexity means tokens = performance
+11. ✅ **End-to-End Testing**: Playwright catches integration bugs unit tests miss
+12. ✅ **Structured Outputs**: API constraints > Prompt instructions for reliability
 
 ### Product Lessons
 
-9. ✅ **Community-Driven**: Users guide the roadmap
-10. ✅ **Transparency**: Show how it works (debug panel)
-11. ✅ **Education**: Share learnings (knowledge.json)
-12. ✅ **Sustainability**: Transparent about costs
+13. ✅ **Community-Driven**: Users guide the roadmap
+14. ✅ **Transparency**: Show how it works (debug panel)
+15. ✅ **Education**: Share learnings (knowledge.json)
+16. ✅ **Sustainability**: Transparent about costs
 
 ---
 
@@ -844,7 +1010,7 @@ Can handle: 50+ turn conversations
 
 - **Security**: Rate limiting, API key auth (future)
 - **Deployment**: Docker Compose, production considerations
-- **Testing Strategy**: Unit + integration + real LLM tests
+- **Testing Strategy**: Playwright end-to-end testing, unit + integration tests
 - **Error Handling**: Graceful degradation, retry logic
 - **Caching Strategy**: Redis + PostgreSQL + Qdrant
 

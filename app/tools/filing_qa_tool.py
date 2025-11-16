@@ -30,6 +30,24 @@ from app.services.ticker_service import get_ticker_service  # Needed for compreh
 # Special message to indicate an unsupported company was found
 UNSUPPORTED_COMPANY_MSG = "UNSUPPORTED_COMPANY"
 
+# Cache service instances to avoid repeated initialization
+_db_storage_instance = None
+_vector_store_instance = None
+
+def _get_db_storage():
+    """Get or create cached DatabaseStorage instance."""
+    global _db_storage_instance
+    if _db_storage_instance is None:
+        _db_storage_instance = DatabaseStorage()
+    return _db_storage_instance
+
+def _get_vector_store():
+    """Get or create cached VectorStore instance."""
+    global _vector_store_instance
+    if _vector_store_instance is None:
+        _vector_store_instance = VectorStore()
+    return _vector_store_instance
+
 # ============================================================================
 # FILING URL LOOKUP - Simple ticker-based approach
 # ============================================================================
@@ -61,7 +79,8 @@ def get_filing_urls_by_tickers(tickers: list) -> dict:
     
     logger.info(f"📄 Fetching filing URLs for tickers: {tickers}")
     
-    db_storage = DatabaseStorage()
+    # Use cached instance
+    db_storage = _get_db_storage()
     filing_info = {}
     
     with db_storage.get_session() as session:
@@ -440,8 +459,9 @@ def execute_plan(plan: dict) -> dict:
     # print("\n" + "-"*80)
     # print("Step 2: Executing plan... [Deterministic Function Call]")
     
-    db_storage = DatabaseStorage()
-    vector_store = VectorStore()
+    # Use cached instances to avoid repeated initialization
+    db_storage = _get_db_storage()
+    vector_store = _get_vector_store()
     data_prep = DataPrepTool(db_storage=db_storage, vector_store=vector_store)
     
     results_by_company = {}  # Maintain per-company separation
@@ -476,6 +496,10 @@ def execute_plan(plan: dict) -> dict:
             # Uses settings.top_k as default (configured in .env)
         )
         logger.info(f"    > Found {len(chunks)} relevant chunks for {ticker}.")
+        
+        # Debug: Log first chunk content for CFO queries
+        if chunks and 'cfo' in task['search_query'].lower():
+            logger.info(f"    > First chunk preview (first 200 chars): {chunks[0].get('content', '')[:200]}...")
         
         # Store chunks by company ticker
         if ticker not in results_by_company:

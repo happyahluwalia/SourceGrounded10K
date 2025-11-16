@@ -26,13 +26,22 @@ services:
       QDRANT__SERVICE__GRPC_PORT: 6334
     restart: unless-stopped
 
-  # Ollama LLM Service
-  ollama:
-    image: ollama/ollama:latest
+  # vLLM LLM Service (Production)
+  vllm:
+    image: vllm/vllm-openai:latest
+    command: |
+      --model meta-llama/Llama-3.2-3B-Instruct
+      --gpu-memory-utilization 0.9
+      --enable-prefix-caching
+      --max-model-len 8192
+      --dtype auto
+      --port 8000
+    ports:
+      - "11434:8000"
     volumes:
-      - ollama_data:/root/.ollama
+      - vllm_models:/root/.cache/huggingface
     environment:
-      OLLAMA_HOST: 0.0.0.0:11434
+      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN}
     restart: unless-stopped
     deploy:
       resources:
@@ -56,7 +65,7 @@ services:
       # Services
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
-      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_BASE_URL: http://vllm:8000/v1
       
       # LLM & Embeddings
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
@@ -93,7 +102,7 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
-      ollama:
+      vllm:
         condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/health', timeout=5)"]
@@ -124,5 +133,5 @@ services:
 volumes:
   postgres_data:
   qdrant_data:
-  ollama_data:
+  vllm_models:
   filing_data:

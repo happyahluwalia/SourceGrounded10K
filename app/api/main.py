@@ -142,6 +142,16 @@ from app.agents.supervisor import SupervisorAgent
 from app.utils.token_metrics import TokenMetrics, current_token_metrics
 from app.core.config import settings
 
+# Cache VectorStore instance to avoid repeated initialization
+_vector_store_cache = None
+
+def get_vector_store():
+    """Get or create cached VectorStore instance."""
+    global _vector_store_cache
+    if _vector_store_cache is None:
+        _vector_store_cache = VectorStore()
+    return _vector_store_cache
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -303,7 +313,7 @@ async def lifespan(app: FastAPI):
     await verify_ollama_models_with_retry()
 
     try:
-        VectorStore().client.get_collections()
+        get_vector_store().client.get_collections()
         logger.info("✓ Qdrant connection verified")
     except Exception as e:
         logger.error(f"✗ Qdrant connection failed: {e}")
@@ -415,7 +425,7 @@ async def health_check():
     
     # Check Qdrant
     try:
-        VectorStore().client.get_collections()
+        get_vector_store().client.get_collections()
         health_status["services"]["vector_store"] = "connected"
     except Exception as e:
         health_status["services"]["vector_store"] = f"error: {str(e)}"

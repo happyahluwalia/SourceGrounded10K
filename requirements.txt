@@ -53,6 +53,7 @@ langchain-core==1.0.0
 langsmith==0.4.35
 langgraph
 langchain-ollama
+langchain-openai  # For vLLM (OpenAI-compatible API)
 
 # Adding checkpointing and memory in graph
 langgraph-checkpoint-postgres

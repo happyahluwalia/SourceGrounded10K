@@ -61,17 +61,16 @@ class RAGSearchTool:
 
         if llm_client is None:
                 try:
-                    from langchain_ollama import ChatOllama
-                    # Use ChatOllama for consistency (supports streaming)
-                    self.llm_client = ChatOllama(
-                        model=self.model_name,
-                        base_url=settings.ollama_base_url,
+                    from app.utils.llm_factory import get_llm
+                    # Use LLM factory (supports both vLLM and Ollama)
+                    self.llm_client = get_llm(
+                        model_name=self.model_name,
                         temperature=0.1
                     )
-                    logger.info(f"Initialized ChatOllama at {settings.ollama_base_url} with model: {self.model_name}")
-                except ImportError:
+                    logger.info(f"Initialized LLM ({settings.llm_provider}) with model: {self.model_name}")
+                except ImportError as e:
                     self.llm_client = None
-                    raise ImportError("Please install langchain-ollama")
+                    raise ImportError(f"Failed to initialize LLM: {e}")
         else:
             self.llm_client = llm_client
         
@@ -211,38 +210,24 @@ class RAGSearchTool:
             
             logger.info(f"Generating answer with {self.model_name}...")
 
-            # Use ChatOllama invoke with structured outputs (guarantees valid JSON)
+            # Use LLM factory with structured outputs for Ollama
             from langchain_core.messages import SystemMessage, HumanMessage
-            from langchain_ollama import ChatOllama
             from app.schemas.synthesizer_output import SynthesizerOutput
+            from app.utils.llm_factory import get_llm
             
-            # Create LLM instance with correct parameters
-            # ChatOllama doesn't support bind() for num_predict, need to pass in constructor
             # IMPORTANT: Use unique seed to prevent Ollama from caching responses
             import time
             unique_seed = int(time.time() * 1000000) % 2147483647  # Max int32
             
-            # Structured outputs: Pass Pydantic schema to guarantee valid JSON
-            if max_tokens:
-                llm = ChatOllama(
-                    model=self.model_name,
-                    base_url=settings.ollama_base_url,
-                    temperature=0.1,
-                    num_predict=max_tokens,
-                    seed=unique_seed,
-                    num_ctx=8192,  # Isolated context window per request
-                    format=SynthesizerOutput.model_json_schema()  # Structured output
-                )
-            else:
-                # Always create fresh instance with unique seed to prevent caching
-                llm = ChatOllama(
-                    model=self.model_name,
-                    base_url=settings.ollama_base_url,
-                    temperature=0.1,
-                    seed=unique_seed,
-                    num_ctx=8192,  # Isolated context window per request
-                    format=SynthesizerOutput.model_json_schema()  # Structured output
-                )
+            # Structured outputs: Pass Pydantic schema for Ollama (vLLM will ignore it)
+            # Note: vLLM doesn't support structured outputs via schema, relies on prompt
+            llm = get_llm(
+                model_name=self.model_name,
+                temperature=0.1,
+                max_tokens=max_tokens,
+                seed=unique_seed,  # Only used by Ollama
+                format_schema=SynthesizerOutput.model_json_schema()  # Only used by Ollama
+            )
             
             # Prompt is expected to be a tuple (system_prompt, user_prompt)
             if isinstance(prompt, tuple):
@@ -269,9 +254,27 @@ class RAGSearchTool:
                 content = content[:-3]
             content = content.strip()
             
-            # Try to parse to validate JSON
+            # Try to parse and validate JSON
             try:
                 parsed = json.loads(content)
+                
+                # Additional validation for vLLM: Ensure it matches expected schema
+                # Ollama's format parameter guarantees this, but vLLM doesn't
+                if settings.llm_provider == "vllm":
+                    try:
+                        # Validate against Pydantic schema
+                        validated = SynthesizerOutput(**parsed)
+                        # If validation passes, use the validated data
+                        parsed = validated.model_dump()
+                        logger.debug("vLLM output validated against schema")
+                    except Exception as validation_error:
+                        logger.warning(
+                            f"vLLM output doesn't match schema: {validation_error}. "
+                            f"Using parsed JSON anyway (may have missing fields)"
+                        )
+                        # Continue with parsed JSON even if schema validation fails
+                        # filing_qa_tool will handle missing fields
+                
                 # If it parses successfully, return the cleaned JSON string
                 return json.dumps(parsed, indent=2)
             except json.JSONDecodeError as e:

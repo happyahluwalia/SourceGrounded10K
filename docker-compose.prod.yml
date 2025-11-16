@@ -80,6 +80,9 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       VLLM_BASE_URL: http://vllm:8000/v1
       
+      # LLM Provider
+      LLM_PROVIDER: ${LLM_PROVIDER:-vllm}
+      
       # LLM & Embeddings
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-768}

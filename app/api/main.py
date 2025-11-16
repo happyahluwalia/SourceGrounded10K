@@ -182,8 +182,11 @@ supervisor = SupervisorAgent()
 
 async def verify_ollama_models_with_retry(max_retries: int = 30, retry_delay: int = 2):
     """
-    Verify that all required Ollama models are available.
-    Retries with exponential backoff for Docker environments where Ollama starts slower.
+    Verify that required models are available:
+    - vLLM for LLM models (supervisor, planner, synthesizer)
+    - Ollama for embedding models
+    
+    Retries with exponential backoff for Docker environments.
     
     Args:
         max_retries: Maximum number of retry attempts (default: 30 = 60 seconds)
@@ -192,69 +195,101 @@ async def verify_ollama_models_with_retry(max_retries: int = 30, retry_delay: in
     Raises:
         RuntimeError: If models are not available after max retries
     """
-    required_models = {
-        "LLM Models": [
-            settings.supervisor_model,
-            settings.planner_model,
-            settings.synthesizer_model
-        ],
-        "Embedding Models": [
-            settings.embedding_model
-        ]
-    }
-    
-    # Flatten all required models
-    all_models = []
-    for category, models in required_models.items():
-        all_models.extend(models)
-    
-    # Remove duplicates
-    all_models = list(set(all_models))
-    
-    logger.info(f"Verifying {len(all_models)} required Ollama models...")
+    logger.info("Verifying LLM and embedding models...")
     
     for attempt in range(1, max_retries + 1):
         try:
-            # Check if Ollama is reachable
-            response = requests.get(f"{settings.ollama_base_url}/api/tags", timeout=5)
-            response.raise_for_status()
+            llm_models = [
+                settings.supervisor_model,
+                settings.planner_model,
+                settings.synthesizer_model
+            ]
+            llm_models = list(set(llm_models))  # Remove duplicates
             
-            available_models = [model["name"] for model in response.json().get("models", [])]
+            missing_llm = []
+            embedding_found = False
             
-            # Check each required model
-            missing_models = []
-            for model in all_models:
-                # Handle model tags (e.g., "llama3.2:3b" or "llama3.2")
-                model_found = any(
-                    available.startswith(model) or model.startswith(available.split(":")[0])
-                    for available in available_models
+            # Check based on LLM provider
+            if settings.llm_provider.lower() == "vllm":
+                # vLLM for LLM models
+                vllm_response = requests.get(f"{settings.vllm_base_url}/models", timeout=5)
+                vllm_response.raise_for_status()
+                vllm_models = [m["id"] for m in vllm_response.json().get("data", [])]
+                
+                for model in llm_models:
+                    if not any(model in vllm_model for vllm_model in vllm_models):
+                        missing_llm.append(model)
+                
+                # Ollama for embeddings only
+                ollama_response = requests.get(f"{settings.ollama_base_url}/api/tags", timeout=5)
+                ollama_response.raise_for_status()
+                ollama_models = [model["name"] for model in ollama_response.json().get("models", [])]
+                embedding_found = any(
+                    settings.embedding_model in ollama_model 
+                    for ollama_model in ollama_models
                 )
-                if not model_found:
-                    missing_models.append(model)
+                
+                if not missing_llm and embedding_found:
+                    logger.info("✓ All required models verified")
+                    logger.info(f"  vLLM (LLM): {', '.join(llm_models)}")
+                    logger.info(f"  Ollama (Embeddings): {settings.embedding_model}")
+                    return
             
-            if not missing_models:
-                logger.info(f"✓ All {len(all_models)} Ollama models verified")
-                for category, models in required_models.items():
-                    logger.info(f"  {category}: {', '.join(models)}")
-                return
+            else:  # ollama
+                # Ollama for both LLM and embeddings
+                ollama_response = requests.get(f"{settings.ollama_base_url}/api/tags", timeout=5)
+                ollama_response.raise_for_status()
+                ollama_models = [model["name"] for model in ollama_response.json().get("models", [])]
+                
+                # Check LLM models
+                for model in llm_models:
+                    model_found = any(
+                        model in ollama_model or ollama_model.startswith(model.split(":")[0])
+                        for ollama_model in ollama_models
+                    )
+                    if not model_found:
+                        missing_llm.append(model)
+                
+                # Check embedding model
+                embedding_found = any(
+                    settings.embedding_model in ollama_model 
+                    for ollama_model in ollama_models
+                )
+                
+                if not missing_llm and embedding_found:
+                    logger.info("✓ All required models verified")
+                    logger.info(f"  Ollama (LLM): {', '.join(llm_models)}")
+                    logger.info(f"  Ollama (Embeddings): {settings.embedding_model}")
+                    return
             
             # Models missing - log and retry
+            missing_msgs = []
+            if missing_llm:
+                provider_name = "vLLM" if settings.llm_provider.lower() == "vllm" else "Ollama"
+                missing_msgs.append(f"{provider_name}: {', '.join(missing_llm)}")
+            if not embedding_found:
+                missing_msgs.append(f"Ollama (embeddings): {settings.embedding_model}")
+            
             if attempt < max_retries:
                 wait_time = min(retry_delay * attempt, 10)  # Cap at 10 seconds
                 logger.warning(
-                    f"Missing models: {', '.join(missing_models)}. "
-                    f"Retry {attempt}/{max_retries} in {wait_time}s (Ollama may still be starting)..."
+                    f"Missing models: {'; '.join(missing_msgs)}. "
+                    f"Retry {attempt}/{max_retries} in {wait_time}s..."
                 )
                 await asyncio.sleep(wait_time)
             else:
                 # Final attempt failed
-                error_msg = (
-                    f"Required Ollama models not found after {max_retries} attempts.\n"
-                    f"Missing: {', '.join(missing_models)}\n\n"
-                    f"Please run:\n"
-                )
-                for model in missing_models:
-                    error_msg += f"  ollama pull {model}\n"
+                error_msg = f"Required models not found after {max_retries} attempts.\n"
+                if missing_llm:
+                    if settings.llm_provider.lower() == "vllm":
+                        error_msg += f"\nvLLM missing: {', '.join(missing_llm)}\n"
+                        error_msg += f"Check vLLM is serving: {settings.vllm_base_url}\n"
+                    else:
+                        error_msg += f"\nOllama missing: {', '.join(missing_llm)}\n"
+                        error_msg += f"Run: ollama pull {missing_llm[0]}\n"
+                if not embedding_found:
+                    error_msg += f"\nOllama missing: {settings.embedding_model}\n"
+                    error_msg += f"Run: ollama pull {settings.embedding_model}\n"
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
                 
@@ -262,19 +297,27 @@ async def verify_ollama_models_with_retry(max_retries: int = 30, retry_delay: in
             if attempt < max_retries:
                 wait_time = min(retry_delay * attempt, 10)
                 logger.warning(
-                    f"Ollama not reachable: {e}. "
-                    f"Retry {attempt}/{max_retries} in {wait_time}s (waiting for Ollama to start)..."
+                    f"Services not reachable: {e}. "
+                    f"Retry {attempt}/{max_retries} in {wait_time}s..."
                 )
                 await asyncio.sleep(wait_time)
             else:
-                error_msg = (
-                    f"Ollama service not reachable after {max_retries} attempts.\n"
-                    f"URL: {settings.ollama_base_url}\n"
-                    f"Error: {e}\n\n"
-                    f"Please ensure Ollama is running:\n"
-                    f"  - Native: ollama serve\n"
-                    f"  - Docker: docker-compose up ollama"
-                )
+                if settings.llm_provider.lower() == "vllm":
+                    error_msg = (
+                        f"LLM services not reachable after {max_retries} attempts.\n"
+                        f"vLLM URL: {settings.vllm_base_url}\n"
+                        f"Ollama URL: {settings.ollama_base_url}\n"
+                        f"Error: {e}\n"
+                    )
+                else:
+                    error_msg = (
+                        f"Ollama service not reachable after {max_retries} attempts.\n"
+                        f"Ollama URL: {settings.ollama_base_url}\n"
+                        f"Error: {e}\n\n"
+                        f"Make sure Ollama is running:\n"
+                        f"  - Native: ollama serve\n"
+                        f"  - Docker: docker run -d -p 11434:11434 ollama/ollama\n"
+                    )
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
 
@@ -296,7 +339,12 @@ async def lifespan(app: FastAPI):
     db_host = settings.database_url.split('@')[1].split('/')[0] if '@' in settings.database_url else 'configured'
     logger.info(f"Database: {db_host}")
     logger.info(f"Qdrant: {settings.qdrant_host}:{settings.qdrant_port}")
-    logger.info(f"Ollama: {settings.ollama_base_url}")
+    logger.info(f"LLM Provider: {settings.llm_provider.upper()}")
+    if settings.llm_provider.lower() == "vllm":
+        logger.info(f"vLLM: {settings.vllm_base_url}")
+        logger.info(f"Ollama (embeddings): {settings.ollama_base_url}")
+    else:
+        logger.info(f"Ollama: {settings.ollama_base_url}")
     logger.info(f"Debug logs streaming: {'enabled' if settings.enable_debug_logs else 'disabled'}")
     
     # Verify critical services

@@ -6,9 +6,9 @@ import json
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage, trim_messages
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langchain_ollama import ChatOllama
 
 from app.core.config import settings
+from app.utils.llm_factory import get_llm
 from app.tools.filing_qa_tool import answer_filing_question
 
 logger = logging.getLogger(__name__)
@@ -36,9 +36,9 @@ class SupervisorAgent:
         self.tools = [answer_filing_question]
         self.tools_by_name = {tool.name: tool for tool in self.tools}
 
-        self.llm = ChatOllama(
-            model=self.model_name,
-            base_url=settings.ollama_base_url,
+        # Use factory to get LLM (supports both vLLM and Ollama)
+        self.llm = get_llm(
+            model_name=self.model_name,
             temperature=0.1
         )
         self.llm_with_tools = self.llm.bind_tools(self.tools)

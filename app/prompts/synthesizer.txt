@@ -144,4 +144,10 @@ Example for comparison query:
   "missing_data": []
 }}
 
+CRITICAL: Your response MUST be valid JSON matching the exact structure shown above.
+- Include ALL required fields: answer, companies, comparison, confidence, missing_data
+- Do NOT add any text before or after the JSON
+- Do NOT use markdown code blocks
+- Ensure all strings are properly quoted and escaped
+
 Now analyze the context and answer the question:

@@ -35,11 +35,20 @@ class Settings(BaseSettings):
     redis_port: int = 6379
     redis_db: int = 0
     
-    # LLM
-    ollama_base_url: str = "http://localhost:11434"
-    supervisor_model: str = "llama3.1"  # For the main supervisor agent
-    planner_model: str = "llama3.1"       # For the planner agent
-    synthesizer_model: str = "gemma3:1b"  # For the RAG synthesizer agent
+    # LLM Provider Selection
+    llm_provider: str = "ollama"  # "vllm" for production, "ollama" for development
+    
+    # LLM Service URLs
+    ollama_base_url: str = "http://localhost:11434"  # For embeddings + LLM (when provider=ollama)
+    vllm_base_url: str = "http://localhost:8001/v1"  # For LLM (when provider=vllm)
+    
+    # LLM Models
+    supervisor_model: str = "Llama-3.2-3B-Instruct"  # For the main supervisor agent
+    planner_model: str = "Llama-3.2-3B-Instruct"       # For the planner agent
+    synthesizer_model: str = "Llama-3.2-3B-Instruct"  # For the RAG synthesizer agent
+    
+    # HuggingFace Token (for vLLM to download gated models)
+    hf_token: str = ""  # Optional, only needed for gated models like Llama
     
     # Embeddings
     embedding_model: str = "nomic-embed-text"  # 768-dim model via Ollama (matches existing data)

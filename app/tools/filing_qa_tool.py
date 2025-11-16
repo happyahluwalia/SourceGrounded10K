@@ -379,17 +379,16 @@ def get_plan(query: str) -> dict:
         logger.error(f"Prompt file not found at {prompt_path}")
         return None
 
-    # Use ChatOllama for consistency (supports streaming)
+    # Use LLM factory (supports both vLLM and Ollama)
     # NOTE: Structured outputs removed for planner - the schema was too complex
     # for small models (llama3.2:3b) and caused it to miss companies in comparisons
-    from langchain_ollama import ChatOllama
     from langchain_core.messages import SystemMessage, HumanMessage
+    from app.utils.llm_factory import get_llm
     
-    llm = ChatOllama(
-        model=settings.planner_model,
-        base_url=settings.ollama_base_url,
+    llm = get_llm(
+        model_name=settings.planner_model,
         temperature=0.0
-        # No format= parameter - let the model generate freely based on prompt examples
+        # No format_schema parameter - let the model generate freely based on prompt examples
     )
 
     try:

@@ -32,6 +32,34 @@ llm = ChatOllama(
 )
 
 # Now the LLM MUST output valid JSON matching the schema`
+    },
+    {
+        id: 'data-structure-beats-complex-architecture',
+        category: 'Architecture',
+        title: 'Data Structure > Complex Architecture',
+        emoji: '🏗️',
+        problem: 'Multi-company comparisons had unbalanced data retrieval: 4 chunks for Apple, 1 chunk for Microsoft. The RAG system was biased toward whichever company appeared first in the query. Initial solution: build parallel RAG agents with separate pipelines per company — estimated 5-6 weeks of development.',
+        solution: 'Instead of rebuilding the architecture, we changed one data structure. The execute_plan() function returned a flat list of chunks. We changed it to return a dictionary keyed by company ticker: {AAPL: [...], MSFT: [...]}. This maintained per-company separation throughout the pipeline, ensuring equal data retrieval for each entity.',
+        impact: 'Fixed in 1-2 days instead of 5-6 weeks. Equal data retrieval achieved: 5 chunks per company. 95% less code than the parallel agent approach. No new infrastructure, no additional complexity — just a better data structure.',
+        lesson: 'Test the existing system before redesigning. Simple data structure changes often beat complex architectural additions. The impulse to "build something new" can blind us to simpler solutions. When data flows incorrectly, trace the problem back to its source — often it\'s a structural issue, not a capability gap.',
+        date: 'Nov 4, 2025',
+        readTime: '3 min',
+        codeExample: `# BEFORE: Flat list loses company context
+def execute_plan(plan):
+    results = []
+    for step in plan.steps:
+        chunks = search(step.query)
+        results.extend(chunks)  # Company info lost!
+    return results
+
+# AFTER: Dict preserves per-company separation
+def execute_plan(plan):
+    results = {}
+    for step in plan.steps:
+        ticker = step.ticker
+        chunks = search(step.query, ticker)
+        results[ticker] = chunks  # Each company isolated
+    return results  # {AAPL: [...], MSFT: [...]}`
     }
 ];
 

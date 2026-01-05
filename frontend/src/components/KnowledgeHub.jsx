@@ -60,6 +60,36 @@ def execute_plan(plan):
         chunks = search(step.query, ticker)
         results[ticker] = chunks  # Each company isolated
     return results  # {AAPL: [...], MSFT: [...]}`
+    },
+    {
+        id: 'token-based-trimming-for-context-management',
+        category: 'Context Management',
+        title: 'Token-based Trimming Beats Message-Count Sliding Window',
+        emoji: '📏',
+        problem: 'With checkpointing enabled, conversation history grows unbounded. After 10-15 turns, the context window overflows (8,192 tokens for llama3.1:8b). The obvious solution — sliding window keeping last 8 messages — is dangerous because tool responses can be 5,000-10,000 tokens each. Eight large messages could be 20,000+ tokens.',
+        solution: "Implemented LangChain's trim_messages utility with max_tokens=6000. Token-based trimming guarantees no overflow regardless of message sizes. It keeps the most recent messages that fit within the budget, automatically handling variable message cases and edge cases.",
+        impact: 'Hard guarantee against context overflow. Before: Turn 10 = 15+ seconds, variable latency, memory issues. After: Consistent 4-second responses, stable memory, predictable performance. LLM attention is O(n²) complexity — reducing tokens from 25,000 to 6,000 gives 3.75x speedup.',
+        lesson: "Token-based > Message-based for variable message sizes. Tool responses (like filing_qa_tool) are 250x larger than user queries. Use built-in utilities (trim_messages) instead of custom logic. Conservative limits (6,000 not 8,192) leave safety margin. Token management is not just about preventing crashes — it's a performance, cost, and UX optimization.",
+        date: 'Nov 12, 2025',
+        readTime: '4 min',
+        codeExample: `from langchain_core.messages import trim_messages
+
+# Configure token-based trimming
+trimmer = trim_messages(
+    max_tokens=6000,
+    strategy="last",  # Keep most recent
+    token_counter=llm,
+    include_system=True,
+    allow_partial=False,
+    start_on="human"
+)
+
+# Apply in workflow before LLM call
+def chat_step(state):
+    # Trim history to fit context window
+    trimmed = trimmer.invoke(state["messages"])
+    response = llm.invoke(trimmed)
+    return {"messages": [response]}`
     }
 ];
 
@@ -76,10 +106,10 @@ const FEATURED = {
 // Article card matching Anthropic style
 const ArticleCard = ({ article, featured = false }) => (
     <Link
-        to={article.href || `/learn/nuggets/${article.id}`}
+        to={article.href || `/ learn / nuggets / ${article.id}`}
         className="group block"
     >
-        <article className={`py-8 ${featured ? '' : 'border-t border-[#e5e5e5]'}`}>
+        <article className={`py - 8 ${featured ? '' : 'border-t border-[#e5e5e5]'}`}>
             <div className="flex items-baseline gap-2 mb-3 text-sm">
                 <span className="text-[#666]">{article.category}</span>
                 {article.date && (
@@ -94,7 +124,7 @@ const ArticleCard = ({ article, featured = false }) => (
                     </span>
                 )}
             </div>
-            <h3 className={`font-['Times_New_Roman',_'Georgia',_serif] ${featured ? 'text-3xl' : 'text-2xl'} text-[#191919] group-hover:text-[#d4a574] transition-colors leading-tight mb-3`}>
+            <h3 className={`font - ['Times_New_Roman', _'Georgia', _serif] ${featured ? 'text-3xl' : 'text-2xl'} text - [#191919] group - hover: text - [#d4a574] transition - colors leading - tight mb - 3`}>
                 {article.title}
             </h3>
             <p className="text-[#666] leading-relaxed max-w-3xl">

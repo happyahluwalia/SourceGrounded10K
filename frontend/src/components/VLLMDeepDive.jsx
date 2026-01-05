@@ -507,67 +507,71 @@ export default function VLLMDeepDive() {
             </Helmet>
 
             {/* Top Bar */}
-            <header className="bg-white border-b border-slate-200 px-4 md:px-6 py-4 sticky top-0 z-20">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-indigo-600 text-white p-2 rounded-lg">
-                            <Zap size={20} fill="currentColor" />
-                        </div>
-                        <div>
-                            <h1 className="font-bold text-xl text-slate-900">vLLM Request Lifecycle</h1>
-                            <p className="text-xs text-slate-500">Step {currentStepIdx + 1} of {STEPS.length}</p>
+            <header className="bg-[#fdfcfb] border-b border-[#e5e5e5] px-4 md:px-6 py-0 sticky top-0 z-20" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+                <div className="max-w-5xl mx-auto">
+                    <div className="flex items-center justify-between h-16">
+                        <Link to="/" className="text-xl font-semibold text-[#191919]">
+                            10kiq
+                        </Link>
+                        <div className="flex items-center gap-8">
+                            <Link to="/research" className="text-[#191919] font-medium hover:text-[#d4a574] transition-colors">
+                                Research
+                            </Link>
+                            <Link to="/" className="text-[#666] hover:text-[#191919] transition-colors">
+                                Home
+                            </Link>
                         </div>
                     </div>
+                </div>
 
-                    <div className="flex items-center gap-2">
-                        <Link
-                            to="/research"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors text-sm"
-                        >
-                            <BookOpen size={16} />
-                            <span className="hidden sm:inline">Knowledge Hub</span>
-                        </Link>
-                        <Link
-                            to="/"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-600 hover:bg-slate-700 text-white transition-colors text-sm"
-                        >
-                            <Home size={16} />
-                            <span className="hidden sm:inline">Home</span>
-                        </Link>
-
-                        <button
-                            onClick={handleShare}
-                            className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-600 mr-2"
-                            title="Share this step"
-                        >
-                            {copied ? <Check size={20} className="text-green-600" /> : <Share2 size={20} />}
-                        </button>
-
-                        <button
-                            onClick={prevStep}
-                            disabled={currentStepIdx === 0}
-                            className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-
-                        <div className="flex gap-1">
-                            {STEPS.map((_, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`w-2 h-2 rounded-full transition-colors duration-300 cursor-pointer ${idx === currentStepIdx ? 'bg-indigo-600' : idx < currentStepIdx ? 'bg-indigo-200' : 'bg-slate-200'}`}
-                                    onClick={() => setCurrentStepIdx(idx)}
-                                />
-                            ))}
+                {/* Step Progress Bar */}
+                <div className="max-w-5xl mx-auto pb-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-[#d4a574] text-white p-2 rounded-lg">
+                                <Zap size={18} fill="currentColor" />
+                            </div>
+                            <div>
+                                <h1 className="font-semibold text-lg text-[#191919]">vLLM Request Lifecycle</h1>
+                                <p className="text-xs text-[#666]">Step {currentStepIdx + 1} of {STEPS.length}</p>
+                            </div>
                         </div>
 
-                        <button
-                            onClick={nextStep}
-                            disabled={currentStepIdx === STEPS.length - 1}
-                            className="p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 transition-all hover:scale-105 ml-2"
-                        >
-                            <ChevronRight size={24} />
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleShare}
+                                className="p-2 rounded-full hover:bg-[#f0ede8] transition-colors text-[#666]"
+                                title="Share this step"
+                            >
+                                {copied ? <Check size={18} className="text-green-600" /> : <Share2 size={18} />}
+                            </button>
+
+                            <button
+                                onClick={prevStep}
+                                disabled={currentStepIdx === 0}
+                                className="p-2 rounded-full hover:bg-[#f0ede8] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-[#191919]"
+                            >
+                                <ChevronLeft size={22} />
+                            </button>
+
+                            <div className="flex gap-1.5">
+                                {STEPS.map((_, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`w-2 h-2 rounded-full transition-colors duration-300 cursor-pointer ${idx === currentStepIdx ? 'bg-[#d4a574]' : idx < currentStepIdx ? 'bg-[#d4a574]/40' : 'bg-[#e5e5e5]'}`}
+                                        onClick={() => setCurrentStepIdx(idx)}
+                                    />
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={nextStep}
+                                disabled={currentStepIdx === STEPS.length - 1}
+                                className="p-2 rounded-full hover:bg-[#f0ede8] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-[#191919]"
+                            >
+                                <ChevronRight size={22} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -779,6 +783,6 @@ export default function VLLMDeepDive() {
 
                 </div>
             </main>
-        </div>
+        </div >
     );
 }

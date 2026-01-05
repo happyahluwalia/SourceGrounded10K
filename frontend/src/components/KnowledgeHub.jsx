@@ -117,6 +117,34 @@ def verify_embedding_model():
 def search_with_threshold(query, min_score=0.5):
     results = vector_db.search(query, limit=10)
     return [r for r in results if r.score >= min_score]`
+    },
+    {
+        id: 'playwright-for-e2e-ui-validation',
+        category: 'Testing',
+        title: 'Playwright for End-to-End UI Validation',
+        emoji: '🎭',
+        problem: "Comparison summary section was rendering empty for multi-company queries. Manual testing was time-consuming: 5 minutes per test cycle (start servers, navigate UI, check each section). Hard to verify all sections consistently. Unit tests couldn't catch frontend-backend integration bugs.",
+        solution: "Used Playwright browser automation for end-to-end testing. Playwright runs in a real browser (Chromium), interacts with the UI like a user, and provides structured snapshots of rendered components. Tested three scenarios: single-company query, multi-company query with comparison, and verification of all 6 sections (table, summary, business context, links).",
+        impact: "Found the bug in 2 minutes: Component rendered but paragraph was empty. Root cause: Backend sent props.summary, frontend expected props.text. Fixed with a 1-line change and verified immediately. Time savings: Manual 5min → Automated 2min. Regression prevention built in.",
+        lesson: "End-to-end testing catches integration bugs that unit tests miss. Playwright's browser_snapshot provides structured DOM inspection — better than screenshots for verification. Test both success cases AND edge cases. Automate repetitive UI validation to save time and prevent regressions.",
+        date: 'Nov 14, 2025',
+        readTime: '3 min',
+        codeExample: `# Playwright test for multi-company comparison
+async def test_comparison_section():
+    page = await browser.new_page()
+    await page.goto("http://localhost:3000")
+    
+    # Submit query
+    await page.fill("#query-input", "Compare Apple and Microsoft revenue")
+    await page.click("#submit-button")
+    
+    # Wait for response
+    await page.wait_for_selector(".comparison-summary")
+    
+    # Verify content
+    summary = await page.text_content(".comparison-summary p")
+    assert summary is not None, "Summary should not be empty"
+    assert len(summary) > 50, "Summary should have content"`
     }
 ];
 

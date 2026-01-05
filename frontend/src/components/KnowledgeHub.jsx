@@ -113,14 +113,14 @@ def search_with_threshold(query, min_score=0.5):
         id: 'data-structure-beats-complex-architecture',
         category: 'Architecture',
         title: 'Data Structure > Complex Architecture',
-        problem: 'Multi-company comparisons had unbalanced data retrieval: 4 chunks for Apple, 1 chunk for Microsoft. The RAG system was biased toward whichever company appeared first in the query. Initial solution: build parallel RAG agents with separate pipelines per company — estimated 5-6 weeks of development.',
-        solution: 'Instead of rebuilding the architecture, we changed one data structure. The execute_plan() function returned a flat list of chunks. We changed it to return a dictionary keyed by company ticker: {AAPL: [...], MSFT: [...]}. This maintained per-company separation throughout the pipeline, ensuring equal data retrieval for each entity.',
+        problem: 'Multi-company comparisons had unbalanced data retrieval: 4 chunks (segments of documents, typically 500-1000 words, stored in the vector database) for Apple, 1 chunk for Microsoft. The RAG (Retrieval-Augmented Generation — retrieving relevant documents before generating answers) system was biased toward whichever company appeared first in the query. Initial solution: build parallel RAG agents with separate pipelines per company — estimated 5-6 weeks of development.',
+        solution: 'Instead of rebuilding the architecture, we changed one data structure. The execute_plan() function returned a flat list of chunks. We changed it to return a dictionary keyed by company ticker (stock symbol like AAPL for Apple, MSFT for Microsoft): {AAPL: [...], MSFT: [...]}. This maintained per-company separation throughout the pipeline, ensuring equal data retrieval for each entity. Simple change, massive impact.',
         impact: 'Fixed in 1-2 days instead of 5-6 weeks. Equal data retrieval achieved: 5 chunks per company. 95% less code than the parallel agent approach. No new infrastructure, no additional complexity — just a better data structure.',
-        lesson: 'Test the existing system before redesigning. Simple data structure changes often beat complex architectural additions. The impulse to "build something new" can blind us to simpler solutions. When data flows incorrectly, trace the problem back to its source — often it\'s a structural issue, not a capability gap.',
+        lesson: 'Test the existing system before redesigning. Simple data structure changes often beat complex architectural additions. The impulse to "build something new" can blind us to simpler solutions. When data flows incorrectly, trace the problem back to its source — often it\'s a structural issue, not a capability gap. Ask: "Can I fix this by changing how data is organized?" before "Can I fix this by adding new components?" 👥 Best for: Software architects, backend developers, anyone facing complex system design decisions. 📚 Prerequisites: Basic understanding of data structures (lists vs dictionaries), system design thinking.',
         date: 'Nov 4, 2025',
         sortDate: new Date('2025-11-04'),
         readTime: '3 min',
-        summary: 'Changed list to dict — fixed 5-week problem in 2 days with 95% less code than planned parallel agent approach.',
+        summary: 'Changed list to dict — fixed 5-week problem in 2 days with 95% less code. Data structure changes often beat architectural complexity.',
         codeExample: `# BEFORE: Flat list loses company context
 def execute_plan(plan):
     results = []

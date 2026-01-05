@@ -9,6 +9,8 @@ import { RotatingMessage } from './components/RotatingMessage';
 import { Sidebar } from './components/Sidebar';
 import { DebugPanel } from './components/DebugPanel';
 import VLLMDeepDive from './components/VLLMDeepDive';
+import KnowledgeHub from './components/KnowledgeHub';
+import NuggetArticle from './components/NuggetArticle';
 import { ChatInterface } from './components/ChatInterface';
 import { cn } from './lib/utils';
 import './index.css';
@@ -99,11 +101,12 @@ function App() {
   };
 
   const isVLLMPage = location.pathname === '/learn/vllm';
+  const isLearnPage = location.pathname.startsWith('/learn/');
 
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header - Show on all pages */}
-      {!isVLLMPage && (
+      {!isLearnPage && (
         <header className="border-b border-border bg-card px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-primary" />
@@ -112,11 +115,11 @@ function App() {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              to="/learn/vllm"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors text-sm font-medium"
+              to="/learn/nuggets"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors text-sm font-medium"
             >
               <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Learn vLLM</span>
+              <span className="hidden sm:inline">Knowledge</span>
             </Link>
             <Button
               variant={showDebug ? 'default' : 'outline'}
@@ -132,24 +135,26 @@ function App() {
       )}
 
       {/* Routes */}
-      <div className={`flex-1 ${isVLLMPage ? 'overflow-auto' : 'overflow-hidden'}`}>
+      <div className={`flex-1 ${isLearnPage ? 'overflow-auto' : 'overflow-hidden'}`}>
         {/* Chat Interface - Persisted but hidden when on vLLM page */}
-        <div className={cn('flex h-full', showDebug ? 'mr-0 md:mr-[50%] lg:mr-[40%]' : '', isVLLMPage ? 'hidden' : '')}>
+        <div className={cn('flex h-full', showDebug ? 'mr-0 md:mr-[50%] lg:mr-[40%]' : '', isLearnPage ? 'hidden' : '')}>
           <ChatInterface />
         </div>
 
         <Routes>
           <Route path="/learn/vllm" element={<VLLMDeepDive />} />
+          <Route path="/learn/nuggets" element={<KnowledgeHub />} />
+          <Route path="/learn/nuggets/:id" element={<NuggetArticle />} />
         </Routes>
       </div>
 
       {/* Debug Panel - Show on non-vLLM pages only */}
-      {!isVLLMPage && (
+      {!isLearnPage && (
         <DebugPanel logs={debugLogs} isOpen={showDebug} onClose={() => setShowDebug(false)} />
       )}
 
       {/* Floating Feedback Button - Show on non-vLLM pages only */}
-      {!isVLLMPage && (
+      {!isLearnPage && (
         <button
           onClick={handleFeedbackClick}
           onMouseEnter={() => setFeedbackExpanded(true)}

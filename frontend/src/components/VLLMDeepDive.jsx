@@ -493,14 +493,17 @@ export default function VLLMDeepDive() {
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-100 flex flex-col">
             <Helmet>
-                <title>vLLM Request Lifecycle - Interactive Deep Dive</title>
-                <meta name="description" content="Interactive visualization of how vLLM optimizes Large Language Model serving with PagedAttention, Continuous Batching, and Prefix Caching." />
+                <title>vLLM Request Lifecycle - Interactive Deep Dive | 10kiq Knowledge Hub</title>
+                <meta name="description" content="Interactive visualization of how vLLM optimizes LLM serving with PagedAttention, Continuous Batching, and Prefix Caching. Step-by-step walkthrough with code examples." />
+                <meta name="keywords" content="vLLM, PagedAttention, Continuous Batching, Prefix Caching, KV Cache, LLM serving, GPU memory, inference optimization" />
                 <meta property="og:title" content="vLLM Request Lifecycle - Interactive Deep Dive" />
                 <meta property="og:description" content="Explore how vLLM achieves 24x higher throughput than HuggingFace. Interactive visualization of PagedAttention and memory management." />
                 <meta property="og:type" content="article" />
+                <meta property="og:site_name" content="10kiq Knowledge Hub" />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="vLLM Request Lifecycle - Interactive Deep Dive" />
-                <meta name="twitter:description" content="Explore how vLLM achieves 24x higher throughput than HuggingFace. Interactive visualization of PagedAttention and memory management." />
+                <meta name="twitter:description" content="Explore how vLLM achieves 24x higher throughput. Interactive visualization of PagedAttention and memory management." />
+                <meta name="author" content="10kiq" />
             </Helmet>
 
             {/* Top Bar */}
@@ -518,8 +521,15 @@ export default function VLLMDeepDive() {
 
                     <div className="flex items-center gap-2">
                         <Link
+                            to="/learn/nuggets"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors text-sm"
+                        >
+                            <BookOpen size={16} />
+                            <span className="hidden sm:inline">Knowledge Hub</span>
+                        </Link>
+                        <Link
                             to="/"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-600 hover:bg-slate-700 text-white transition-colors text-sm mr-2"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-600 hover:bg-slate-700 text-white transition-colors text-sm"
                         >
                             <Home size={16} />
                             <span className="hidden sm:inline">Home</span>

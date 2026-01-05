@@ -18,7 +18,7 @@ export default function NuggetArticle() {
     const nugget = NUGGETS.find(n => n.id === id);
 
     if (!nugget) {
-        return <Navigate to="/learn/nuggets" replace />;
+        return <Navigate to="/research" replace />;
     }
 
     const handleShareOnX = () => {
@@ -70,7 +70,7 @@ export default function NuggetArticle() {
                             10kiq
                         </Link>
                         <div className="flex items-center gap-8">
-                            <Link to="/learn/nuggets" className="text-[#191919] font-medium">Research</Link>
+                            <Link to="/research" className="text-[#191919] font-medium">Research</Link>
                             <Link to="/" className="text-[#666] hover:text-[#191919] transition-colors">
                                 Home
                             </Link>
@@ -87,7 +87,7 @@ export default function NuggetArticle() {
                     animate={{ opacity: 1 }}
                 >
                     <Link
-                        to="/learn/nuggets"
+                        to="/research"
                         className="inline-flex items-center gap-2 text-[#666] hover:text-[#191919] transition-colors mb-12 text-sm"
                     >
                         <ArrowLeft size={16} />
@@ -195,7 +195,7 @@ export default function NuggetArticle() {
                 >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <Link
-                            to="/learn/nuggets"
+                            to="/research"
                             className="text-[#666] hover:text-[#191919] transition-colors flex items-center gap-2"
                         >
                             <ArrowLeft size={18} />

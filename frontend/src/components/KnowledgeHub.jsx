@@ -146,7 +146,7 @@ const sortedNuggets = [...NUGGETS].sort((a, b) => b.sortDate - a.sortDate);
 // Featured article card with summary
 const FeaturedCard = ({ article }) => (
     <Link
-        to={`/learn/nuggets/${article.id}`}
+        to={`/research/${article.id}`}
         className="group block py-8 border-b border-[#e5e5e5]"
     >
         <div className="flex items-baseline gap-2 mb-3 text-sm">
@@ -169,7 +169,7 @@ const FeaturedCard = ({ article }) => (
 // Compact finding row
 const FindingRow = ({ article }) => (
     <Link
-        to={`/learn/nuggets/${article.id}`}
+        to={`/research/${article.id}`}
         className="group flex items-start gap-4 py-4 border-b border-[#e5e5e5] hover:bg-[#f8f7f5] -mx-4 px-4 transition-colors"
     >
         <div className="flex-shrink-0 w-28 text-sm text-[#999]">
@@ -262,7 +262,7 @@ export default function KnowledgeHub() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
                     >
-                        <Link to="/learn/vllm" className="group block">
+                        <Link to="/research/vllm" className="group block">
                             <div className="flex items-baseline gap-2 mb-3 text-sm">
                                 <span className="text-[#d4a574] font-medium">Deep Dive</span>
                                 <span className="px-2 py-0.5 bg-[#d4a574] text-white text-xs rounded">

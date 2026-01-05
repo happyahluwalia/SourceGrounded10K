@@ -521,7 +521,7 @@ export default function VLLMDeepDive() {
 
                     <div className="flex items-center gap-2">
                         <Link
-                            to="/learn/nuggets"
+                            to="/research"
                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors text-sm"
                         >
                             <BookOpen size={16} />

@@ -60,7 +60,7 @@
       "problem": "Assumed 72B parameter model would outperform 8B model for financial analysis",
       "solution": "Benchmarked 6 configurations: llama3.1:8b won on speed (30s) AND accuracy (72.5%)",
       "impact": "Qwen72b was 23x slower (693s) with 30% worse accuracy (50.8%). Task-fit matters more than size.",
-      "date": "2024-11-03"
+      "date": "2025-11-03"
     },
     {
       "category": "model_selection",
@@ -68,7 +68,7 @@
       "problem": "Tried mixing qwen72b (supervisor) + mixtral (planner) + llama8b (synthesizer) for 'best of each'",
       "solution": "Tested specialized mix vs homogeneous configs",
       "impact": "Mixed config had worst accuracy (34.2%) vs llama3.1 homogeneous (72.5%). Stick with one model.",
-      "date": "2024-11-03"
+      "date": "2025-11-03"
     },
     {
       "category": "query_optimization",
@@ -76,7 +76,7 @@
       "problem": "Searching 'Chief Financial Officer' alone retrieved Item 10 (wrong section about audit committee)",
       "solution": "Adding 'executive officers' keyword targets Item 1 (correct section with executive table)",
       "impact": "Improved accuracy from 60% → 95% for executive officer queries",
-      "date": "2024-11-02"
+      "date": "2025-11-02"
     },
     {
       "category": "retrieval",
@@ -84,7 +84,7 @@
       "problem": "Retrieving only 5 chunks missed relevant sections, especially for complex queries",
       "solution": "Increased to 10 chunks for better coverage while staying within context window",
       "impact": "35% improvement in answer completeness without sacrificing speed",
-      "date": "2024-11-02"
+      "date": "2025-11-02"
     },
     {
       "category": "prompt_engineering",
@@ -92,7 +92,7 @@
       "problem": "Planner generated inconsistent search queries, sometimes missing key context",
       "solution": "Added concrete examples in planner prompt showing correct query format",
       "impact": "60% reduction in malformed queries and better section targeting",
-      "date": "2024-11-02"
+      "date": "2025-11-02"
     },
     {
       "category": "consistency",
@@ -100,7 +100,7 @@
       "problem": "Mixed use of ollama.Client and ChatOllama caused streaming incompatibility",
       "solution": "Standardized all LLM calls to use ChatOllama from LangChain",
       "impact": "Enabled streaming across all components, easier maintenance, consistent behavior",
-      "date": "2024-11-02"
+      "date": "2025-11-02"
     },
     {
       "category": "architecture",
@@ -108,7 +108,7 @@
       "problem": "Users couldn't have multi-turn conversations, each query was isolated",
       "solution": "Implemented PostgreSQL-backed checkpointing with session IDs",
       "impact": "Users can now ask follow-up questions with full conversation context",
-      "date": "2024-11-01"
+      "date": "2025-11-01"
     },
     {
       "category": "architecture",
@@ -116,7 +116,7 @@
       "problem": "Multi-company comparisons had unbalanced data (4 AAPL chunks, 1 MSFT chunk). Planned to build parallel RAG agents (5-6 weeks)",
       "solution": "Changed execute_plan() return type from list to dict to maintain per-company separation",
       "impact": "Equal data retrieval (5 chunks per company), fixed in 1-2 days instead of 5-6 weeks. 95% less code than parallel agent approach.",
-      "date": "2024-11-04",
+      "date": "2025-11-04",
       "lesson": "Test existing system before redesigning. Simple data structure changes often beat complex architectural additions."
     },
     {
@@ -125,7 +125,7 @@
       "problem": "Considered sending context to LLM as JSON for better structure, but this adds 20-30% token overhead",
       "solution": "Keep context as natural text (plain language), require JSON output from LLM for structured responses",
       "impact": "Saves ~2,000 tokens per query (20-30% reduction). LLMs comprehend natural text better than JSON. Frontend gets structured data for rendering.",
-      "date": "2024-11-04",
+      "date": "2025-11-04",
       "lesson": "Rule of thumb: Natural text in → Structured data out (when needed). Don't over-structure your prompts. LLMs are trained on narrative text, not JSON."
     },
     {
@@ -134,7 +134,7 @@
       "problem": "LLMs are unreliable at formatting (markdown, HTML, tables). Asking LLM to format output leads to inconsistent UI, wasted tokens, and hard-to-maintain code.",
       "solution": "LLM outputs structured JSON sections (paragraph, table, key_findings). Backend formatter functions convert to UI components deterministically. Frontend renders components.",
       "impact": "Consistent UI rendering, easier A/B testing, future-proof for charts/graphs, no formatting tokens wasted, separation of concerns (LLM=analysis, code=presentation).",
-      "date": "2024-11-04",
+      "date": "2025-11-04",
       "lesson": "LLMs should focus on semantic data extraction, not presentation. Use deterministic code for formatting. Architecture: LLM → Structured JSON → Formatter functions → UI components."
     },
     {
@@ -143,7 +143,7 @@
       "problem": "Ollama running in Docker on Mac was using CPU-only (no GPU acceleration) because Docker on macOS doesn't support GPU passthrough. Inference was extremely slow: 90+ seconds for 3 LLM calls.",
       "solution": "Run Ollama natively on Mac to leverage Metal (Apple's GPU framework) instead of Docker. Native Ollama automatically uses GPU acceleration on Apple Silicon.",
       "impact": "5-10x faster inference on local development. What seemed like a model performance issue was actually an infrastructure configuration problem. Production servers with NVIDIA GPUs in Docker work correctly.",
-      "date": "2024-11-10",
+      "date": "2025-11-10",
       "lesson": "Always verify infrastructure before optimizing algorithms. Docker on Mac: CPU-only. Native Mac: GPU via Metal. Production Linux: GPU via NVIDIA Container Toolkit. Test infrastructure assumptions early."
     },
     {
@@ -152,7 +152,7 @@
       "problem": "Our system uses 3 LLM agents (Supervisor, Planner, Synthesizer) before responding. Each agent processes full context, multiplying token usage. Anthropic research shows multi-agent systems use ~15x more tokens than simple chat.",
       "solution": "Measured actual token usage: System prompts (1,492 tokens) dominate over user queries (21 tokens). Total: 1,575 tokens for 3 agents vs ~100 tokens for single chat interaction.",
       "impact": "Token profiling revealed: Supervisor (214 input, 0 output), Planner (1,299 input, 62 output), Synthesizer (largest). System prompts are 71x larger than user queries. Optimization target: reduce system prompt size.",
-      "date": "2024-11-10",
+      "date": "2025-11-10",
       "lesson": "Multi-agent systems trade tokens for reasoning quality. Our 3-agent pipeline: Supervisor delegates → Planner creates structured plan → Synthesizer generates answer. Each step adds context but improves accuracy. Monitor token usage to optimize system prompts."
     },
     {
@@ -161,7 +161,7 @@
       "problem": "With checkpointing, conversation history grows unbounded. After 10-15 turns, context window overflows (8,192 tokens for llama3.1:8b). Considered sliding window (keep last 8 messages) but tool responses can be 5,000-10,000 tokens each.",
       "solution": "Implemented LangChain's trim_messages with max_tokens=6000. Token-based trimming guarantees no overflow regardless of message sizes. Keeps most recent messages that fit within budget.",
       "impact": "Hard guarantee against context overflow. Sliding window with 8 messages could be 20,000+ tokens (unsafe). Token trimming adapts to variable message sizes. Built-in utility handles edge cases.",
-      "date": "2024-11-12",
+      "date": "2025-11-12",
       "lesson": "Token-based > Message-based for variable message sizes. Tool responses (filing_qa_tool) are 250x larger than user queries. Use built-in utilities (trim_messages) instead of custom logic. Conservative limits (6,000 not 6,192) leave safety margin."
     },
     {
@@ -170,7 +170,7 @@
       "problem": "Token trimming solves context overflow, but what are the other benefits? Need to understand full impact for system optimization and future blog post.",
       "solution": "Analyzed comprehensive benefits: 1) Inference speed (3-4x faster with bounded tokens), 2) Memory efficiency (75% less VRAM), 3) Predictable latency (consistent UX), 4) Better token budget allocation (more tokens for quality answers), 5) Reduced hallucination (less context pollution), 6) Scalability (2.5x more concurrent users), 7) Cost savings (76% reduction if using paid APIs), 8) Debugging/monitoring (trackable metrics), 9) QoS (fair resource allocation), 10) Model compatibility (easy switching).",
       "impact": "Without trimming: Turn 10 = 15+ seconds, variable latency, memory issues. With trimming: Consistent 4 seconds, stable memory, predictable performance. LLM attention is O(n²) complexity - reducing tokens from 25,000 to 6,000 gives 3.75x speedup. Our system: 10 queries × 2,725 tokens = 27,250 tokens (overflow) vs max 6,000 tokens (safe).",
-      "date": "2024-11-12",
+      "date": "2025-11-12",
       "lesson": "Token management is not just about preventing crashes - it's a performance, cost, and UX optimization. Inference speed scales with token count. Predictable latency > variable speed. Bounded resources enable better capacity planning. Track trimming events as a system health metric."
     },
     {
@@ -179,7 +179,7 @@
       "problem": "After migrating from Docker Ollama to native Ollama (for GPU acceleration), vector search returned 0% confidence scores and wrong answers. Multi-turn conversations failed: 'What was Apple's revenue?' worked, but 'And what are the risks?' returned irrelevant results.",
       "solution": "Root cause: Missing nomic-embed-text model after migration. Docker had the model, native install didn't. Embedding API returned 404 error but system continued with zero/default vectors. Zero vectors compared against document vectors = random 0% similarity scores. Fix: ollama pull nomic-embed-text. Added: 1) Score threshold filtering (reject <50%), 2) Startup health check with retry logic, 3) Fail-fast on embedding errors.",
       "impact": "Before fix: 0% confidence, wrong answers, silent failures. After fix: 50%+ confidence, correct answers, proper error handling. Learned: LLM models (llama3.2:3b) ≠ Embedding models (nomic-embed-text). Both required but serve different purposes. Infrastructure migrations have hidden dependencies.",
-      "date": "2024-11-12",
+      "date": "2025-11-12",
       "lesson": "Fail fast > fail silently. 0% similarity scores are diagnostic red flags (embedding failure, model mismatch, or vector space incompatibility). When migrating infrastructure, verify ALL model dependencies (LLMs + embeddings). Add startup health checks with retry logic for Docker environments where services start at different times. Filter results by confidence threshold before synthesis."
     },
     {
@@ -188,7 +188,7 @@
       "problem": "Comparison summary section was rendering empty for multi-company queries. Manual testing was time-consuming (5 min per test: start servers, navigate UI, check each section). Hard to verify all sections consistently. Unit tests couldn't catch frontend-backend integration bugs.",
       "solution": "Used Playwright browser automation via MCP (Model Context Protocol) for end-to-end testing. Playwright runs in real browser (Chromium), interacts with UI like a user, and provides structured snapshots of rendered components. Tested: 1) Single-company query (no comparison), 2) Multi-company query (with comparison), 3) All sections (table, summary, business context, links).",
       "impact": "Found bug in 2 minutes: Component rendered but paragraph was empty. Root cause: Backend sent props.summary, frontend expected props.text (1-line fix). Verified fix immediately with same test. Time savings: Manual 5min → Automated 2min. Regression prevention: Re-run test after any UI change. Confidence: Verified 6 sections in one test run.",
-      "date": "2024-11-14",
+      "date": "2025-11-14",
       "lesson": "End-to-end testing catches integration bugs that unit tests miss. Playwright's browser_snapshot provides structured DOM inspection (better than screenshots for verification). Test both success cases AND edge cases (single vs multi-company). Automate repetitive UI validation to save time and prevent regressions. MCP integration makes Playwright accessible via AI assistant."
     },
     {
@@ -197,7 +197,7 @@
       "problem": "llama3.1:8b occasionally generated malformed JSON (unterminated strings, missing braces) for complex comparison queries. Error rate: ~5-10% in production. Fallback logic tried to repair JSON but often failed, showing raw JSON dumps to users. Prompt instructions like 'ENSURE ALL STRINGS ARE PROPERLY CLOSED' were unreliable.",
       "solution": "Implemented Ollama's structured outputs feature using Pydantic schemas. Created SynthesizerOutput schema matching expected JSON structure. Passed schema to ChatOllama via format=SynthesizerOutput.model_json_schema(). Ollama now uses constrained generation - only allows tokens that keep output valid according to schema. Grammar-based sampling guarantees valid JSON.",
       "impact": "Malformed JSON errors dropped from 5-10% to ~0%. No more unterminated strings or missing braces. Token savings: Removed ~400 tokens of JSON formatting instructions from prompt (15% reduction). Simplified prompt from 219 lines to 147 lines. Fallback logic still exists as safety net but rarely triggered. Production reliability improved significantly.",
-      "date": "2024-11-14",
+      "date": "2025-11-14",
       "lesson": "Use API-level constraints instead of prompt instructions for structured output. Ollama's structured outputs use token-level constraints (grammar-based sampling) to mathematically guarantee valid JSON. Pydantic schemas provide type safety and validation. Prompt instructions are unreliable - LLMs can't always follow formatting rules perfectly. Defense in depth: Schema enforcement (primary) + fallback handling (safety net). This is the proper, production-grade solution for reliable LLM outputs."
     }
   ],

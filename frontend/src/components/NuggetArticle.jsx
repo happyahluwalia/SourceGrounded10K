@@ -50,6 +50,7 @@ export default function NuggetArticle() {
             <Helmet>
                 <title>{nugget.title} | Research - 10kiq</title>
                 <meta name="description" content={`${nugget.problem} Learn how we solved this and the impact it had.`} />
+                <meta name="keywords" content={`${nugget.category}, LLM, AI, machine learning, production systems, best practices, ${nugget.title.toLowerCase().split(' ').slice(0, 3).join(', ')}`} />
                 <meta property="og:title" content={`${nugget.title} | Research`} />
                 <meta property="og:description" content={nugget.problem} />
                 <meta property="og:type" content="article" />

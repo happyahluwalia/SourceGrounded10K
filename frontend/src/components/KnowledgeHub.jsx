@@ -90,6 +90,33 @@ def chat_step(state):
     trimmed = trimmer.invoke(state["messages"])
     response = llm.invoke(trimmed)
     return {"messages": [response]}`
+    },
+    {
+        id: 'silent-embedding-failures-cause-wrong-answers',
+        category: 'Vector Search',
+        title: 'Silent Embedding Failures Cause 0% Confidence and Wrong Answers',
+        emoji: '🔇',
+        problem: 'After migrating from Docker Ollama to native Ollama (for GPU acceleration), vector search returned 0% confidence scores and wrong answers. Multi-turn conversations failed: "What was Apple\'s revenue?" worked, but follow-up "And what are the risks?" returned irrelevant results. The system seemed to work but gave completely wrong answers.',
+        solution: "Root cause: Missing nomic-embed-text model after migration. Docker had the model, native install didn't. The embedding API returned 404 but the system continued with zero/default vectors. Zero vectors compared against document vectors = random 0% similarity. Fix: ollama pull nomic-embed-text. Added: (1) Score threshold filtering — reject results below 50%, (2) Startup health check with retry logic, (3) Fail-fast on embedding errors.",
+        impact: 'Before fix: 0% confidence, wrong answers, silent failures. After fix: 50%+ confidence, correct answers, proper error handling. Key insight: LLM models (llama3.2:3b) ≠ Embedding models (nomic-embed-text). Both required but serve different purposes. Infrastructure migrations have hidden dependencies.',
+        lesson: "Fail fast > fail silently. 0% similarity scores are diagnostic red flags indicating embedding failure, model mismatch, or vector space incompatibility. When migrating infrastructure, verify ALL model dependencies (LLMs + embeddings). Add startup health checks with retry logic. Filter results by confidence threshold before synthesis.",
+        date: 'Nov 12, 2025',
+        readTime: '4 min',
+        codeExample: `# Health check for embedding model
+def verify_embedding_model():
+    try:
+        test_embedding = embed("test query")
+        if len(test_embedding) != 768:
+            raise ValueError("Wrong embedding dimension")
+        return True
+    except Exception as e:
+        logger.error(f"Embedding model check failed: {e}")
+        return False
+
+# Filter low-confidence results
+def search_with_threshold(query, min_score=0.5):
+    results = vector_db.search(query, limit=10)
+    return [r for r in results if r.score >= min_score]`
     }
 ];
 

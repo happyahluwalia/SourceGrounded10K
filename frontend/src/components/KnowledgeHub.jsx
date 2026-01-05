@@ -35,14 +35,14 @@ llm = ChatOllama(
         id: 'playwright-for-e2e-ui-validation',
         category: 'Testing',
         title: 'Playwright for End-to-End UI Validation',
-        problem: "Comparison summary section was rendering empty for multi-company queries. Manual testing was time-consuming: 5 minutes per test cycle (start servers, navigate UI, check each section). Hard to verify all sections consistently. Unit tests couldn't catch frontend-backend integration bugs.",
-        solution: "Used Playwright browser automation for end-to-end testing. Playwright runs in a real browser (Chromium), interacts with the UI like a user, and provides structured snapshots of rendered components. Tested three scenarios: single-company query, multi-company query with comparison, and verification of all 6 sections (table, summary, business context, links).",
-        impact: "Found the bug in 2 minutes: Component rendered but paragraph was empty. Root cause: Backend sent props.summary, frontend expected props.text. Fixed with a 1-line change and verified immediately. Time savings: Manual 5min → Automated 2min. Regression prevention built in.",
-        lesson: "End-to-end testing catches integration bugs that unit tests miss. Playwright's browser_snapshot provides structured DOM inspection — better than screenshots for verification. Test both success cases AND edge cases. Automate repetitive UI validation to save time and prevent regressions.",
+        problem: "Comparison summary section was rendering empty for multi-company queries. Manual testing was time-consuming: 5 minutes per test cycle (start servers, navigate UI, check each section). Hard to verify all sections consistently. Unit tests couldn't catch frontend-backend integration bugs — they test components in isolation, not how they work together in a real browser.",
+        solution: "Used Playwright (a browser automation tool that simulates real user interactions) for end-to-end testing. Playwright runs in a real browser (Chromium), clicks buttons, fills forms, and provides structured snapshots of rendered components. Tested three scenarios: single-company query, multi-company query with comparison, and verification of all 6 sections (table, summary, business context, links).",
+        impact: "Found the bug in 2 minutes: Component rendered but paragraph was empty. Root cause: Backend sent props.summary, frontend expected props.text. The fix: Changed <p>{props.text}</p> to <p>{props.summary}</p> — literally one line. Verified immediately with Playwright. Time savings: Manual 5min → Automated 2min. Regression prevention built in — if this breaks again, the test will catch it.",
+        lesson: "End-to-end testing catches integration bugs that unit tests miss. Unit tests verify individual components work in isolation. E2E tests verify the entire system works together — frontend, backend, database, all of it. Playwright's browser_snapshot provides structured DOM inspection (better than screenshots for verification). Test both success cases AND edge cases. Automate repetitive UI validation to save time and prevent regressions. 👥 Best for: Full-stack developers, QA engineers. 📚 Prerequisites: Basic understanding of frontend-backend architecture.",
         date: 'Nov 14, 2025',
         sortDate: new Date('2025-11-14'),
         readTime: '3 min',
-        summary: 'Found a props mismatch bug in 2 minutes with Playwright — root cause: backend sent props.summary but frontend expected props.text.',
+        summary: 'Found a props mismatch bug in 2 minutes with Playwright — backend sent props.summary but frontend expected props.text. Fixed with 1-line change.',
         codeExample: `async def test_comparison_section():
     page = await browser.new_page()
     await page.goto("http://localhost:3000")

@@ -59,14 +59,14 @@ llm = ChatOllama(
         id: 'token-based-trimming-for-context-management',
         category: 'Context Management',
         title: 'Token-based Trimming Beats Message-Count Sliding Window',
-        problem: 'With checkpointing enabled, conversation history grows unbounded. After 10-15 turns, the context window overflows (8,192 tokens for llama3.1:8b). The obvious solution — sliding window keeping last 8 messages — is dangerous because tool responses can be 5,000-10,000 tokens each. Eight large messages could be 20,000+ tokens.',
-        solution: "Implemented LangChain's trim_messages utility with max_tokens=6000. Token-based trimming guarantees no overflow regardless of message sizes. It keeps the most recent messages that fit within the budget, automatically handling variable message sizes and edge cases.",
+        problem: 'With checkpointing (saving conversation state between interactions) enabled, conversation history grows unbounded. After 10-15 turns (one turn = user message + assistant response), the context window (maximum tokens an LLM can process at once) overflows. llama3.1:8b has an 8,192 token limit. The obvious solution — sliding window keeping last 8 messages — is dangerous because tool responses can be 5,000-10,000 tokens each. Eight large messages could be 20,000+ tokens, causing crashes.',
+        solution: "Implemented LangChain's trim_messages utility with max_tokens=6000 (not 8,192). Token-based trimming guarantees no overflow regardless of message sizes. It keeps the most recent messages that fit within the budget, automatically handling variable message sizes and edge cases. Why 6,000 not 8,192? We leave 2,192 tokens (27% buffer) for: system prompts (~500 tokens), user's current query (~500 tokens), model's response generation (~1,000 tokens), and safety margin.",
         impact: 'Hard guarantee against context overflow. Before: Turn 10 = 15+ seconds, variable latency, memory issues. After: Consistent 4-second responses, stable memory, predictable performance. LLM attention is O(n²) complexity — reducing tokens from 25,000 to 6,000 gives 3.75x speedup.',
-        lesson: "Token-based > Message-based for variable message sizes. Tool responses (like filing_qa_tool) are 250x larger than user queries. Use built-in utilities (trim_messages) instead of custom logic. Conservative limits (6,000 not 8,192) leave safety margin. Token management is not just about preventing crashes — it's a performance, cost, and UX optimization.",
+        lesson: "Token-based > Message-based for variable message sizes. Tool responses (like filing_qa_tool) are 250x larger than user queries (20 tokens vs 5,000 tokens). Use built-in utilities (trim_messages) instead of custom logic — they handle edge cases you haven't thought of. Conservative limits (6,000 not 8,192) leave safety margin. Token management is not just about preventing crashes — it's a performance optimization (O(n²) attention complexity), cost optimization (fewer tokens = cheaper), and UX optimization (faster responses). 👥 Best for: Backend developers building conversational AI. 📚 Prerequisites: Understanding of LLM context windows, basic conversation state management.",
         date: 'Nov 12, 2025',
         sortDate: new Date('2025-11-12'),
         readTime: '4 min',
-        summary: 'Token-based trimming guarantees no context overflow and provides 3.75x speedup by reducing from 25K to 6K tokens.',
+        summary: 'Token-based trimming guarantees no context overflow and provides 3.75x speedup by reducing from 25K to 6K tokens. Use 75% of context limit, not 100%.',
         codeExample: `from langchain_core.messages import trim_messages
 
 trimmer = trim_messages(

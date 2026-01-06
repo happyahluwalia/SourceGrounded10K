@@ -198,6 +198,37 @@ class AnalysisOutput(BaseModel):
     answer: str
     confidence: float
     sources: list[str]`
+    },
+    {
+        id: 'infrastructure-bottleneck-vs-algorithm-problem',
+        category: 'Infrastructure',
+        title: 'Infrastructure Bottleneck Masquerading as Algorithm Problem',
+        problem: 'Ollama running in Docker on Mac was extremely slow: 90+ seconds for 3 LLM calls. We assumed the model was too slow and started optimizing prompts, reducing context, trying smaller models. Spent days on algorithm optimizations that barely helped. The real problem? Docker on macOS doesn\'t support GPU passthrough — all inference was running on CPU only.',
+        solution: 'Run Ollama natively on Mac to leverage Metal (Apple\'s GPU framework) instead of Docker. Native Ollama automatically uses GPU acceleration on Apple Silicon (M1/M2/M3 chips). Docker is great for deployment consistency, but on Mac development machines, native runs are 5-10x faster.',
+        impact: '5-10x faster inference on local development. What seemed like a model performance issue was actually an infrastructure configuration problem. The "slow model" was actually a fast model running on the wrong hardware. Production servers with NVIDIA GPUs in Docker work correctly (Docker on Linux supports GPU passthrough via NVIDIA Container Toolkit).',
+        lesson: 'Always verify infrastructure before optimizing algorithms. Check: Is the GPU actually being used? (nvidia-smi, metal performance counters). Docker on Mac = CPU-only for GPU workloads. Native Mac = GPU via Metal. Production Linux = GPU via NVIDIA Container Toolkit. Test infrastructure assumptions early. The fastest algorithm on wrong hardware loses to slow algorithm on right hardware. 👥 Best for: DevOps, ML engineers running local LLMs. 📚 Prerequisites: Basic understanding of Docker, GPU acceleration.',
+        date: 'Nov 10, 2025',
+        sortDate: new Date('2025-11-10'),
+        readTime: '3 min',
+        summary: 'Docker on Mac = CPU-only (no GPU). Native Mac = 5-10x faster via Metal. Verify infrastructure before optimizing algorithms.',
+        codeExample: `# Check if GPU is being used
+
+# On Mac (native Ollama):
+# Watch Activity Monitor > GPU History
+# Should see Metal utilization during inference
+
+# On Linux with NVIDIA:
+$ nvidia-smi  # Check GPU utilization
+
+# Docker on Mac: NO GPU (this was our bug!)
+$ docker run ollama/ollama  # CPU only on Mac
+
+# Fix: Run natively on Mac
+$ brew install ollama
+$ ollama serve  # Now uses Metal GPU
+
+# Production (Linux + NVIDIA):
+$ docker run --gpus all ollama/ollama  # GPU works!`
     }
 ];
 

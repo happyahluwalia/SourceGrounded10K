@@ -137,6 +137,35 @@ def execute_plan(plan):
         chunks = search(step.query, ticker)
         results[ticker] = chunks
     return results  # {AAPL: [...], MSFT: [...]}`
+    },
+    {
+        id: 'bigger-models-not-better-performance',
+        category: 'Model Selection',
+        title: 'Bigger Models ≠ Better Performance',
+        problem: 'We assumed a 72B parameter model (Qwen2.5:72b) would outperform an 8B model (llama3.1:8b) for financial analysis. Bigger should mean smarter, right? This assumption led us to initially deploy the largest model available, expecting superior accuracy and comprehension.',
+        solution: 'Benchmarked 6 different model configurations on our specific use case: SEC filing analysis with multi-turn conversations. Tested: llama3.1:8b, llama3.1:70b, qwen2.5:72b, mixtral:8x7b, and various mixed configurations. Measured both speed (response time) and accuracy (correctness of financial analysis).',
+        impact: 'llama3.1:8b won on BOTH speed AND accuracy. Results: llama3.1:8b = 30s response time, 72.5% accuracy. Qwen72b = 693s response time (23x slower!), 50.8% accuracy (30% worse). The 8B model was faster AND more accurate than the 72B model for our specific task.',
+        lesson: 'Task-fit matters more than parameter count. The "best" model depends on your specific use case, not raw size. Benchmark on YOUR data, not generic benchmarks. For SEC filing analysis: llama3.1:8b was optimized for instruction-following and structured outputs (exactly what we needed). Qwen72b was trained for different objectives. Always test before assuming bigger = better. 👥 Best for: ML engineers, anyone selecting LLMs for production. 📚 Prerequisites: Understanding of LLM parameters, basic benchmarking concepts.',
+        date: 'Nov 3, 2025',
+        sortDate: new Date('2025-11-03'),
+        readTime: '4 min',
+        summary: 'llama3.1:8b beat Qwen72b on both speed (23x faster) and accuracy (30% better). Task-fit matters more than parameter count.',
+        codeExample: `# Benchmark results from our testing
+BENCHMARK_RESULTS = {
+    "llama3.1:8b": {
+        "avg_response_time": 30,  # seconds
+        "accuracy": 72.5,         # percent
+        "std_dev": 8.7            # seconds
+    },
+    "qwen2.5:72b": {
+        "avg_response_time": 693,  # seconds (23x slower!)
+        "accuracy": 50.8,          # percent (30% worse!)
+        "std_dev": 247             # highly variable
+    }
+}
+
+# Key insight: 8B model beat 72B model on OUR task
+# Generic benchmarks don't predict task-specific performance`
     }
 ];
 

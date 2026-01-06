@@ -166,6 +166,38 @@ BENCHMARK_RESULTS = {
 
 # Key insight: 8B model beat 72B model on OUR task
 # Generic benchmarks don't predict task-specific performance`
+    },
+    {
+        id: 'natural-text-in-structured-data-out',
+        category: 'Prompt Engineering',
+        title: 'Natural Text In → Structured Data Out',
+        problem: 'We considered sending context to the LLM as JSON for better structure. Example: {"company": "Apple", "revenue": "$394B", "section": "Item 8"}. This seemed logical — structured input should produce structured output, right? But JSON input adds 20-30% token overhead (all those quotes, braces, and colons).',
+        solution: 'Keep context as natural text (plain language paragraphs from SEC filings), but require JSON output from the LLM for structured responses. The LLM reads natural prose efficiently (it was trained on narrative text, not JSON). Output schemas (like Pydantic) ensure structured responses when needed.',
+        impact: 'Saves ~2,000 tokens per query (20-30% reduction in token usage). LLMs comprehend natural text better than JSON — they were trained on articles, books, and conversations, not config files. Frontend still gets structured data for rendering. Cost savings on token-based APIs. Faster inference (fewer tokens = less compute).',
+        lesson: 'Rule of thumb: Natural text in → Structured data out (when needed). Don\'t over-structure your prompts. LLMs are trained on narrative text, not JSON. Use JSON/structured formats for OUTPUT when you need deterministic parsing, but feed NATURAL LANGUAGE as input. This matches how the models were trained and optimized. Exception: Use structured input when you need exact field matching (like database records). 👥 Best for: Prompt engineers, anyone building LLM pipelines. 📚 Prerequisites: Basic understanding of tokens, prompt design.',
+        date: 'Nov 4, 2025',
+        sortDate: new Date('2025-11-04'),
+        readTime: '3 min',
+        summary: 'Feed LLMs natural text (how they were trained), require structured JSON output (for parsing). Saves 20-30% tokens.',
+        codeExample: `# ❌ WRONG: JSON input wastes tokens
+context = {
+    "company": "Apple Inc.",
+    "section": "Item 8 - Financial Statements",
+    "revenue": "$394.3 billion"
+}
+
+# ✅ RIGHT: Natural text input, structured output
+context = """
+Apple Inc. reported total revenue of $394.3 billion 
+for fiscal year 2024, as disclosed in Item 8 - 
+Financial Statements and Supplementary Data...
+"""
+
+# Require structured OUTPUT with Pydantic schema
+class AnalysisOutput(BaseModel):
+    answer: str
+    confidence: float
+    sources: list[str]`
     }
 ];
 

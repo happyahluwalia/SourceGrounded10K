@@ -401,6 +401,47 @@ def retrieve_context(query: str) -> list[str]:
         score_threshold=RETRIEVAL_CONFIG["min_score"]
     )
     return [r.text for r in results]`
+    },
+    {
+        id: 'standardize-llm-apis',
+        category: 'Consistency',
+        title: 'Standardize LLM APIs',
+        problem: 'We had mixed use of Ollama clients across the codebase: some components used ollama.Client (native Ollama SDK), others used ChatOllama (LangChain wrapper). This caused streaming incompatibility — the native client streamed differently than LangChain. Debugging was painful. Changing one component could break another.',
+        solution: 'Standardized all LLM calls to use ChatOllama from LangChain. Created a single get_llm() factory function that returns a configured ChatOllama instance. All agents, tools, and pipelines call this function instead of creating their own clients.',
+        impact: 'Enabled streaming across all components — consistent token-by-token output. Easier maintenance — change the model in one place, propagates everywhere. Consistent behavior — same retry logic, timeout handling, error messages. Debugging simplified — one interface to understand.',
+        lesson: 'Pick one abstraction layer and stick with it. LangChain\'s ChatOllama provides streaming, structured outputs, and consistent interfaces. Avoid mixing SDKs — it creates subtle incompatibilities. Factory functions make it easy to change implementations later. Consistency beats "optimal" local choices. 👥 Best for: Backend developers, anyone building LLM pipelines. 📚 Prerequisites: Basic understanding of LangChain, Ollama.',
+        date: 'Nov 2, 2025',
+        sortDate: new Date('2025-11-02'),
+        readTime: '3 min',
+        summary: 'Standardized all LLM calls to ChatOllama via factory function. Enabled consistent streaming and simpler maintenance.',
+        codeExample: `# ❌ WRONG: Mixed clients cause incompatibility
+# agent1.py
+from ollama import Client
+client = Client()  # Native SDK
+
+# agent2.py
+from langchain_ollama import ChatOllama
+llm = ChatOllama(model="llama3.1:8b")  # LangChain
+
+# ✅ RIGHT: Single factory function
+# llm_factory.py
+from langchain_ollama import ChatOllama
+
+_llm_instance = None
+
+def get_llm(model: str = "llama3.1:8b") -> ChatOllama:
+    global _llm_instance
+    if _llm_instance is None:
+        _llm_instance = ChatOllama(
+            model=model,
+            temperature=0,
+            streaming=True
+        )
+    return _llm_instance
+
+# All agents use the same interface
+from llm_factory import get_llm
+llm = get_llm()`
     }
 ];
 

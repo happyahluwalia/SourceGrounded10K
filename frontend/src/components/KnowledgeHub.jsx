@@ -298,6 +298,40 @@ config_homogeneous = {
 
 # Why? Consistent tokenization, instruction format,
 # and response style across the entire pipeline`
+    },
+    {
+        id: 'checkpointing-enables-memory',
+        category: 'Architecture',
+        title: 'Checkpointing Enables Memory',
+        problem: 'Users couldn\'t have multi-turn conversations. Each query was isolated — ask about Apple\'s revenue, then ask "what were the main risks?" and the system had no idea you were still talking about Apple. No conversation context. Every question started fresh. This made the assistant feel dumb and frustrating to use.',
+        solution: 'Implemented PostgreSQL-backed checkpointing with LangGraph. Each conversation gets a unique session ID (UUID). All messages (human, AI, tool calls) are persisted to PostgreSQL after each turn. On the next query, we load the full conversation history and include it in the context. LangGraph\'s MemorySaver handles serialization.',
+        impact: 'Users can now ask follow-up questions naturally: "What was Apple\'s revenue?" → "How does that compare to Microsoft?" → "What are the risks for both?" Each turn builds on the previous. Context is maintained across browser refreshes (persisted to DB). Session isolation ensures conversations don\'t leak between users.',
+        lesson: 'Stateless is simpler but stateful is necessary for good UX. LangGraph checkpointing abstracts the complexity. PostgreSQL is battle-tested for persistence. Key design: thread_id per conversation, checkpoint after every turn, load history before processing. Trade-off: More DB operations, but 10x better user experience. 👥 Best for: Backend developers building conversational AI. 📚 Prerequisites: Basic PostgreSQL, understanding of session management.',
+        date: 'Nov 1, 2025',
+        sortDate: new Date('2025-11-01'),
+        readTime: '4 min',
+        summary: 'PostgreSQL-backed checkpointing enables multi-turn conversations. Each turn persists to DB, loaded on next query.',
+        codeExample: `from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.graph import StateGraph
+
+# Initialize checkpointer with PostgreSQL
+checkpointer = PostgresSaver.from_conn_string(
+    "postgresql://user:pass@localhost/db"
+)
+
+# Build graph with checkpointing
+graph = StateGraph(AgentState)
+graph.add_node("agent", agent_node)
+app = graph.compile(checkpointer=checkpointer)
+
+# Each conversation gets a unique thread_id
+config = {"configurable": {"thread_id": "user-123-session-456"}}
+
+# Process with memory - history automatically loaded
+response = app.invoke({"messages": [user_message]}, config)
+
+# Next turn remembers previous context
+followup = app.invoke({"messages": [followup_message]}, config)`
     }
 ];
 

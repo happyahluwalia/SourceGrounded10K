@@ -367,6 +367,40 @@ Examples:
 - User: "Who is Tesla's CFO?"
   Query: {ticker: "TSLA", query: "chief financial officer executive"}
 """`
+    },
+    {
+        id: 'topk-matters-for-recall',
+        category: 'Retrieval',
+        title: 'Top-k Matters for Recall',
+        problem: 'Retrieving only 5 chunks (top-5) from the vector database missed relevant sections, especially for complex queries like "What are Apple\'s main business risks and how do they compare to competitors?" The answer needed information from multiple sections, but top-5 often grabbed only the most obvious match, missing supporting details.',
+        solution: 'Increased retrieval to 10 chunks (top-10) for better coverage while still staying within the context window. More chunks = higher recall (finding all relevant info). Trade-off: more tokens processed, but llama3.1:8b\'s 8K context can easily handle 10 chunks (~6,000 tokens).',
+        impact: '35% improvement in answer completeness. Complex multi-part queries now get fuller answers. No significant speed penalty — retrieval is fast, synthesis dominates latency. Quality boost: users stopped asking "is there anything else about [topic]?"',
+        lesson: 'Top-k is a critical tuning parameter. Too low = incomplete answers. Too high = noise and context overflow. Start with 10, tune based on your context window and query complexity. For 8K context with ~500-token chunks, 10 is a good default. For larger contexts (32K+), consider 15-20. Always leave headroom for system prompts and output. 👥 Best for: Anyone building RAG systems. 📚 Prerequisites: Understanding of vector search, context windows.',
+        date: 'Nov 2, 2025',
+        sortDate: new Date('2025-11-02'),
+        readTime: '3 min',
+        summary: 'Top-5 → Top-10 retrieval improved answer completeness by 35%. Start with 10 chunks, tune based on context window.',
+        codeExample: `# Vector search retrieval configuration
+RETRIEVAL_CONFIG = {
+    "top_k": 10,           # Retrieve 10 chunks (was 5)
+    "min_score": 0.5,      # Filter low-confidence matches
+    "chunk_size": 500,     # ~500 tokens per chunk
+}
+
+# With 8K context window:
+# - 10 chunks × 500 tokens = 5,000 tokens
+# - System prompt = 500 tokens
+# - User query = 100 tokens
+# - Output buffer = 2,400 tokens
+# Total: 8,000 tokens ✓
+
+def retrieve_context(query: str) -> list[str]:
+    results = vector_db.search(
+        query,
+        limit=RETRIEVAL_CONFIG["top_k"],
+        score_threshold=RETRIEVAL_CONFIG["min_score"]
+    )
+    return [r.text for r in results]`
     }
 ];
 

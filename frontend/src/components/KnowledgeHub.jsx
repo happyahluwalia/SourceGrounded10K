@@ -332,6 +332,41 @@ response = app.invoke({"messages": [user_message]}, config)
 
 # Next turn remembers previous context
 followup = app.invoke({"messages": [followup_message]}, config)`
+    },
+    {
+        id: 'examples-reduce-hallucination',
+        category: 'Prompt Engineering',
+        title: 'Examples Reduce Hallucination by 60%',
+        problem: 'Our Planner agent generated inconsistent search queries. Sometimes it included company ticker, sometimes not. Sometimes it added irrelevant keywords. The LLM was "hallucinating" bad query structures — it understood the task but produced unreliable outputs. Telling it "generate good search queries" wasn\'t specific enough.',
+        solution: 'Added 3-5 concrete examples directly in the system prompt. Showed the Planner exactly what good queries look like: "For Apple revenue: ticker=AAPL, query=\'total revenue fiscal year 2024\'". Examples demonstrated the exact format, included edge cases (multi-company, year ranges), and showed what to avoid.',
+        impact: '60% reduction in malformed queries. Better section targeting — queries now consistently included relevant keywords. Fewer empty search results. Less post-processing needed. The LLM learned by example rather than vague instructions.',
+        lesson: 'Show, don\'t tell. LLMs learn patterns from examples better than from abstract instructions. 3-5 examples is the sweet spot: enough variety, not too many tokens. Include edge cases in your examples. Make examples realistic — use actual data format and structure. Few-shot prompting is one of the most reliable techniques for improving LLM output quality. 👥 Best for: Anyone writing LLM prompts. 📚 Prerequisites: Basic prompt engineering.',
+        date: 'Nov 2, 2025',
+        sortDate: new Date('2025-11-02'),
+        readTime: '3 min',
+        summary: 'Concrete examples in prompts reduced malformed queries by 60%. Show, don\'t tell — LLMs learn patterns from examples.',
+        codeExample: `# ❌ WRONG: Vague instructions
+system_prompt = """
+Generate search queries for SEC filings.
+Make sure to include relevant keywords.
+Format queries properly.
+"""
+
+# ✅ RIGHT: Concrete examples
+system_prompt = """
+Generate search queries for SEC filings.
+
+Examples:
+- User: "What was Apple's revenue?"
+  Query: {ticker: "AAPL", query: "total revenue fiscal year"}
+
+- User: "Compare Apple and Microsoft profit margins"
+  Query: [{ticker: "AAPL", query: "operating margin gross profit"},
+          {ticker: "MSFT", query: "operating margin gross profit"}]
+
+- User: "Who is Tesla's CFO?"
+  Query: {ticker: "TSLA", query: "chief financial officer executive"}
+"""`
     }
 ];
 

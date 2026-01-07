@@ -267,6 +267,37 @@ TOKEN_BREAKDOWN = {
 # Total: ~10,000 tokens per query
 # Single chat: ~100 tokens
 # Multi-agent overhead: ~100x, but accuracy ↑ 40%`
+    },
+    {
+        id: 'homogeneous-models-beat-specialized-mixes',
+        category: 'Model Selection',
+        title: 'Homogeneous Models Beat Specialized Mixes',
+        problem: 'We tried mixing different models for different roles: Qwen72b for the Supervisor (high reasoning), Mixtral for the Planner (structured output), llama3.1:8b for the Synthesizer (fast generation). The theory: use the "best" model for each task. This "specialized mix" approach seemed optimal on paper.',
+        solution: 'Tested the specialized mix against homogeneous configurations (same model for all agents). Measured accuracy across 20 financial queries. Homogeneous llama3.1:8b for all 3 agents vs specialized mix (qwen72b + mixtral + llama8b).',
+        impact: 'Specialized mix had WORST accuracy: 34.2%. Homogeneous llama3.1:8b had BEST accuracy: 72.5%. The "optimized" mix was 2x worse than the "simple" approach. Why? Model transitions create context loss. Different tokenization schemes. Inconsistent instruction-following styles.',
+        lesson: 'Stick with one model family across your pipeline. Model transitions introduce friction: different tokenizers, different instruction formats, different response styles. Homogeneous systems are easier to debug, optimize, and maintain. The complexity of mixing models rarely pays off. Keep it simple: pick one good model and use it everywhere. 👥 Best for: ML engineers building multi-agent systems. 📚 Prerequisites: Understanding of LLM agents, tokenization.',
+        date: 'Nov 3, 2025',
+        sortDate: new Date('2025-11-03'),
+        readTime: '3 min',
+        summary: 'Specialized model mix (34.2% accuracy) performed 2x worse than homogeneous llama3.1:8b (72.5%). Keep it simple.',
+        codeExample: `# ❌ WRONG: Mixing models creates friction
+config_mixed = {
+    "supervisor": "qwen2.5:72b",   # "Best" reasoner
+    "planner": "mixtral:8x7b",      # "Best" structured
+    "synthesizer": "llama3.1:8b"   # "Fastest"
+}
+# Result: 34.2% accuracy (WORST)
+
+# ✅ RIGHT: Homogeneous is simpler and better
+config_homogeneous = {
+    "supervisor": "llama3.1:8b",
+    "planner": "llama3.1:8b",
+    "synthesizer": "llama3.1:8b"
+}
+# Result: 72.5% accuracy (BEST)
+
+# Why? Consistent tokenization, instruction format,
+# and response style across the entire pipeline`
     }
 ];
 

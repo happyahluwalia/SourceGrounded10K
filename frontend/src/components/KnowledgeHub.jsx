@@ -32,6 +32,50 @@ llm = ChatOllama(
 )`
     },
     {
+        id: 'structured-data-deterministic-ui-rendering',
+        category: 'UI Architecture',
+        title: 'Structured Data → Deterministic UI Rendering',
+        problem: 'LLMs are unreliable at formatting — asking the model to output markdown, HTML, or styled tables leads to inconsistent UI. Sometimes the table has headers, sometimes not. Sometimes bullet points, sometimes numbered lists. The model might forget to close tags or use inconsistent styling. Wasted tokens on formatting instructions that don\'t work reliably. Hard to maintain when UI requirements change — you have to update prompts and hope the LLM follows them.',
+        solution: 'Separate concerns: LLMs handle semantic data extraction, code handles presentation. Architecture: LLM outputs structured JSON with typed sections (paragraph, table, key_findings, etc.) → Backend formatter functions convert each section type to UI components deterministically → Frontend renders the components. The LLM never sees HTML or CSS. It just outputs: {type: "table", headers: [...], rows: [...]}. A formatter function turns that into a consistent React component.',
+        impact: 'Consistent UI rendering every time — same data always produces same output. Easier A/B testing — change the formatter, not the prompt. Future-proof for charts/graphs — add new section types without touching LLM logic. No formatting tokens wasted — prompts are shorter and focused on analysis. Separation of concerns — LLM team focuses on extraction quality, frontend team owns presentation. Easier debugging — structured JSON is inspectable, formatted HTML is not.',
+        lesson: 'LLMs should focus on semantic data extraction, not presentation. Use deterministic code for formatting. The LLM\'s job is to understand and analyze — let your code handle how it looks. This pattern scales: add visualization types by adding formatters, not by hoping the LLM learns new formatting rules. Architecture: LLM → Structured JSON → Formatter functions → UI components. 👥 Best for: Full-stack developers building LLM-powered UIs. 📚 Prerequisites: Basic React/frontend knowledge, understanding of component architecture.',
+        date: 'Nov 4, 2025',
+        sortDate: new Date('2025-11-04'),
+        readTime: '3 min',
+        summary: 'LLMs extract data, code handles presentation. Structured JSON → formatter functions → UI components. Consistent rendering, no wasted tokens.',
+        codeExample: `// LLM outputs structured JSON (no formatting)
+const llmOutput = {
+  sections: [
+    {
+      type: "paragraph",
+      content: "Apple's revenue grew 8% year-over-year..."
+    },
+    {
+      type: "table",
+      headers: ["Metric", "2024", "2023"],
+      rows: [
+        ["Revenue", "$394.3B", "$365.8B"],
+        ["Net Income", "$94.7B", "$96.9B"]
+      ]
+    },
+    {
+      type: "key_findings",
+      items: ["Record services revenue", "iPhone stable"]
+    }
+  ]
+};
+
+// Formatter functions (deterministic)
+const formatters = {
+  paragraph: (data) => <p>{data.content}</p>,
+  table: (data) => <Table headers={data.headers} rows={data.rows} />,
+  key_findings: (data) => <BulletList items={data.items} />
+};
+
+// Render: always consistent
+{sections.map(s => formatters[s.type](s))}`
+    },
+    {
         id: 'playwright-for-e2e-ui-validation',
         category: 'Testing',
         title: 'Playwright for End-to-End UI Validation',

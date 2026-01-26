@@ -666,6 +666,36 @@ export default function KnowledgeHub() {
                 </div>
             </section>
 
+            {/* LLM Benchmarking Series */}
+            <section className="border-b border-[#e5e5e5]">
+                <div className="max-w-5xl mx-auto px-6 py-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.25 }}
+                    >
+                        <Link to="/research/llm-benchmarking-intro" className="group block">
+                            <div className="flex items-baseline gap-2 mb-3 text-sm">
+                                <span className="text-[#d4a574] font-medium">Case Study</span>
+                                <span className="px-2 py-0.5 bg-[#1a1a1a] text-white text-xs rounded">
+                                    5-Part Series
+                                </span>
+                            </div>
+                            <h2 className="text-3xl font-semibold text-[#191919] group-hover:text-[#d4a574] transition-colors mb-3">
+                                LLM Benchmarking: Why Our 8B Model Beat the 72B
+                            </h2>
+                            <p className="text-[#666] max-w-2xl mb-4">
+                                We tested 6 model configurations to see if bigger models would give better results.
+                                The data surprised us: llama3.1:8b was faster AND more accurate than qwen2.5:72b.
+                            </p>
+                            <span className="inline-flex items-center gap-2 text-[#d4a574] font-medium group-hover:gap-3 transition-all">
+                                Read the case study <ArrowRight size={18} />
+                            </span>
+                        </Link>
+                    </motion.div>
+                </div>
+            </section>
+
             {/* Featured Findings (with summaries) */}
             <section className="max-w-5xl mx-auto px-6 pt-12">
                 <motion.div

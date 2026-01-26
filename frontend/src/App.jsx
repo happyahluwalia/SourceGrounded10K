@@ -11,6 +11,11 @@ import { DebugPanel } from './components/DebugPanel';
 import VLLMDeepDive from './components/VLLMDeepDive';
 import KnowledgeHub from './components/KnowledgeHub';
 import NuggetArticle from './components/NuggetArticle';
+import LLMBenchmarkingIntro from './components/LLMBenchmarkingIntro';
+import LLMBenchmarkingData from './components/LLMBenchmarkingData';
+import LLMBenchmarkingModels from './components/LLMBenchmarkingModels';
+import LLMBenchmarkingMetrics from './components/LLMBenchmarkingMetrics';
+import LLMBenchmarkingResults from './components/LLMBenchmarkingResults';
 import { ChatInterface } from './components/ChatInterface';
 import { cn } from './lib/utils';
 import './index.css';
@@ -145,6 +150,11 @@ function App() {
           <Route path="/research/vllm" element={<VLLMDeepDive />} />
           <Route path="/research" element={<KnowledgeHub />} />
           <Route path="/research/:id" element={<NuggetArticle />} />
+          <Route path="/research/llm-benchmarking-intro" element={<LLMBenchmarkingIntro />} />
+          <Route path="/research/llm-benchmarking-data" element={<LLMBenchmarkingData />} />
+          <Route path="/research/llm-benchmarking-models" element={<LLMBenchmarkingModels />} />
+          <Route path="/research/llm-benchmarking-metrics" element={<LLMBenchmarkingMetrics />} />
+          <Route path="/research/llm-benchmarking-results" element={<LLMBenchmarkingResults />} />
         </Routes>
       </div>
 

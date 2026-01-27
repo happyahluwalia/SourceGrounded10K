@@ -23,7 +23,7 @@ export default function NuggetArticle() {
 
     const handleShareOnX = () => {
         const tweetText = encodeURIComponent(
-            `${nugget.title}\n\n${nugget.lesson.substring(0, 180)}...\n\nRead more:`
+            `${nugget.title}\n\n${nugget.lesson.substring(0, 180)}…\n\nRead more:`
         );
         const tweetUrl = encodeURIComponent(window.location.href);
         window.open(
@@ -51,9 +51,12 @@ export default function NuggetArticle() {
                 <title>{nugget.title} | Research - 10kiq</title>
                 <meta name="description" content={`${nugget.problem} Learn how we solved this and the impact it had.`} />
                 <meta name="keywords" content={`${nugget.category}, LLM, AI, machine learning, production systems, best practices, ${nugget.title.toLowerCase().split(' ').slice(0, 3).join(', ')}`} />
+                <meta name="robots" content="index, follow" />
+                <link rel="canonical" href={`https://10kiq.com/research/${nugget.id}`} />
                 <meta property="og:title" content={`${nugget.title} | Research`} />
                 <meta property="og:description" content={nugget.problem} />
                 <meta property="og:type" content="article" />
+                <meta property="og:url" content={`https://10kiq.com/research/${nugget.id}`} />
                 <meta property="og:site_name" content="10kiq" />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={nugget.title} />
@@ -185,6 +188,28 @@ export default function NuggetArticle() {
                             </div>
                         </section>
                     )}
+
+                    {/* JSON Output Example */}
+                    {nugget.jsonExample && (
+                        <section>
+                            <h2 className="text-sm font-semibold text-[#666] uppercase tracking-wider mb-4">
+                                Example Output
+                            </h2>
+                            <div className="bg-[#0d1117] rounded-lg overflow-hidden border border-[#30363d]">
+                                <pre className="p-6 text-sm overflow-x-auto leading-relaxed" style={{
+                                    color: '#e6edf3',
+                                    fontFamily: "'SF Mono', 'Fira Code', 'Monaco', monospace"
+                                }}>
+                                    <code dangerouslySetInnerHTML={{
+                                        __html: nugget.jsonExample
+                                            .replace(/"([^"]+)":/g, '<span style="color: #7ee787">"$1"</span>:')
+                                            .replace(/: "([^"]+)"/g, ': <span style="color: #a5d6ff">"$1"</span>')
+                                            .replace(/: (\d+\.?\d*)/g, ': <span style="color: #79c0ff">$1</span>')
+                                    }} />
+                                </pre>
+                            </div>
+                        </section>
+                    )}
                 </motion.div>
 
                 {/* Share Actions */}
@@ -228,6 +253,6 @@ export default function NuggetArticle() {
                     <p>Found this helpful? Share it with someone who might benefit.</p>
                 </div>
             </footer>
-        </div>
+        </div >
     );
 }

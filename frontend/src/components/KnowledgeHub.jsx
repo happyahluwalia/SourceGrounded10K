@@ -7,6 +7,58 @@ import { ArrowRight } from 'lucide-react';
 // Nugget data - sorted by date (newest first)
 export const NUGGETS = [
     {
+        id: 'per-stage-token-telemetry',
+        category: 'Cost Optimization',
+        title: 'Per-Stage Token Telemetry Reveals Hidden Consumption Patterns',
+        problem: 'Aggregate token metrics (total tokens per request) provide no visibility into which pipeline stage consumes the most resources. In a multi-stage RAG system (retrieval → synthesis → follow-up), the ~4,500 token average could be dominated by context retrieval, synthesis prompts, or accumulated follow-up history. Without per-stage breakdown, optimization efforts target the wrong components.',
+        solution: 'Implemented a TokenMetrics class that instruments each pipeline stage with discrete counters. Each log_call() captures: stage name, model, input_tokens (system/human breakdown), output_tokens, and latency. The get_summary() method returns per-stage metrics for analysis, enabling identification of the highest-cost stage.',
+        impact: 'Per-stage breakdown identified follow-up context accumulation as the dominant cost driver. Multi-turn conversations preserved full history including retrieved chunks, causing token counts to balloon. Targeted optimization: summary-based context compression for follow-ups. Result: reduced multi-turn token consumption by ~40%.',
+        lesson: 'Aggregate metrics create blind spots. Instrument at the granularity where decisions occur — for pipelines, that means per-stage. Token telemetry follows the same principle as distributed tracing: optimize what you can observe.',
+        date: 'Nov 30, 2025',
+        sortDate: new Date('2025-11-30'),
+        readTime: '4 min',
+        summary: 'Per-stage token instrumentation revealed follow-up context consumed the most tokens. Granular telemetry enables targeted optimization.',
+        codeExample: `# From app/utils/token_metrics.py
+class TokenMetrics:
+    def log_call(self, stage: str, model: str, input_messages: List,
+                 output: str, start_time: float, end_time: float):
+        self.metrics.append({
+            "stage": stage, "model": model,
+            "input_tokens": count_tokens_by_role(input_messages, model),
+            "output_tokens": count_tokens(output, model),
+            "latency": round(end_time - start_time, 2)
+        })`,
+        jsonExample: `{
+  "total_input_tokens": {"system": 1653, "human": 1607, "total": 3260},
+  "total_output_tokens": 280,
+  "total_tokens": 3540,
+  "total_latency": 129.99,
+  "stages": [
+    {
+      "stage": "supervisor",
+      "model": "llama3.2:3b",
+      "input_tokens": {"system": 208, "human": 7, "total": 215},
+      "output_tokens": 0,
+      "latency": 25.04
+    },
+    {
+      "stage": "planner",
+      "model": "llama3.2:3b",
+      "input_tokens": {"system": 1311, "human": 15, "total": 1326},
+      "output_tokens": 62,
+      "latency": 39.69
+    },
+    {
+      "stage": "synthesizer",
+      "model": "llama3.2:3b",
+      "input_tokens": {"system": 134, "human": 1585, "total": 1719},
+      "output_tokens": 218,
+      "latency": 65.26
+    }
+  ]
+}`
+    },
+    {
         id: 'structured-outputs-eliminate-json-errors',
         category: 'LLM Reliability',
         title: 'Structured Outputs Eliminate Malformed JSON Errors',
@@ -580,9 +632,12 @@ export default function KnowledgeHub() {
                 <title>Research | 10kiq</title>
                 <meta name="description" content="We investigate, experiment, and document our findings from building AI-powered systems. Practical learnings on vLLM, structured outputs, model selection, and production best practices." />
                 <meta name="keywords" content="vLLM, LLM, AI, machine learning, prompt engineering, RAG, structured outputs, Pydantic, model selection, PagedAttention, KV cache" />
+                <meta name="robots" content="index, follow" />
+                <link rel="canonical" href="https://10kiq.com/research" />
                 <meta property="og:title" content="Research | 10kiq" />
                 <meta property="og:description" content="We investigate, experiment, and document our findings from building AI-powered systems." />
                 <meta property="og:type" content="website" />
+                <meta property="og:url" content="https://10kiq.com/research" />
                 <meta property="og:site_name" content="10kiq" />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="Research | 10kiq" />

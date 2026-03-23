@@ -7,6 +7,10 @@ WORKDIR /app
 ARG VITE_API_URL=http://localhost:8000
 ENV VITE_API_URL=$VITE_API_URL
 
+# Accept GPU deployment flag (controls maintenance mode)
+ARG VITE_GPU_DEPLOYMENT=false
+ENV VITE_GPU_DEPLOYMENT=$VITE_GPU_DEPLOYMENT
+
 # Copy package files
 COPY frontend/package*.json ./
 

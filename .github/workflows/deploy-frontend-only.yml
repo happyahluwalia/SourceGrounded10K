@@ -1,0 +1,111 @@
+name: Deploy Frontend Only (No GPU)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'Dockerfile.frontend'
+      - 'nginx.conf'
+      - '.github/workflows/deploy-frontend-only.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy-frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          build-args: |
+            VITE_GPU_DEPLOYMENT=${{ secrets.GPU_DEPLOYMENT || 'false' }}
+            VITE_API_URL=/api
+
+      - name: Deploy to Digital Ocean Droplet
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull the latest frontend image
+            docker pull ${{ steps.meta-frontend.outputs.tags }}
+            
+            # Stop and remove old container if exists
+            docker stop financeagent-frontend || true
+            docker rm financeagent-frontend || true
+            
+            # Run new container on port 3001
+            docker run -d \
+              --name financeagent-frontend \
+              --restart unless-stopped \
+              -p 3001:80 \
+              ${{ steps.meta-frontend.outputs.tags }}
+            
+            # Verify container is running
+            docker ps | grep financeagent-frontend
+            
+            # Show container logs (last 20 lines)
+            docker logs --tail 20 financeagent-frontend
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # Wait a few seconds for container to fully start
+            sleep 5
+            
+            # Check if container is healthy
+            if docker ps | grep -q financeagent-frontend; then
+              echo "✅ Container is running"
+              
+              # Test if the service responds on port 3001
+              if curl -f http://localhost:3001 > /dev/null 2>&1; then
+                echo "✅ Service is responding on port 3001"
+              else
+                echo "❌ Service is not responding on port 3001"
+                exit 1
+              fi
+            else
+              echo "❌ Container is not running"
+              docker logs financeagent-frontend
+              exit 1
+            fi

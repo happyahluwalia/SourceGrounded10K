@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Send, Loader2, MessageSquarePlus } from 'lucide-react';
+import { Send, Loader2, MessageSquarePlus, BookOpen, Rocket } from 'lucide-react';
 import { Button } from './Button';
 import { ChatMessage } from './ChatMessage';
 import { Input } from './Input';
@@ -10,10 +10,13 @@ import { Sidebar } from './Sidebar';
 import { chatWithAgentStreaming } from '../lib/api';
 import { getRotatingMessages, STEP_INSIGHTS } from '../lib/content';
 import { useConversations } from '../hooks/useConversations';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const GPU_DEPLOYMENT = import.meta.env.VITE_GPU_DEPLOYMENT === 'true';
 
 export function ChatInterface() {
+    const navigate = useNavigate();
     const {
         conversations,
         activeConversationId,
@@ -288,6 +291,59 @@ export function ChatInterface() {
         createConversation();
         setInput('');
     };
+
+    // Coming soon mode when GPU deployment is disabled
+    if (!GPU_DEPLOYMENT) {
+        return (
+            <div className="flex h-full w-full bg-background">
+                <Sidebar
+                    conversations={conversations}
+                    activeConversationId={activeConversationId}
+                    onSelectConversation={selectConversation}
+                    onNewConversation={handleNewConversation}
+                    onDeleteConversation={deleteConversation}
+                    loadingConversations={loadingConversations}
+                />
+
+                <div className="flex-1 flex flex-col ml-0 md:ml-64">
+                    <div className="flex-1 flex items-center justify-center p-8">
+                        <div className="max-w-2xl w-full text-center space-y-6">
+                            <div className="flex justify-center">
+                                <img 
+                                    src="/images/GPU_maintenance.webp" 
+                                    alt="GPU Maintenance" 
+                                    className="w-64 h-64 object-contain"
+                                />
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                    Adding More Brainpower 🧠⚡
+                                </h2>
+                                <p className="text-lg text-muted-foreground">
+                                    We found a bigger GPU… now we just need to figure out where this cable goes.
+                                </p>
+                                <p className="text-muted-foreground font-medium">
+                                    Back soon!
+                                </p>
+                            </div>
+
+                            <div className="pt-4">
+                                <Button
+                                    onClick={() => navigate('/research')}
+                                    size="lg"
+                                    className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                                >
+                                    <BookOpen className="h-5 w-5" />
+                                    Explore Research
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-full w-full bg-background">

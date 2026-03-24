@@ -73,6 +73,7 @@ jobs:
             docker run -d \
               --name financeagent-frontend \
               --restart unless-stopped \
+              --network college_counsellor_net
               -p 3001:80 \
               ${{ steps.meta-frontend.outputs.tags }}
             

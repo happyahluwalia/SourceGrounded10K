@@ -62,7 +62,8 @@ export default function NuggetArticle() {
                 <meta name="twitter:title" content={nugget.title} />
                 <meta name="twitter:description" content={nugget.problem} />
                 <meta name="article:published_time" content={nugget.date} />
-                <meta name="author" content="10kiq" />
+                <meta name="twitter:creator" content="@happyahluwalia" />
+                <meta name="author" content="Harpreet Ahluwalia" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
             </Helmet>
 

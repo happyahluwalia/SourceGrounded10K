@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+  <title>10kiq Research — AI Financial Analysis</title>
+  <description>Research and insights on AI-powered financial analysis, SEC filing interpretation, RAG architectures, vLLM optimization, and production LLM systems from the 10kiq team.</description>
+  <link>https://10kiq.com/research</link>
+  <atom:link href="https://10kiq.com/rss.xml" rel="self" type="application/rss+xml"/>
+  <language>en-us</language>
+  <managingEditor>happyislearning@gmail.com (Harpreet Ahluwalia)</managingEditor>
+  <webMaster>happyislearning@gmail.com (Harpreet Ahluwalia)</webMaster>
+  <lastBuildDate>Thu, 07 May 2026 00:03:38 GMT</lastBuildDate>
+  <ttl>1440</ttl>
+  <item>
+    <title>vLLM Request Lifecycle &amp; Optimization</title>
+    <link>https://10kiq.com/research/vllm</link>
+    <guid isPermaLink="false">https://10kiq.com/research/vllm-request-lifecycle</guid>
+    <pubDate>Sun, 30 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Deep Dive</category>
+    <description><![CDATA[<p>An interactive deep dive into vLLM's 11-step request lifecycle — how PagedAttention, Continuous Batching, and Prefix Caching deliver 24x throughput improvements over naive inference.</p>]]></description>
+  </item>
+  <item>
+    <title>Per-Stage Token Telemetry Reveals Hidden Consumption Patterns</title>
+    <link>https://10kiq.com/research/per-stage-token-telemetry</link>
+    <guid isPermaLink="false">https://10kiq.com/research/per-stage-token-telemetry</guid>
+    <pubDate>Sun, 30 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Cost Optimization</category>
+    <description><![CDATA[<p>Per-stage token instrumentation revealed follow-up context consumed the most tokens. Granular telemetry enables targeted optimization — reduced multi-turn token consumption by ~40%.</p>]]></description>
+  </item>
+  <item>
+    <title>LLM Benchmarking: Why Our 8B Model Beat the 72B</title>
+    <link>https://10kiq.com/research/llm-benchmarking-intro</link>
+    <guid isPermaLink="false">https://10kiq.com/research/llm-benchmarking-case-study</guid>
+    <pubDate>Sat, 15 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Case Study</category>
+    <description><![CDATA[<p>We tested 6 model configurations across 10 deterministic financial queries. The data surprised us: llama3.1:8b was 23x faster AND 30% more accurate than qwen2.5:72b.</p>]]></description>
+  </item>
+  <item>
+    <title>Structured Outputs Eliminate Malformed JSON Errors</title>
+    <link>https://10kiq.com/research/structured-outputs-eliminate-json-errors</link>
+    <guid isPermaLink="false">https://10kiq.com/research/structured-outputs-eliminate-json-errors</guid>
+    <pubDate>Fri, 14 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>LLM Reliability</category>
+    <description><![CDATA[<p>Use Pydantic schemas with Ollama structured outputs to guarantee valid JSON — reduced errors from 5-10% to ~0%. API-level constraints beat prompt instructions every time.</p>]]></description>
+  </item>
+  <item>
+    <title>Playwright for End-to-End UI Validation</title>
+    <link>https://10kiq.com/research/playwright-for-e2e-ui-validation</link>
+    <guid isPermaLink="false">https://10kiq.com/research/playwright-for-e2e-ui-validation</guid>
+    <pubDate>Fri, 14 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Testing</category>
+    <description><![CDATA[<p>Found a props mismatch bug in 2 minutes with Playwright — backend sent props.summary but frontend expected props.text. Fixed with 1-line change.</p>]]></description>
+  </item>
+  <item>
+    <title>Token-based Trimming Beats Message-Count Sliding Window</title>
+    <link>https://10kiq.com/research/token-based-trimming-for-context-management</link>
+    <guid isPermaLink="false">https://10kiq.com/research/token-based-trimming-for-context-management</guid>
+    <pubDate>Wed, 12 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Context Management</category>
+    <description><![CDATA[<p>Token-based trimming guarantees no context overflow and provides 3.75x observed speedup by reducing from 25K to 6K tokens. Use 75% of context limit, not 100%.</p>]]></description>
+  </item>
+  <item>
+    <title>Silent Embedding Failures Cause 0% Confidence and Wrong Answers</title>
+    <link>https://10kiq.com/research/silent-embedding-failures-cause-wrong-answers</link>
+    <guid isPermaLink="false">https://10kiq.com/research/silent-embedding-failures-cause-wrong-answers</guid>
+    <pubDate>Wed, 12 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Vector Search</category>
+    <description><![CDATA[<p>Missing embedding model after Docker migration caused silent failures with 0% confidence. Two-model architecture: LLM generates text, embedding model enables search.</p>]]></description>
+  </item>
+  <item>
+    <title>Infrastructure Bottleneck Masquerading as Algorithm Problem</title>
+    <link>https://10kiq.com/research/infrastructure-bottleneck-vs-algorithm-problem</link>
+    <guid isPermaLink="false">https://10kiq.com/research/infrastructure-bottleneck-vs-algorithm-problem</guid>
+    <pubDate>Mon, 10 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Infrastructure</category>
+    <description><![CDATA[<p>Docker on Mac = CPU-only (no GPU). Native Mac = 5-10x faster via Metal. Verify infrastructure before optimizing algorithms.</p>]]></description>
+  </item>
+  <item>
+    <title>Multi-Agent Token Multiplication: 15x More Tokens Than Chat</title>
+    <link>https://10kiq.com/research/multi-agent-token-multiplication</link>
+    <guid isPermaLink="false">https://10kiq.com/research/multi-agent-token-multiplication</guid>
+    <pubDate>Mon, 10 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Multi-Agent Systems</category>
+    <description><![CDATA[<p>System prompts are 71x larger than user queries. 3-agent pipeline uses 15x more tokens than chat, but improves accuracy. Intentional trade-off.</p>]]></description>
+  </item>
+  <item>
+    <title>Structured Data → Deterministic UI Rendering</title>
+    <link>https://10kiq.com/research/structured-data-deterministic-ui-rendering</link>
+    <guid isPermaLink="false">https://10kiq.com/research/structured-data-deterministic-ui-rendering</guid>
+    <pubDate>Tue, 04 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>UI Architecture</category>
+    <description><![CDATA[<p>LLMs extract data, code handles presentation. Structured JSON → formatter functions → UI components. Consistent rendering, no wasted tokens.</p>]]></description>
+  </item>
+  <item>
+    <title>Data Structure &gt; Complex Architecture</title>
+    <link>https://10kiq.com/research/data-structure-beats-complex-architecture</link>
+    <guid isPermaLink="false">https://10kiq.com/research/data-structure-beats-complex-architecture</guid>
+    <pubDate>Tue, 04 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Architecture</category>
+    <description><![CDATA[<p>Changed list to dict — fixed 5-week problem in 2 days with 95% less code. Data structure changes often beat architectural complexity.</p>]]></description>
+  </item>
+  <item>
+    <title>Natural Text In → Structured Data Out</title>
+    <link>https://10kiq.com/research/natural-text-in-structured-data-out</link>
+    <guid isPermaLink="false">https://10kiq.com/research/natural-text-in-structured-data-out</guid>
+    <pubDate>Tue, 04 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Prompt Engineering</category>
+    <description><![CDATA[<p>Feed LLMs natural text (how they were trained), require structured JSON output (for parsing). Saves 20-30% tokens.</p>]]></description>
+  </item>
+  <item>
+    <title>Bigger Models ≠ Better Performance</title>
+    <link>https://10kiq.com/research/bigger-models-not-better-performance</link>
+    <guid isPermaLink="false">https://10kiq.com/research/bigger-models-not-better-performance</guid>
+    <pubDate>Mon, 03 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Model Selection</category>
+    <description><![CDATA[<p>llama3.1:8b beat Qwen72b on both speed (23x faster) and accuracy (30% better). Task-fit matters more than parameter count.</p>]]></description>
+  </item>
+  <item>
+    <title>Homogeneous Models Beat Specialized Mixes</title>
+    <link>https://10kiq.com/research/homogeneous-models-beat-specialized-mixes</link>
+    <guid isPermaLink="false">https://10kiq.com/research/homogeneous-models-beat-specialized-mixes</guid>
+    <pubDate>Mon, 03 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Model Selection</category>
+    <description><![CDATA[<p>Specialized model mix (34.2% accuracy) performed 2x worse than homogeneous llama3.1:8b (72.5%). Keep it simple.</p>]]></description>
+  </item>
+  <item>
+    <title>Examples Reduce Hallucination by 60%</title>
+    <link>https://10kiq.com/research/examples-reduce-hallucination</link>
+    <guid isPermaLink="false">https://10kiq.com/research/examples-reduce-hallucination</guid>
+    <pubDate>Sun, 02 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Prompt Engineering</category>
+    <description><![CDATA[<p>Concrete examples in prompts reduced malformed queries by 60%. Show, don't tell — LLMs learn patterns from examples.</p>]]></description>
+  </item>
+  <item>
+    <title>Top-k Matters for Recall</title>
+    <link>https://10kiq.com/research/topk-matters-for-recall</link>
+    <guid isPermaLink="false">https://10kiq.com/research/topk-matters-for-recall</guid>
+    <pubDate>Sun, 02 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Retrieval</category>
+    <description><![CDATA[<p>Top-5 → Top-10 retrieval improved answer completeness by 35%. Start with 10 chunks, tune based on context window.</p>]]></description>
+  </item>
+  <item>
+    <title>Standardize LLM APIs</title>
+    <link>https://10kiq.com/research/standardize-llm-apis</link>
+    <guid isPermaLink="false">https://10kiq.com/research/standardize-llm-apis</guid>
+    <pubDate>Sun, 02 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Consistency</category>
+    <description><![CDATA[<p>Standardized all LLM calls to ChatOllama via factory function. Enabled consistent streaming and simpler maintenance.</p>]]></description>
+  </item>
+  <item>
+    <title>Executive Queries Need Context</title>
+    <link>https://10kiq.com/research/executive-queries-need-context</link>
+    <guid isPermaLink="false">https://10kiq.com/research/executive-queries-need-context</guid>
+    <pubDate>Sun, 02 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Query Optimization</category>
+    <description><![CDATA[<p>Adding 'executive officers' keyword improved CFO query accuracy from 60% → 95%. Context disambiguates semantic search.</p>]]></description>
+  </item>
+  <item>
+    <title>Checkpointing Enables Memory</title>
+    <link>https://10kiq.com/research/checkpointing-enables-memory</link>
+    <guid isPermaLink="false">https://10kiq.com/research/checkpointing-enables-memory</guid>
+    <pubDate>Sat, 01 Nov 2025 00:00:00 GMT</pubDate>
+    <dc:creator>Harpreet Ahluwalia</dc:creator>
+    <category>Architecture</category>
+    <description><![CDATA[<p>PostgreSQL-backed checkpointing enables multi-turn conversations. Each turn persists to DB, loaded on next query.</p>]]></description>
+  </item>
+</channel>
+</rss>

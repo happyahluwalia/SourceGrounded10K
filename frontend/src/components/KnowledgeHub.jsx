@@ -634,6 +634,7 @@ export default function KnowledgeHub() {
                 <meta name="keywords" content="vLLM, LLM, AI, machine learning, prompt engineering, RAG, structured outputs, Pydantic, model selection, PagedAttention, KV cache" />
                 <meta name="robots" content="index, follow" />
                 <link rel="canonical" href="https://10kiq.com/research" />
+                <link rel="alternate" type="application/rss+xml" title="10kiq Research by Harpreet Ahluwalia" href="https://10kiq.com/rss.xml" />
                 <meta property="og:title" content="Research | 10kiq" />
                 <meta property="og:description" content="We investigate, experiment, and document our findings from building AI-powered systems." />
                 <meta property="og:type" content="website" />
@@ -642,8 +643,36 @@ export default function KnowledgeHub() {
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="Research | 10kiq" />
                 <meta name="twitter:description" content="We investigate, experiment, and document our findings from building AI-powered systems." />
-                <meta name="author" content="10kiq" />
+                <meta name="twitter:creator" content="@happyahluwalia" />
+                <meta name="author" content="Harpreet Ahluwalia" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+                <script type="application/ld+json">{JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "Blog",
+                    "name": "10kiq Research",
+                    "description": "Research and insights on AI-powered financial analysis, SEC filing interpretation, RAG architectures, and vLLM from the 10kiq team.",
+                    "url": "https://10kiq.com/research",
+                    "author": {
+                        "@type": "Person",
+                        "name": "Harpreet Ahluwalia",
+                        "url": "https://github.com/happyahluwalia",
+                        "sameAs": [
+                            "https://github.com/happyahluwalia",
+                            "https://linkedin.com/in/harpreetahluwalia"
+                        ]
+                    },
+                    "blogPost": sortedNuggets.slice(0, 5).map(n => ({
+                        "@type": "BlogPosting",
+                        "headline": n.title,
+                        "description": n.summary,
+                        "datePublished": n.sortDate.toISOString().split('T')[0],
+                        "author": {
+                            "@type": "Person",
+                            "name": "Harpreet Ahluwalia"
+                        },
+                        "url": `https://10kiq.com/research/${n.id}`
+                    }))
+                })}</script>
             </Helmet>
 
             {/* Top Navigation */}

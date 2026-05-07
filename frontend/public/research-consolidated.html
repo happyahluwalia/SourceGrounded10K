@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Definitive Research Archive | 10kiq | Harpreet Ahluwalia</title>
+    <meta name="description" content="A consolidated technical archive of research articles, benchmarking data, and deep dives on vLLM, LLM performance, and production AI architecture.">
+    <meta name="author" content="Harpreet Ahluwalia">
+    <link rel="alternate" type="application/rss+xml" title="10kiq Research by Harpreet Ahluwalia" href="https://10kiq.com/rss.xml">
+    
+    <!-- SEO / Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Harpreet Ahluwalia",
+      "jobTitle": "Author & AI Lead",
+      "description": "Specializing in Large Language Models, Generative AI architecture, and building production-ready intelligent systems.",
+      "url": "https://github.com/happyahluwalia"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": "Technical Research Archive",
+      "author": {
+        "@type": "Person",
+        "name": "Harpreet Ahluwalia"
+      },
+      "description": "Consolidated technical findings, benchmarking cases, and deep dives on LLM optimization.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "financeagent Research"
+      }
+    }
+    </script>
+
+    <style>
+        :root {
+            --primary: #191919;
+            --secondary: #d4a574;
+            --text: #444;
+            --bg: #fdfcfb;
+            --border: #e5e5e5;
+            --code-bg: #1a1a1a;
+            --code-text: #4ade80;
+            --highlight-bg: #f0f7ff;
+            --success-bg: #f0fff4;
+            --error-bg: #fff5f5;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 40px;
+            margin-bottom: 60px;
+        }
+
+        .attribution {
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 30px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .attribution h2 {
+            margin-top: 0;
+            color: var(--secondary);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .author-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            background: rgba(253, 252, 251, 0.95);
+            backdrop-filter: blur(8px);
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            margin-bottom: 40px;
+            overflow-x: auto;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            justify-content: center;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text);
+            transition: color 0.2s;
+            white-space: nowrap;
+        }
+
+        nav a:hover {
+            color: var(--secondary);
+        }
+
+        article {
+            margin-bottom: 100px;
+        }
+
+        h1 { font-size: 2.8rem; margin-bottom: 1.5rem; letter-spacing: -0.02em; }
+        h2 { font-size: 2.2rem; margin-top: 3.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        h3 { font-size: 1.6rem; margin-top: 2.5rem; color: var(--secondary); margin-bottom: 1rem; }
+        h4 { font-size: 1.3rem; margin-top: 2rem; font-weight: 700; border-left: 4px solid var(--secondary); padding-left: 15px; }
+
+        p { margin-bottom: 1.2rem; font-size: 1.05rem; }
+
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.85rem;
+            margin: 25px 0;
+            border: 1px solid #333;
+            line-height: 1.4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 0.95rem;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th { background: #f8f7f5; font-weight: 600; color: #111; }
+
+        .nugget {
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 35px;
+            border-radius: 12px;
+            margin-bottom: 45px;
+            border-top: 4px solid var(--secondary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .nugget-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #999;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .lesson-box {
+            background: #fffdfa;
+            border-left: 4px solid var(--secondary);
+            padding: 25px;
+            margin: 25px 0;
+            font-style: italic;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .highlight-box {
+            background: var(--highlight-bg);
+            border-left: 4px solid #0070f3;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .success-box {
+            background: var(--success-bg);
+            border-left: 4px solid #22c55e;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .failure-box {
+            background: var(--error-bg);
+            border-left: 4px solid #f87171;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .card-category {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #191919;
+            margin-bottom: 10px;
+        }
+
+        blockquote {
+            margin: 30px 0;
+            padding: 0 20px;
+            border-left: 3px solid var(--border);
+            color: #666;
+            font-style: italic;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-right: 10px;
+            background: #eee;
+        }
+
+        .tag-deep-dive { background: #dcfce7; color: #166534; }
+        .tag-case-study { background: #fee2e2; color: #991b1b; }
+        .tag-note { background: #fef9c3; color: #854d0e; }
+        .tag-system { background: #e0e7ff; color: #3730a3; }
+
+        footer {
+            margin-top: 100px;
+            text-align: center;
+            padding: 60px 0;
+            color: #777;
+            border-top: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        @media screen and (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.5rem; }
+            .container { padding: 20px 15px; }
+            nav ul { font-size: 0.8rem; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Definitive Research Archive</h1>
+        <p>A comprehensive, static snapshot of technical deep dives, benchmarking case studies, system architectures, and field notes developed by Harpreet and the financeagent team.</p>
+        
+        <div class="attribution">
+            <h2>Author & AI Lead</h2>
+            <div class="author-name">Harpreet Ahluwalia</div>
+            <p>Specializing in Large Language Models, Generative AI architecture, and building production-ready intelligent systems. Focus on vLLM optimization, RAG performance, and agentic workflows.</p>
+            <p>
+                <a href="https://github.com/happyahluwalia" style="color: var(--secondary); font-weight: 600;">GitHub: @happyahluwalia</a> | 
+                <span style="color: #666;">LinkedIn: AI & LLM Systems</span>
+            </p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#system">System Architecture</a></li>
+            <li><a href="#vllm">vLLM Deep Dive</a></li>
+            <li><a href="#benchmarking">LLM Benchmarking</a></li>
+            <li><a href="#field-notes">Field Notes</a></li>
+        </ul>
+    </nav>
+
+    <article id="system">
+        <span class="tag tag-system">Architecture Info</span>
+        <h1>System Architecture & Performance Facts</h1>
+        <p>Key foundational facts and performance insights drawn from the development of the system. (Extracted from <code>knowledge.json</code>)</p>
+        
+        <h2>System Facts</h2>
+        <div class="card-grid">
+
+            <div class="card">
+                <div class="card-category">vector_search</div>
+                <div class="card-title">💡 Vector search can find relevant info in &lt;1 second across millions of words</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">Using semantic embeddings (768-dimensional vectors) to understand meaning, not just keywords</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">embeddings</div>
+                <div class="card-title">🧠 This system uses embeddings to understand meaning, not just keywords</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">The model converts text to vectors where similar meanings are close together in vector space</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">sec_filings</div>
+                <div class="card-title">📊 A typical 10-K filing contains 100,000+ words across 200+ pages</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">SEC requires public companies to file detailed annual reports covering business, risks, financials, and governance</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">streaming</div>
+                <div class="card-title">⚡ Streaming tokens reduces perceived latency by 90%</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">First token appears in 1-2s instead of waiting 20-30s for complete response</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">metadata_filtering</div>
+                <div class="card-title">🎯 Metadata filtering reduces search space by 96%</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">Filtering by ticker and filing type before vector search dramatically improves speed and accuracy</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">deterministic_planning</div>
+                <div class="card-title">🚀 Deterministic planning is 40% faster than LLM routing</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">Using structured plans instead of LLM-based agent routing saves 2-3 seconds per query</p>
+            </div>
+
+        </div>
+        
+        <h2>Step Insights</h2>
+        <div class="card-grid">
+
+            <div class="card">
+                <div class="card-category">Step: Planning</div>
+                <div class="card-title">Why deterministic planning?</div>
+                <p style="font-size: 0.9rem; margin-bottom: 10px;">Using a structured planner (not LLM routing) saves ~2-3s per query and ensures consistent execution paths.</p>
+                <div style="font-size: 0.85rem; color: #666; border-top: 1px solid #eee; padding-top: 10px;">
+                    <strong>Trade-off:</strong> Less flexible than pure agent routing, but 40% faster and more predictable.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-category">Step: Fetching</div>
+                <div class="card-title">Why local caching matters</div>
+                <p style="font-size: 0.9rem; margin-bottom: 10px;">Storing filings locally means 3s fetch vs 15s download from SEC EDGAR.</p>
+                <div style="font-size: 0.85rem; color: #666; border-top: 1px solid #eee; padding-top: 10px;">
+                    <strong>Trade-off:</strong> Uses ~2GB disk space but saves 80% on network calls and respects SEC rate limits.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-category">Step: Searching</div>
+                <div class="card-title">Vector search magic ✨</div>
+                <p style="font-size: 0.9rem; margin-bottom: 10px;">Semantic search finds relevant sections even without exact keyword matches. 'CFO' matches 'Chief Financial Officer' automatically.</p>
+                <div style="font-size: 0.85rem; color: #666; border-top: 1px solid #eee; padding-top: 10px;">
+                    <strong>Trade-off:</strong> Requires embedding model (768-dim vectors) but enables intelligent retrieval beyond keyword matching.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-category">Step: Synthesis</div>
+                <div class="card-title">Why synthesis takes longest</div>
+                <p style="font-size: 0.9rem; margin-bottom: 10px;">LLM reads 10 document chunks (~10,000 words) and generates a grounded answer. This is the most compute-intensive step.</p>
+                <div style="font-size: 0.85rem; color: #666; border-top: 1px solid #eee; padding-top: 10px;">
+                    <strong>Trade-off:</strong> Could use smaller/faster model, but accuracy drops 15-20%. We prioritize quality over speed here.
+                </div>
+            </div>
+
+        </div>
+
+        <h2>Performance Tips</h2>
+        <div class="card-grid">
+
+            <div class="card">
+                <div class="card-category">speed</div>
+                <div class="card-title">⚡ Caching embeddings saves 80% compute time</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">Pre-computed embeddings stored in Qdrant mean instant search vs 3-5s to re-embed queries</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">accuracy</div>
+                <div class="card-title">🎯 Prompt examples improve accuracy by 60%</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">Showing the LLM concrete examples of correct outputs dramatically reduces errors</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">cost</div>
+                <div class="card-title">💰 Local LLMs = zero API costs</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">Running Ollama locally means unlimited queries with no per-token charges</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">reliability</div>
+                <div class="card-title">🔄 Retry logic handles 95% of transient failures</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">Exponential backoff and graceful degradation keep the system running even when services hiccup</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">model_optimization</div>
+                <div class="card-title">🎯 Task-fit beats raw parameters</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">llama3.1:8b (30s, 72.5% accuracy) outperformed qwen2.5:72b (693s, 50.8% accuracy) by 23x on speed with 30% better accuracy</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">user_experience</div>
+                <div class="card-title">⏱️ 30 seconds is the UX threshold</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">Users accept &lt;30s wait times. Beyond 60s, abandonment rates spike. Only llama3.1 met this requirement.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-category">consistency</div>
+                <div class="card-title">📊 Low variance &gt; occasional speed</div>
+                <p style="font-size: 0.9rem; margin-bottom: 0;">llama3.1 has 8.7s std dev vs qwen72b's 247s. Predictable 30s beats 'sometimes 20s, sometimes 120s'</p>
+            </div>
+
+        </div>
+    </article>
+
+    <!-- SECTION 1: vLLM DEEP DIVE -->
+    <article id="vllm">
+        <span class="tag tag-deep-dive">Deep Dive</span>
+        <h1>vLLM Request Lifecycle & Optimization</h1>
+        <p>vLLM is the state-of-the-art inference engine for Large Language Models. This section documents the 11-step lifecycle of a request, demonstrating how PagedAttention, Continuous Batching, and Prefix Caching deliver order-of-magnitude improvements in throughput.</p>
+
+        <h3>The Memory Problem: Fragmentation</h3>
+        <p>Traditional LLM serving systems allocate a static, contiguous chunk of GPU memory for each request's Key-Value (KV) cache. This results in "internal fragmentation" (unused space within blocks) and "external fragmentation" (unused gaps between blocks), leading to up to 60-80% wasted memory.</p>
+
+        <h4>1. PagedAttention Initialization</h4>
+        <p>vLLM solves fragmentation by dividing the KV cache into small, fixed-size blocks (like OS pages). These blocks are non-contiguous and mapped via a block table.</p>
+        <div class="lesson-box">
+            🏨 Hotel Analogy: Traditional systems need all guests in consecutive rooms (wasteful). vLLM can place guests in rooms 101, 203, and 405—whenever's available.
+        </div>
+        <pre><code>from vllm import LLM
+
+# Initialize vLLM with PagedAttention
+llm = LLM(
+    model="llama-3.1-8b",
+    gpu_memory_utilization=0.9  # Use 90% of GPU
+)</code></pre>
+
+        <h4>2. User Request Arrives</h4>
+        <p>A user sends their question. Behind the scenes, there are TWO prompts:
+        1. System Prompt (hidden from user)
+        2. User Prompt (visible)
+        
+        The request enters the Scheduler's Waiting Queue. Think of it like taking a number at the DMV.</p>
+
+        <h4>3. Prefix Caching Lookup</h4>
+        <p>vLLM computes a 'hash' of your SystemPrompt and checks: 'Have I seen this before?'
+        If YES: vLLM reuses the cached Key/Value vectors instead of re-computing!
+        This is Prefix Caching and it can reduce Time-To-First-Token (TTFT) by 80%.</p>
+        <pre><code>llm = LLM(
+    model="llama-3.1-8b",
+    enable_prefix_caching=True  # 🚀 Enable prefix caching
+)</code></pre>
+
+        <h4>4. Scheduler & Memory Allocation</h4>
+        <p>The scheduler moves your request from WAITING → RUNNING queue. Next, it allocates NEW memory blocks for your User Prompt. Notice: these blocks are NOT next to the System Prompt blocks! PagedAttention handles this non-contiguous mapping automatically.</p>
+
+        <h4>5. Prefill: Computing Keys & Values</h4>
+        <p>The GPU processes your User Prompt token-by-token. For EVERY token, it computes:
+        Key (K): A 'label' describing the token
+        Value (V): The actual semantic meaning</p>
+        <pre><code># Simplified pseudocode
+for token in user_prompt_tokens:
+    key_vector = model.compute_key(token)    # Expensive!
+    value_vector = model.compute_value(token) # Expensive!
+    kv_cache.store(key_vector, value_vector)</code></pre>
+
+        <h4>6. Decoding: Attention Mechanism</h4>
+        <p>To generate the FIRST token, the model performs Self-Attention. Query (Q) meets Key (K). This complexity is O(n²), making long context expensive!</p>
+        <pre><code>def attention(query, keys, values):
+    scores = torch.matmul(query, keys.transpose(-2, -1))
+    weights = torch.softmax(scores, dim=-1)
+    return torch.matmul(weights, values)</code></pre>
+
+        <h4>7. Logits & Sampling Strategy</h4>
+        <p>The Context Vector produces Logits—scores for EVERY word in vocabulary. Temperature, Top-P, and Top-K control selection.</p>
+        <pre><code>sampling_params = SamplingParams(
+    temperature=0.1, top_p=0.9, top_k=50, max_tokens=500
+)</code></pre>
+
+        <h4>8. Continuous Batching</h4>
+        <p>Traditional systems static batch (Wait for A, then B). vLLM generates 1 token for A, B, C...Requests can join immediately. Up to 3x improvement!</p>
+
+        <h4>9. Streaming Response</h4>
+        <p>Auto-regressive generation in a loop. Stream to user via events.</p>
+        <pre><code>async for output in llm.generate(prompt, sampling_params, stream=True):
+    print(output.outputs[0].text, end='')</code></pre>
+        
+        <h4>10. Request Completed (Garbage Collection)</h4>
+        <p>Model generates stop token. User blocks freed. System prompt blocks KEPT for next request.</p>
+
+        <h3>Performance: Naive vs vLLM</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Naive (HuggingFace)</th>
+                    <th>vLLM (Optimized)</th>
+                    <th>Improvement</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Throughput</td>
+                    <td>1x (Baseline)</td>
+                    <td>24x Higher</td>
+                    <td>2400%</td>
+                </tr>
+                <tr>
+                    <td>Memory Utilization</td>
+                    <td>~40%</td>
+                    <td>90%+</td>
+                    <td>2.25x</td>
+                </tr>
+                <tr>
+                    <td>TTFT (Cached)</td>
+                    <td>100ms+</td>
+                    <td>5ms</td>
+                    <td>20x Faster</td>
+                </tr>
+            </tbody>
+        </table>
+    </article>
+
+    <!-- SECTION 2: LLM BENCHMARKING CASE STUDY -->
+    <article id="benchmarking">
+        <span class="tag tag-case-study">Case Study</span>
+        <h1>LLM Benchmarking: 8B vs 72B in Production</h1>
+        <p>We tested 6 model configurations across 10 deterministic financial queries to answer one question: 10kiq's 8B production model or a massive 72B model? The results challenged industry assumptions about "bigger is better."</p>
+
+        <h2>Part 1: The Problem & Architecture</h2>
+        <p>Industry consensus suggests 70B+ parameter models provide superior reasoning for complex financial analysis. Our architecture uses 3 distinct agents (Supervisor, Planner, Synthesizer). Does mixing models (e.g. 72B for reasoning, 8B for synthesis) yield better results?</p>
+
+        <h2>Part 2: Test Data Strategy</h2>
+        <p>We designed 10 queries across 7 categories (Factual, Numerical, Strategic, etc.) and 5 companies (AAPL, MSFT, AMZN, PFE, HOOD).</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Difficulty</th>
+                    <th>Query Example</th>
+                    <th>Expected Keywords</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Numerical</td>
+                    <td>Easy</td>
+                    <td>What were Apple's revenues last fiscal year?</td>
+                    <td>416 billion, fiscal 2023</td>
+                </tr>
+                <tr>
+                    <td>Strategic</td>
+                    <td>Medium</td>
+                    <td>What is MSFT's strategy for cloud?</td>
+                    <td>Azure, AI integration</td>
+                </tr>
+                <tr>
+                    <td>Technical</td>
+                    <td>Hard</td>
+                    <td>Amazon's AWS revenue recognition policy?</td>
+                    <td>contracts, performance obligations</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Part 3: Configuration & Constraints</h2>
+        <p>Hardware: 49.2GB RAM Server. We compared llama3.1:8b (Baseline), Qwen2.5:72b (Max Size), and various "Mixed Agent" strategies (e.g., Mixtral 8x7b) where different models handled different parts of the agent workflow.</p>
+
+        <h2>Part 4: Measurement Protocol</h2>
+        <p>We tracked Time to First Token, Total Request Latency, Context size, and used keyword deterministic accuracy matching. We mapped out every stage: Planning, Querying Vector DB, Synthesis.</p>
+
+        <h2>Part 5: Findings & Results</h2>
+        <div class="success-box">
+            <strong>🥇 WINNER: llama3.1:8b (Baseline)</strong><br>
+            Time: 30.2s | Accuracy: 72.5% | Success: 10/10<br>
+            Consistency: 8.7s std dev.
+        </div>
+        <div class="failure-box">
+            <strong>📉 WORST ACCURACY / FAILED MIXTURE: qwen2.5:72b / mixtral / specialized mix</strong><br>
+            72B Time: 692.9s (11.5 minutes) | Accuracy: 50.8%<br>
+            Specialized Mix Accuracy: 34.2%<br>
+            Mixtral: 0/10 success (tooling failure)
+        </div>
+
+        <h4>Key Findings:</h4>
+        <p><strong>1. Parameters ≠ Performance:</strong> The 8B model was 23x faster AND 30% more accurate than the 72B. Reason: task-fit and instruction following.</p>
+        <p><strong>2. Mixed Model Penalty:</strong> Mixing models resulted in the LOWEST accuracy (34.2%). Model handoffs introduce context friction and format mismatch.</p>
+        <p><strong>3. The Resource Wall:</strong> A 72B model uses 41GB RAM, leaving no headroom for OS, Vector DB, or PostgreSQL checkpointing.</p>
+    </article>
+
+    <!-- SECTION 3: FIELD NOTES (ALL NUGGETS) -->
+    <article id="field-notes">
+        <span class="tag tag-note">Field Notes</span>
+        <h1>Technical Nuggets: Production Learnings</h1>
+        <p>A complete chronological archive of atomic learnings discovered during the engineering of the 10kiq agent.</p>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 30, 2025</span>
+                <span>Cost Optimization</span>
+            </div>
+            <h3>Per-Stage Token Telemetry Reveals Hidden Consumption Patterns</h3>
+            <p><strong>Problem:</strong> Aggregate token metrics (total tokens per request) provide no visibility into which pipeline stage consumes the most resources. In a multi-stage RAG system (retrieval → synthesis → follow-up), the ~4,500 token average could be dominated by context retrieval, synthesis prompts, or accumulated follow-up history. Without per-stage breakdown, optimization efforts target the wrong components.</p>
+            <p><strong>Solution:</strong> Implemented a TokenMetrics class that instruments each pipeline stage with discrete counters. Each log_call() captures: stage name, model, input_tokens (system/human breakdown), output_tokens, and latency. The get_summary() method returns per-stage metrics for analysis, enabling identification of the highest-cost stage.</p>
+            <p><strong>Impact:</strong> Per-stage breakdown identified follow-up context accumulation as the dominant cost driver. Multi-turn conversations preserved full history including retrieved chunks, causing token counts to balloon. Targeted optimization: summary-based context compression for follow-ups. Result: reduced multi-turn token consumption by ~40%.</p>
+
+            <div class="lesson-box">
+                Aggregate metrics create blind spots. Instrument at the granularity where decisions occur — for pipelines, that means per-stage. Token telemetry follows the same principle as distributed tracing: optimize what you can observe.
+            </div>
+
+            <pre><code># From app/utils/token_metrics.py
+class TokenMetrics:
+    def log_call(self, stage: str, model: str, input_messages: List,
+                 output: str, start_time: float, end_time: float):
+        self.metrics.append({
+            "stage": stage, "model": model,
+            "input_tokens": count_tokens_by_role(input_messages, model),
+            "output_tokens": count_tokens(output, model),
+            "latency": round(end_time - start_time, 2)
+        })</code></pre>
+
+        </div>
+
+
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 14, 2025</span>
+                <span>LLM Reliability</span>
+            </div>
+            <h3>Structured Outputs Eliminate Malformed JSON Errors</h3>
+            <p><strong>Problem:</strong> When using llama3.1:8b (a local language model), we occasionally got malformed JSON responses — unterminated strings, missing braces, broken syntax. Error rate: ~5-10% in production. Fallback logic tried to repair the JSON but often failed, showing raw JSON dumps to users. Prompt instructions like "ENSURE ALL STRINGS ARE PROPERLY CLOSED" were unreliable — the model couldn\</p>
+            <p><strong>Solution:</strong> Implemented Ollama\</p>
+            <p><strong>Impact:</strong> Malformed JSON errors dropped from 5-10% to ~0%. No more unterminated strings or missing braces. Token savings: Removed ~400 tokens of JSON formatting instructions from prompt (15% reduction). Simplified prompt from 219 lines to 147 lines. Fallback logic still exists as safety net but rarely triggered. Production reliability improved significantly.</p>
+
+            <div class="lesson-box">
+                Use API-level constraints instead of prompt instructions for structured output. Ollama\
+            </div>
+
+            <pre><code>from langchain_ollama import ChatOllama
+from pydantic import BaseModel, Field
+
+class SynthesizerOutput(BaseModel):
+    answer: str = Field(description="The synthesized answer")
+    confidence: float = Field(ge=0, le=1)
+    sources: list[str] = Field(default_factory=list)
+
+llm = ChatOllama(
+    model="llama3.1:8b",
+    format=SynthesizerOutput.model_json_schema()
+)</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 4, 2025</span>
+                <span>UI Architecture</span>
+            </div>
+            <h3>Structured Data → Deterministic UI Rendering</h3>
+            <p><strong>Problem:</strong> LLMs are unreliable at formatting — asking the model to output markdown, HTML, or styled tables leads to inconsistent UI. Sometimes the table has headers, sometimes not. Sometimes bullet points, sometimes numbered lists. The model might forget to close tags or use inconsistent styling. Wasted tokens on formatting instructions that don\</p>
+            <p><strong>Solution:</strong> Separate concerns: LLMs handle semantic data extraction, code handles presentation. Architecture: LLM outputs structured JSON with typed sections (paragraph, table, key_findings, etc.) → Backend formatter functions convert each section type to UI components deterministically → Frontend renders the components. The LLM never sees HTML or CSS. It just outputs: {type: "table", headers: [...], rows: [...]}. A formatter function turns that into a consistent React component.</p>
+            <p><strong>Impact:</strong> Consistent UI rendering every time — same data always produces same output. Easier A/B testing — change the formatter, not the prompt. Future-proof for charts/graphs — add new section types without touching LLM logic. No formatting tokens wasted — prompts are shorter and focused on analysis. Separation of concerns — LLM team focuses on extraction quality, frontend team owns presentation. Easier debugging — structured JSON is inspectable, formatted HTML is not.</p>
+
+            <div class="lesson-box">
+                LLMs should focus on semantic data extraction, not presentation. Use deterministic code for formatting. The LLM\
+            </div>
+
+        </div>
+
+
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 14, 2025</span>
+                <span>Testing</span>
+            </div>
+            <h3>Playwright for End-to-End UI Validation</h3>
+            <p><strong>Problem:</strong> Comparison summary section was rendering empty for multi-company queries. Manual testing was time-consuming: 5 minutes per test cycle (start servers, navigate UI, check each section). Hard to verify all sections consistently. Unit tests couldn't catch frontend-backend integration bugs — they test components in isolation, not how they work together in a real browser.</p>
+            <p><strong>Solution:</strong> Used Playwright (a browser automation tool that simulates real user interactions) for end-to-end testing. Playwright runs in a real browser (Chromium), clicks buttons, fills forms, and provides structured snapshots of rendered components. Tested three scenarios: single-company query, multi-company query with comparison, and verification of all 6 sections (table, summary, business context, links).</p>
+            <p><strong>Impact:</strong> Found the bug in 2 minutes: Component rendered but paragraph was empty. Root cause: Backend sent props.summary, frontend expected props.text. The fix: Changed &lt;p&gt;{props.text}&lt;/p&gt; to &lt;p&gt;{props.summary}&lt;/p&gt; — literally one line. Verified immediately with Playwright. Time savings: Manual 5min → Automated 2min. Regression prevention built in — if this breaks again, the test will catch it.</p>
+
+            <div class="lesson-box">
+                End-to-end testing catches integration bugs that unit tests miss. Unit tests verify individual components work in isolation. E2E tests verify the entire system works together — frontend, backend, database, all of it. Playwright's browser_snapshot provides structured DOM inspection (better than screenshots for verification). Test both success cases AND edge cases. Automate repetitive UI validation to save time and prevent regressions. 👥 Best for: Full-stack developers, QA engineers. 📚 Prerequisites: Basic understanding of frontend-backend architecture.
+            </div>
+
+            <pre><code>async def test_comparison_section():
+    page = await browser.new_page()
+    await page.goto("http://localhost:3000")
+    
+    await page.fill("#query-input", "Compare Apple and Microsoft revenue")
+    await page.click("#submit-button")
+    await page.wait_for_selector(".comparison-summary")
+    
+    summary = await page.text_content(".comparison-summary p")
+    assert summary is not None
+    assert len(summary) &gt; 50</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 12, 2025</span>
+                <span>Context Management</span>
+            </div>
+            <h3>Token-based Trimming Beats Message-Count Sliding Window</h3>
+            <p><strong>Problem:</strong> With checkpointing (saving conversation state between interactions) enabled, conversation history grows unbounded. After 10-15 turns (one turn = user message + assistant response), the context window (maximum tokens an LLM can process at once) overflows. llama3.1:8b has an 8,192 token limit. The obvious solution — sliding window keeping last 8 messages — is dangerous because tool responses can be 5,000-10,000 tokens each. Eight large messages could be 20,000+ tokens, causing crashes.</p>
+            <p><strong>Solution:</strong> Implemented LangChain's trim_messages utility with max_tokens=6000 (not 8,192). Token-based trimming guarantees no overflow regardless of message sizes. It keeps the most recent messages that fit within the budget, automatically handling variable message sizes and edge cases. Why 6,000 not 8,192? We leave 2,192 tokens (27% buffer) for: system prompts (~500 tokens), user's current query (~500 tokens), model's response generation (~1,000 tokens), and safety margin.</p>
+            <p><strong>Impact:</strong> Hard guarantee against context overflow. Before: Turn 10 = 15+ seconds, variable latency, memory issues. After: Consistent 4-second responses, stable memory, predictable performance. LLM attention is O(n²) complexity — reducing tokens from 25,000 to 6,000 gives 3.75x observed speedup (theoretical maximum is ~17x, but real-world includes non-attention overhead like tokenization, sampling, I/O).</p>
+
+            <div class="lesson-box">
+                Token-based &gt; Message-based for variable message sizes. Tool responses (like filing_qa_tool) are 250x larger than user queries (20 tokens vs 5,000 tokens). Use built-in utilities (trim_messages) instead of custom logic — they handle edge cases you haven't thought of. Conservative limits (6,000 not 8,192) leave safety margin. Token management is not just about preventing crashes — it's a performance optimization (O(n²) attention complexity), cost optimization (fewer tokens = cheaper), and UX optimization (faster responses). 👥 Best for: Backend developers building conversational AI. 📚 Prerequisites: Understanding of LLM context windows, basic conversation state management.
+            </div>
+
+            <pre><code>from langchain_core.messages import trim_messages
+
+trimmer = trim_messages(
+    max_tokens=6000,
+    strategy="last",
+    token_counter=llm,
+    include_system=True,
+    allow_partial=False,
+    start_on="human"
+)
+
+def chat_step(state):
+    trimmed = trimmer.invoke(state["messages"])
+    response = llm.invoke(trimmed)
+    return {"messages": [response]}</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 12, 2025</span>
+                <span>Vector Search</span>
+            </div>
+            <h3>Silent Embedding Failures Cause 0% Confidence and Wrong Answers</h3>
+            <p><strong>Problem:</strong> After migrating from Docker Ollama to native Ollama (for GPU acceleration), vector search (semantic search using numerical representations of text) returned 0% confidence scores and wrong answers. Multi-turn conversations failed: "What was Apple\</p>
+            <p><strong>Solution:</strong> Root cause: Missing nomic-embed-text embedding model after migration. Docker had the model, native install didn't. What are embeddings? They convert text into numerical vectors (arrays of 768 numbers) that capture semantic meaning. Similar texts have similar vectors, enabling semantic search. The embedding API returned 404 but the system continued with zero vectors [0, 0, 0, ..., 0]. Zero vectors compared against document vectors = random 0% similarity. Fix: ollama pull nomic-embed-text. Added: (1) Score threshold filtering (reject results below 50%), (2) Startup health check with retry logic, (3) Fail-fast on embedding errors.</p>
+            <p><strong>Impact:</strong> Before fix: 0% confidence, wrong answers, silent failures. After fix: 50%+ confidence, correct answers, proper error handling. Key insight: Two-model architecture required: (1) LLM (llama3.2:3b) generates human-like text responses, (2) Embedding model (nomic-embed-text) converts text to searchable vectors. Both required but serve different purposes. Think of embeddings like GPS coordinates for meaning — they let you find semantically similar content. Infrastructure migrations have hidden dependencies.</p>
+
+            <div class="lesson-box">
+                Fail fast &gt; fail silently. 0% similarity scores are diagnostic red flags indicating embedding failure, model mismatch, or vector space incompatibility. When migrating infrastructure, verify ALL model dependencies (LLMs + embeddings). Add startup health checks with retry logic. Filter results by confidence threshold before synthesis. The RAG pipeline: Query → Embedding → Vector Search → Retrieve Documents → LLM → Answer. If embeddings break, the entire pipeline fails silently. 👥 Best for: Backend developers building RAG systems, ML engineers. 📚 Prerequisites: Basic understanding of vector databases, semantic search concepts.
+            </div>
+
+            <pre><code>def verify_embedding_model():
+    try:
+        test_embedding = embed("test query")
+        if len(test_embedding) != 768:
+            raise ValueError("Wrong embedding dimension")
+        return True
+    except Exception as e:
+        logger.error(f"Embedding model check failed: {e}")
+        return False
+
+def search_with_threshold(query, min_score=0.5):
+    results = vector_db.search(query, limit=10)
+    return [r for r in results if r.score &gt;= min_score]</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 4, 2025</span>
+                <span>Architecture</span>
+            </div>
+            <h3>Data Structure &gt; Complex Architecture</h3>
+            <p><strong>Problem:</strong> Multi-company comparisons had unbalanced data retrieval: 4 chunks (segments of documents, typically 500-1000 words, stored in the vector database) for Apple, 1 chunk for Microsoft. The RAG (Retrieval-Augmented Generation — retrieving relevant documents before generating answers) system was biased toward whichever company appeared first in the query. Initial solution: build parallel RAG agents with separate pipelines per company — estimated 5-6 weeks of development.</p>
+            <p><strong>Solution:</strong> Instead of rebuilding the architecture, we changed one data structure. The execute_plan() function returned a flat list of chunks. We changed it to return a dictionary keyed by company ticker (stock symbol like AAPL for Apple, MSFT for Microsoft): {AAPL: [...], MSFT: [...]}. This maintained per-company separation throughout the pipeline, ensuring equal data retrieval for each entity. Simple change, massive impact.</p>
+            <p><strong>Impact:</strong> Fixed in 1-2 days instead of 5-6 weeks. Equal data retrieval achieved: 5 chunks per company. 95% less code than the parallel agent approach. No new infrastructure, no additional complexity — just a better data structure.</p>
+
+            <div class="lesson-box">
+                Test the existing system before redesigning. Simple data structure changes often beat complex architectural additions. The impulse to "build something new" can blind us to simpler solutions. When data flows incorrectly, trace the problem back to its source — often it\
+            </div>
+
+            <pre><code># BEFORE: Flat list loses company context
+def execute_plan(plan):
+    results = []
+    for step in plan.steps:
+        chunks = search(step.query)
+        results.extend(chunks)  # Company info lost!
+    return results
+
+# AFTER: Dict preserves per-company separation
+def execute_plan(plan):
+    results = {}
+    for step in plan.steps:
+        ticker = step.ticker
+        chunks = search(step.query, ticker)
+        results[ticker] = chunks
+    return results  # {AAPL: [...], MSFT: [...]}</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 3, 2025</span>
+                <span>Model Selection</span>
+            </div>
+            <h3>Bigger Models ≠ Better Performance</h3>
+            <p><strong>Problem:</strong> We assumed a 72B parameter model (Qwen2.5:72b) would outperform an 8B model (llama3.1:8b) for financial analysis. Bigger should mean smarter, right? This assumption led us to initially deploy the largest model available, expecting superior accuracy and comprehension.</p>
+            <p><strong>Solution:</strong> Benchmarked 6 different model configurations on our specific use case: SEC filing analysis with multi-turn conversations. Tested: llama3.1:8b, llama3.1:70b, qwen2.5:72b, mixtral:8x7b, and various mixed configurations. Measured both speed (response time) and accuracy (correctness of financial analysis).</p>
+            <p><strong>Impact:</strong> llama3.1:8b won on BOTH speed AND accuracy. Results: llama3.1:8b = 30s response time, 72.5% accuracy. Qwen72b = 693s response time (23x slower!), 50.8% accuracy (30% worse). The 8B model was faster AND more accurate than the 72B model for our specific task.</p>
+
+            <div class="lesson-box">
+                Task-fit matters more than parameter count. The "best" model depends on your specific use case, not raw size. Benchmark on YOUR data, not generic benchmarks. For SEC filing analysis: llama3.1:8b was optimized for instruction-following and structured outputs (exactly what we needed). Qwen72b was trained for different objectives. Always test before assuming bigger = better. 👥 Best for: ML engineers, anyone selecting LLMs for production. 📚 Prerequisites: Understanding of LLM parameters, basic benchmarking concepts.
+            </div>
+
+        </div>
+
+
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 4, 2025</span>
+                <span>Prompt Engineering</span>
+            </div>
+            <h3>Natural Text In → Structured Data Out</h3>
+            <p><strong>Problem:</strong> We considered sending context to the LLM as JSON for better structure. Example: {"company": "Apple", "revenue": "$394B", "section": "Item 8"}. This seemed logical — structured input should produce structured output, right? But JSON input adds 20-30% token overhead (all those quotes, braces, and colons).</p>
+            <p><strong>Solution:</strong> Keep context as natural text (plain language paragraphs from SEC filings), but require JSON output from the LLM for structured responses. The LLM reads natural prose efficiently (it was trained on narrative text, not JSON). Output schemas (like Pydantic) ensure structured responses when needed.</p>
+            <p><strong>Impact:</strong> Saves ~2,000 tokens per query (20-30% reduction in token usage). LLMs comprehend natural text better than JSON — they were trained on articles, books, and conversations, not config files. Frontend still gets structured data for rendering. Cost savings on token-based APIs. Faster inference (fewer tokens = less compute).</p>
+
+            <div class="lesson-box">
+                Rule of thumb: Natural text in → Structured data out (when needed). Don\
+            </div>
+
+            <pre><code># ❌ WRONG: JSON input wastes tokens
+context = {
+    "company": "Apple Inc.",
+    "section": "Item 8 - Financial Statements",
+    "revenue": "$394.3 billion"
+}
+
+# ✅ RIGHT: Natural text input, structured output
+context = """
+Apple Inc. reported total revenue of $394.3 billion 
+for fiscal year 2024, as disclosed in Item 8 - 
+Financial Statements and Supplementary Data...
+"""
+
+# Require structured OUTPUT with Pydantic schema
+class AnalysisOutput(BaseModel):
+    answer: str
+    confidence: float
+    sources: list[str]</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 10, 2025</span>
+                <span>Infrastructure</span>
+            </div>
+            <h3>Infrastructure Bottleneck Masquerading as Algorithm Problem</h3>
+            <p><strong>Problem:</strong> Ollama running in Docker on Mac was extremely slow: 90+ seconds for 3 LLM calls. We assumed the model was too slow and started optimizing prompts, reducing context, trying smaller models. Spent days on algorithm optimizations that barely helped. The real problem? Docker on macOS doesn\</p>
+            <p><strong>Solution:</strong> Run Ollama natively on Mac to leverage Metal (Apple\</p>
+            <p><strong>Impact:</strong> 5-10x faster inference on local development. What seemed like a model performance issue was actually an infrastructure configuration problem. The "slow model" was actually a fast model running on the wrong hardware. Production servers with NVIDIA GPUs in Docker work correctly (Docker on Linux supports GPU passthrough via NVIDIA Container Toolkit).</p>
+
+            <div class="lesson-box">
+                Always verify infrastructure before optimizing algorithms. Check: Is the GPU actually being used? (nvidia-smi, metal performance counters). Docker on Mac = CPU-only for GPU workloads. Native Mac = GPU via Metal. Production Linux = GPU via NVIDIA Container Toolkit. Test infrastructure assumptions early. The fastest algorithm on wrong hardware loses to slow algorithm on right hardware. 👥 Best for: DevOps, ML engineers running local LLMs. 📚 Prerequisites: Basic understanding of Docker, GPU acceleration.
+            </div>
+
+            <pre><code># Check if GPU is being used
+
+# On Mac (native Ollama):
+# Watch Activity Monitor &gt; GPU History
+# Should see Metal utilization during inference
+
+# On Linux with NVIDIA:
+$ nvidia-smi  # Check GPU utilization
+
+# Docker on Mac: NO GPU (this was our bug!)
+$ docker run ollama/ollama  # CPU only on Mac
+
+# Fix: Run natively on Mac
+$ brew install ollama
+$ ollama serve  # Now uses Metal GPU
+
+# Production (Linux + NVIDIA):
+$ docker run --gpus all ollama/ollama  # GPU works!</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 10, 2025</span>
+                <span>Multi-Agent Systems</span>
+            </div>
+            <h3>Multi-Agent Token Multiplication: 15x More Tokens Than Chat</h3>
+            <p><strong>Problem:</strong> Our system uses 3 LLM agents (Supervisor → Planner → Synthesizer) before responding to the user. Each agent processes the full context, multiplying token usage. We noticed costs and latency were much higher than expected for simple queries. Anthropic research shows multi-agent systems typically use ~15x more tokens than simple single-turn chat.</p>
+            <p><strong>Solution:</strong> Measured actual token usage across all agents. Breakdown: Supervisor (214 input, minimal output) → Planner (1,299 input, 62 output) → Synthesizer (largest context, generates final answer). Total: 1,575+ tokens for 3 agents vs ~100 tokens for single chat interaction. System prompts (1,492 tokens) dominate over user queries (21 tokens) — a 71x ratio!</p>
+            <p><strong>Impact:</strong> Token profiling revealed the optimization target: system prompts are 71x larger than user queries. Multi-agent overhead is real but provides reasoning quality. Our 3-agent pipeline: Supervisor delegates task type → Planner creates structured retrieval plan → Synthesizer generates grounded answer. Each step adds tokens but improves accuracy. Trade-off is intentional.</p>
+
+            <div class="lesson-box">
+                Multi-agent systems trade tokens for reasoning quality — this is a feature, not a bug. But monitor and optimize: 1) Reduce system prompt redundancy across agents, 2) Cache repeated context, 3) Use smaller models for simple delegation tasks (Supervisor doesn\
+            </div>
+
+        </div>
+
+
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 3, 2025</span>
+                <span>Model Selection</span>
+            </div>
+            <h3>Homogeneous Models Beat Specialized Mixes</h3>
+            <p><strong>Problem:</strong> We tried mixing different models for different roles: Qwen72b for the Supervisor (high reasoning), Mixtral for the Planner (structured output), llama3.1:8b for the Synthesizer (fast generation). The theory: use the "best" model for each task. This "specialized mix" approach seemed optimal on paper.</p>
+            <p><strong>Solution:</strong> Tested the specialized mix against homogeneous configurations (same model for all agents). Measured accuracy across 20 financial queries. Homogeneous llama3.1:8b for all 3 agents vs specialized mix (qwen72b + mixtral + llama8b).</p>
+            <p><strong>Impact:</strong> Specialized mix had WORST accuracy: 34.2%. Homogeneous llama3.1:8b had BEST accuracy: 72.5%. The "optimized" mix was 2x worse than the "simple" approach. Why? Model transitions create context loss. Different tokenization schemes. Inconsistent instruction-following styles.</p>
+
+            <div class="lesson-box">
+                Stick with one model family across your pipeline. Model transitions introduce friction: different tokenizers, different instruction formats, different response styles. Homogeneous systems are easier to debug, optimize, and maintain. The complexity of mixing models rarely pays off. Keep it simple: pick one good model and use it everywhere. 👥 Best for: ML engineers building multi-agent systems. 📚 Prerequisites: Understanding of LLM agents, tokenization.
+            </div>
+
+            <pre><code># ❌ WRONG: Mixing models creates friction
+config_mixed = {
+    "supervisor": "qwen2.5:72b",   # "Best" reasoner
+    "planner": "mixtral:8x7b",      # "Best" structured
+    "synthesizer": "llama3.1:8b"   # "Fastest"
+}
+# Result: 34.2% accuracy (WORST)
+
+# ✅ RIGHT: Homogeneous is simpler and better
+config_homogeneous = {
+    "supervisor": "llama3.1:8b",
+    "planner": "llama3.1:8b",
+    "synthesizer": "llama3.1:8b"
+}
+# Result: 72.5% accuracy (BEST)
+
+# Why? Consistent tokenization, instruction format,
+# and response style across the entire pipeline</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 1, 2025</span>
+                <span>Architecture</span>
+            </div>
+            <h3>Checkpointing Enables Memory</h3>
+            <p><strong>Problem:</strong> Users couldn\</p>
+            <p><strong>Solution:</strong> Implemented PostgreSQL-backed checkpointing with LangGraph. Each conversation gets a unique session ID (UUID). All messages (human, AI, tool calls) are persisted to PostgreSQL after each turn. On the next query, we load the full conversation history and include it in the context. LangGraph\</p>
+            <p><strong>Impact:</strong> Users can now ask follow-up questions naturally: "What was Apple\</p>
+
+            <div class="lesson-box">
+                Stateless is simpler but stateful is necessary for good UX. LangGraph checkpointing abstracts the complexity. PostgreSQL is battle-tested for persistence. Key design: thread_id per conversation, checkpoint after every turn, load history before processing. Trade-off: More DB operations, but 10x better user experience. 👥 Best for: Backend developers building conversational AI. 📚 Prerequisites: Basic PostgreSQL, understanding of session management.
+            </div>
+
+        </div>
+
+
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 2, 2025</span>
+                <span>Prompt Engineering</span>
+            </div>
+            <h3>Examples Reduce Hallucination by 60%</h3>
+            <p><strong>Problem:</strong> Our Planner agent generated inconsistent search queries. Sometimes it included company ticker, sometimes not. Sometimes it added irrelevant keywords. The LLM was "hallucinating" bad query structures — it understood the task but produced unreliable outputs. Telling it "generate good search queries" wasn\</p>
+            <p><strong>Solution:</strong> Added 3-5 concrete examples directly in the system prompt. Showed the Planner exactly what good queries look like: "For Apple revenue: ticker=AAPL, query=\</p>
+            <p><strong>Impact:</strong> 60% reduction in malformed queries. Better section targeting — queries now consistently included relevant keywords. Fewer empty search results. Less post-processing needed. The LLM learned by example rather than vague instructions.</p>
+
+            <div class="lesson-box">
+                Show, don\
+            </div>
+
+        </div>
+
+
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 2, 2025</span>
+                <span>Retrieval</span>
+            </div>
+            <h3>Top-k Matters for Recall</h3>
+            <p><strong>Problem:</strong> Retrieving only 5 chunks (top-5) from the vector database missed relevant sections, especially for complex queries like "What are Apple\</p>
+            <p><strong>Solution:</strong> Increased retrieval to 10 chunks (top-10) for better coverage while still staying within the context window. More chunks = higher recall (finding all relevant info). Trade-off: more tokens processed, but llama3.1:8b\</p>
+            <p><strong>Impact:</strong> 35% improvement in answer completeness. Complex multi-part queries now get fuller answers. No significant speed penalty — retrieval is fast, synthesis dominates latency. Quality boost: users stopped asking "is there anything else about [topic]?"</p>
+
+            <div class="lesson-box">
+                Top-k is a critical tuning parameter. Too low = incomplete answers. Too high = noise and context overflow. Start with 10, tune based on your context window and query complexity. For 8K context with ~500-token chunks, 10 is a good default. For larger contexts (32K+), consider 15-20. Always leave headroom for system prompts and output. 👥 Best for: Anyone building RAG systems. 📚 Prerequisites: Understanding of vector search, context windows.
+            </div>
+
+            <pre><code># Vector search retrieval configuration
+RETRIEVAL_CONFIG = {
+    "top_k": 10,           # Retrieve 10 chunks (was 5)
+    "min_score": 0.5,      # Filter low-confidence matches
+    "chunk_size": 500,     # ~500 tokens per chunk
+}
+
+# With 8K context window:
+# - 10 chunks × 500 tokens = 5,000 tokens
+# - System prompt = 500 tokens
+# - User query = 100 tokens
+# - Output buffer = 2,400 tokens
+# Total: 8,000 tokens ✓
+
+def retrieve_context(query: str) -&gt; list[str]:
+    results = vector_db.search(
+        query,
+        limit=RETRIEVAL_CONFIG["top_k"],
+        score_threshold=RETRIEVAL_CONFIG["min_score"]
+    )
+    return [r.text for r in results]</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 2, 2025</span>
+                <span>Consistency</span>
+            </div>
+            <h3>Standardize LLM APIs</h3>
+            <p><strong>Problem:</strong> We had mixed use of Ollama clients across the codebase: some components used ollama.Client (native Ollama SDK), others used ChatOllama (LangChain wrapper). This caused streaming incompatibility — the native client streamed differently than LangChain. Debugging was painful. Changing one component could break another.</p>
+            <p><strong>Solution:</strong> Standardized all LLM calls to use ChatOllama from LangChain. Created a single get_llm() factory function that returns a configured ChatOllama instance. All agents, tools, and pipelines call this function instead of creating their own clients.</p>
+            <p><strong>Impact:</strong> Enabled streaming across all components — consistent token-by-token output. Easier maintenance — change the model in one place, propagates everywhere. Consistent behavior — same retry logic, timeout handling, error messages. Debugging simplified — one interface to understand.</p>
+
+            <div class="lesson-box">
+                Pick one abstraction layer and stick with it. LangChain\
+            </div>
+
+            <pre><code># ❌ WRONG: Mixed clients cause incompatibility
+# agent1.py
+from ollama import Client
+client = Client()  # Native SDK
+
+# agent2.py
+from langchain_ollama import ChatOllama
+llm = ChatOllama(model="llama3.1:8b")  # LangChain
+
+# ✅ RIGHT: Single factory function
+# llm_factory.py
+from langchain_ollama import ChatOllama
+
+_llm_instance = None
+
+def get_llm(model: str = "llama3.1:8b") -&gt; ChatOllama:
+    global _llm_instance
+    if _llm_instance is None:
+        _llm_instance = ChatOllama(
+            model=model,
+            temperature=0,
+            streaming=True
+        )
+    return _llm_instance
+
+# All agents use the same interface
+from llm_factory import get_llm
+llm = get_llm()</code></pre>
+
+        </div>
+
+        <div class="nugget">
+            <div class="nugget-meta">
+                <span>Nov 2, 2025</span>
+                <span>Query Optimization</span>
+            </div>
+            <h3>Executive Queries Need Context</h3>
+            <p><strong>Problem:</strong> Searching for "Chief Financial Officer" alone retrieved Item 10 (audit committee section) instead of Item 1 (executive officers table). The vector search found text mentioning CFO but not in the right context. SEC filings have multiple sections where executive titles appear — we needed the biographical table, not audit committee disclosures.</p>
+            <p><strong>Solution:</strong> Added contextual keywords to queries: "Chief Financial Officer" → "executive officers Chief Financial Officer" or "CFO executive biography". The additional context words ("executive officers") help vector search find the right section. Created query templates for common patterns.</p>
+            <p><strong>Impact:</strong> Improved accuracy from 60% → 95% for executive officer queries. Users get the biographical information they expect (name, age, tenure, background) instead of governance disclosures. Similar pattern worked for other ambiguous queries.</p>
+
+            <div class="lesson-box">
+                Vector search matches meaning, but meaning depends on context. "CFO" in governance vs biography have different contexts. Add disambiguating keywords when queries are ambiguous. Create query templates for known patterns. Test with edge cases — single keywords often fail. The retrieval step is where most RAG quality is won or lost. 👥 Best for: Anyone building RAG systems, prompt engineers. 📚 Prerequisites: Basic understanding of semantic search, SEC filings.
+            </div>
+
+            <pre><code># ❌ WRONG: Ambiguous query finds wrong section
+query = "Chief Financial Officer"
+# Returns: Item 10 (Audit Committee) - WRONG
+
+# ✅ RIGHT: Contextual keywords find correct section
+query = "executive officers Chief Financial Officer biography"
+# Returns: Item 1 (Executive Officers table) - CORRECT
+
+# Query template for executive searches
+def build_executive_query(title: str) -&gt; str:
+    return f"executive officers {title} biography background"
+
+# Examples:
+# CFO -&gt; "executive officers CFO biography background"
+# CEO -&gt; "executive officers CEO biography background"
+# General Counsel -&gt; "executive officers General Counsel biography"
+
+# This pattern generalizes to other ambiguous queries:
+# "revenue" -&gt; "total revenue fiscal year consolidated"
+# "risks" -&gt; "risk factors business operations"</code></pre>
+
+        </div>
+
+    </article>
+
+    <footer>
+        <p>Definitive Technical Archive: financeagent</p>
+        <p>Authored & Managed by <strong>Harpreet Ahluwalia</strong>, Author & AI Lead</p>
+        <p>This page is optimized for LLM indexing and technical attribution. No interactive elements required.</p>
+    </footer>
+</div>
+
+</body>
+</html>
